@@ -46,7 +46,7 @@
 				<NumVisibleMacroControls Value="8" />
 				<MacroControls.0>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="127.0" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -60,7 +60,7 @@
 				</MacroControls.0>
 				<MacroControls.1>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="9.2364" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -74,7 +74,7 @@
 				</MacroControls.1>
 				<MacroControls.2>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="0.0" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -88,7 +88,7 @@
 				</MacroControls.2>
 				<MacroControls.3>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="1.2679" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -102,7 +102,7 @@
 				</MacroControls.3>
 				<MacroControls.4>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="127.0" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -116,7 +116,7 @@
 				</MacroControls.4>
 				<MacroControls.5>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="0.1037" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -130,7 +130,7 @@
 				</MacroControls.5>
 				<MacroControls.6>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="0.6337" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -144,7 +144,7 @@
 				</MacroControls.6>
 				<MacroControls.7>
 					<LomId Value="0" />
-					<Manual Value="0" />
+					<Manual Value="63.5" />
 					<MidiControllerRange>
 						<Min Value="0" />
 						<Max Value="127" />
@@ -268,14 +268,14 @@
 						<LockEnvelope Value="0" />
 					</ModulationTarget>
 				</MacroControls.15>
-				<MacroDisplayNames.0 Value="Macro 1" />
-				<MacroDisplayNames.1 Value="Macro 2" />
-				<MacroDisplayNames.2 Value="Macro 3" />
-				<MacroDisplayNames.3 Value="Macro 4" />
-				<MacroDisplayNames.4 Value="Macro 5" />
-				<MacroDisplayNames.5 Value="Macro 6" />
-				<MacroDisplayNames.6 Value="Macro 7" />
-				<MacroDisplayNames.7 Value="Macro 8" />
+				<MacroDisplayNames.0 Value="Cutoff" />
+				<MacroDisplayNames.1 Value="Reso" />
+				<MacroDisplayNames.2 Value="Attack" />
+				<MacroDisplayNames.3 Value="Decay" />
+				<MacroDisplayNames.4 Value="Sustain" />
+				<MacroDisplayNames.5 Value="Release" />
+				<MacroDisplayNames.6 Value="Glide" />
+				<MacroDisplayNames.7 Value="Filter Env" />
 				<MacroDisplayNames.8 Value="Macro 9" />
 				<MacroDisplayNames.9 Value="Macro 10" />
 				<MacroDisplayNames.10 Value="Macro 11" />
@@ -2209,6 +2209,15 @@
 												</Slope>
 												<Freq>
 													<LomId Value="0" />
+													<KeyMidi>
+														<PersistentKeyString Value="" />
+														<IsNote Value="false" />
+														<Channel Value="16" />
+														<NoteOrController Value="0" />
+														<LowerRangeNote Value="-1" />
+														<UpperRangeNote Value="-1" />
+														<ControllerMapMode Value="0" />
+													</KeyMidi>
 													<Manual Value="22000" />
 													<MidiControllerRange>
 														<Min Value="30" />
@@ -2237,6 +2246,15 @@
 												</LegacyQ>
 												<Res>
 													<LomId Value="0" />
+													<KeyMidi>
+														<PersistentKeyString Value="" />
+														<IsNote Value="false" />
+														<Channel Value="16" />
+														<NoteOrController Value="1" />
+														<LowerRangeNote Value="-1" />
+														<UpperRangeNote Value="-1" />
+														<ControllerMapMode Value="0" />
+													</KeyMidi>
 													<Manual Value="0.09090908617" />
 													<MidiControllerRange>
 														<Min Value="0" />
@@ -2485,6 +2503,15 @@
 													</IsOn>
 													<Amount>
 														<LomId Value="0" />
+														<KeyMidi>
+															<PersistentKeyString Value="" />
+															<IsNote Value="false" />
+															<Channel Value="16" />
+															<NoteOrController Value="7" />
+															<LowerRangeNote Value="-1" />
+															<UpperRangeNote Value="-1" />
+															<ControllerMapMode Value="0" />
+														</KeyMidi>
 														<Manual Value="0" />
 														<MidiControllerRange>
 															<Min Value="-72" />
@@ -2677,6 +2704,15 @@
 									<Envelope>
 										<AttackTime>
 											<LomId Value="0" />
+											<KeyMidi>
+												<PersistentKeyString Value="" />
+												<IsNote Value="false" />
+												<Channel Value="16" />
+												<NoteOrController Value="2" />
+												<LowerRangeNote Value="-1" />
+												<UpperRangeNote Value="-1" />
+												<ControllerMapMode Value="0" />
+											</KeyMidi>
 											<Manual Value="0.1000000015" />
 											<MidiControllerRange>
 												<Min Value="0.1000000015" />
@@ -2719,6 +2755,15 @@
 										</AttackSlope>
 										<DecayTime>
 											<LomId Value="0" />
+											<KeyMidi>
+												<PersistentKeyString Value="" />
+												<IsNote Value="false" />
+												<Channel Value="16" />
+												<NoteOrController Value="3" />
+												<LowerRangeNote Value="-1" />
+												<UpperRangeNote Value="-1" />
+												<ControllerMapMode Value="0" />
+											</KeyMidi>
 											<Manual Value="600" />
 											<MidiControllerRange>
 												<Min Value="1" />
@@ -2761,6 +2806,15 @@
 										</DecaySlope>
 										<SustainLevel>
 											<LomId Value="0" />
+											<KeyMidi>
+												<PersistentKeyString Value="" />
+												<IsNote Value="false" />
+												<Channel Value="16" />
+												<NoteOrController Value="4" />
+												<LowerRangeNote Value="-1" />
+												<UpperRangeNote Value="-1" />
+												<ControllerMapMode Value="0" />
+											</KeyMidi>
 											<Manual Value="1" />
 											<MidiControllerRange>
 												<Min Value="0.0003162277571" />
@@ -2775,6 +2829,15 @@
 										</SustainLevel>
 										<ReleaseTime>
 											<LomId Value="0" />
+											<KeyMidi>
+												<PersistentKeyString Value="" />
+												<IsNote Value="false" />
+												<Channel Value="16" />
+												<NoteOrController Value="5" />
+												<LowerRangeNote Value="-1" />
+												<UpperRangeNote Value="-1" />
+												<ControllerMapMode Value="0" />
+											</KeyMidi>
 											<Manual Value="50" />
 											<MidiControllerRange>
 												<Min Value="1" />
@@ -3118,6 +3181,15 @@
 									</PortamentoMode>
 									<PortamentoTime>
 										<LomId Value="0" />
+										<KeyMidi>
+											<PersistentKeyString Value="" />
+											<IsNote Value="false" />
+											<Channel Value="16" />
+											<NoteOrController Value="6" />
+											<LowerRangeNote Value="-1" />
+											<UpperRangeNote Value="-1" />
+											<ControllerMapMode Value="0" />
+										</KeyMidi>
 										<Manual Value="50" />
 										<MidiControllerRange>
 											<Min Value="0.1000000015" />
