@@ -6,72 +6,79 @@
   "tier": "gold",
   "sampling_dates": [],
   "chains_captured": [
-    "raw"
+    {
+      "name": "raw",
+      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
+      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "studio": "the spacepit",
+      "credit_line": "Captured at the spacepit through Radial J+4",
+      "captured_at": null
+    }
   ],
   "patches": [
     {
       "name": "ep1-rhodes",
-      "notes": "THE patch — Brian Eno's E.PIANO 1 preset. ROM cartridge slot A-11. Replaced Rhodes/Wurli on virtually every 80s ballad. Velocity-sensitive: soft plays bell-like, hard plays glassy + bright. Range a1-a5 (full 88 if you have it). Used in: Phil Collins 'One More Night', Whitney Houston 'Greatest Love of All', Chicago 'Hard to Say I'm Sorry', ~10,000 charting tracks 1984-1992. THE most-used digital preset of all time.",
+      "notes": "THE patch \u2014 Brian Eno's E.PIANO 1 preset. ROM cartridge slot A-11. Replaced Rhodes/Wurli on virtually every 80s ballad. Velocity-sensitive: soft plays bell-like, hard plays glassy + bright. Range a1-a5 (full 88 if you have it). Used in: Phil Collins 'One More Night', Whitney Houston 'Greatest Love of All', Chicago 'Hard to Say I'm Sorry', ~10,000 charting tracks 1984-1992. THE most-used digital preset of all time.",
       "samples_dir": "patches/ep1-rhodes/raw"
     },
     {
       "name": "bass1-slap",
-      "notes": "DX BASS 1 — the slap bass that defined 80s funk-pop. Bright attack, percussive, velocity-controls brightness. Range a1-a3. Used in: Phil Collins, Genesis, Whitney Houston, Stevie Wonder, every 80s ballad with no real bassist.",
+      "notes": "DX BASS 1 \u2014 the slap bass that defined 80s funk-pop. Bright attack, percussive, velocity-controls brightness. Range a1-a3. Used in: Phil Collins, Genesis, Whitney Houston, Stevie Wonder, every 80s ballad with no real bassist.",
       "samples_dir": "patches/bass1-slap/raw"
     },
     {
       "name": "tub-bells",
-      "notes": "TUB BELLS — the iconic FM bell that became 'the Twin Peaks sound' / Tubular Bells. Soft mallet hits with long sustain. Range c2-c6. Used in: Twin Peaks theme (Badalamenti), Angelo, ambient productions, Boards of Canada-adjacent.",
+      "notes": "TUB BELLS \u2014 the iconic FM bell that became 'the Twin Peaks sound' / Tubular Bells. Soft mallet hits with long sustain. Range c2-c6. Used in: Twin Peaks theme (Badalamenti), Angelo, ambient productions, Boards of Canada-adjacent.",
       "samples_dir": "patches/tub-bells/raw"
     },
     {
       "name": "marimba",
-      "notes": "DX MARIMBA — wooden percussion tone. Bright attack, quick decay. Range c2-c6. Used in: Tears for Fears 'Everybody Wants to Rule the World' lead line, jazz-fusion productions.",
+      "notes": "DX MARIMBA \u2014 wooden percussion tone. Bright attack, quick decay. Range c2-c6. Used in: Tears for Fears 'Everybody Wants to Rule the World' lead line, jazz-fusion productions.",
       "samples_dir": "patches/marimba/raw"
     },
     {
       "name": "harpsichord",
-      "notes": "HARPSICH 1 — bright, plucky harpsichord. Used in: 80s symphonic-pop ballads, soundtrack work. Range c2-c6.",
+      "notes": "HARPSICH 1 \u2014 bright, plucky harpsichord. Used in: 80s symphonic-pop ballads, soundtrack work. Range c2-c6.",
       "samples_dir": "patches/harpsichord/raw"
     },
     {
       "name": "brass1",
-      "notes": "BRASS 1 — bright FM brass stab. Synthy, not realistic, but iconic. Range c2-c6. Used in: 80s pop horn-sections, A-ha, Howard Jones.",
+      "notes": "BRASS 1 \u2014 bright FM brass stab. Synthy, not realistic, but iconic. Range c2-c6. Used in: 80s pop horn-sections, A-ha, Howard Jones.",
       "samples_dir": "patches/brass1/raw"
     },
     {
       "name": "strings",
-      "notes": "STRINGS 1 — FM string ensemble. Synthetic warmth, slow attack. Range c2-c6. Used in: 80s ballad pads under E.PIANO 1, all kinds of soft-rock layering.",
+      "notes": "STRINGS 1 \u2014 FM string ensemble. Synthetic warmth, slow attack. Range c2-c6. Used in: 80s ballad pads under E.PIANO 1, all kinds of soft-rock layering.",
       "samples_dir": "patches/strings/raw"
     },
     {
       "name": "pipes",
-      "notes": "PIPES 1 — the chime/whistle that became the iconic 'plastic flute'. Used in: A-ha 'Take On Me' instrumental sections, mid-80s synth-pop. Range c3-c6.",
+      "notes": "PIPES 1 \u2014 the chime/whistle that became the iconic 'plastic flute'. Used in: A-ha 'Take On Me' instrumental sections, mid-80s synth-pop. Range c3-c6.",
       "samples_dir": "patches/pipes/raw"
     },
     {
       "name": "tenor-sax",
-      "notes": "TENOR SAX — FM sax patch, breathy attack. Synthetic but iconic. Range c2-c5. Used in: 80s smooth jazz, Kenny G-era productions, sax solos when you couldn't book a player.",
+      "notes": "TENOR SAX \u2014 FM sax patch, breathy attack. Synthetic but iconic. Range c2-c5. Used in: 80s smooth jazz, Kenny G-era productions, sax solos when you couldn't book a player.",
       "samples_dir": "patches/tenor-sax/raw"
     },
     {
       "name": "wurly-dx",
-      "notes": "WURLY — DX7's take on the Wurlitzer EP sound. Mellower than EP1, more 'soulful'. Range a1-a5. Used in: Neo-soul productions where they want EP character but with DX glassiness.",
+      "notes": "WURLY \u2014 DX7's take on the Wurlitzer EP sound. Mellower than EP1, more 'soulful'. Range a1-a5. Used in: Neo-soul productions where they want EP character but with DX glassiness.",
       "samples_dir": "patches/wurly-dx/raw"
     },
     {
       "name": "log-drum",
-      "notes": "LOG DRUM — woody percussive patch, useful as one-shot percussion or melodic hits. Range c2-c5. Used in: tribal-pop, hand-drum simulations, Peter Gabriel-era productions.",
+      "notes": "LOG DRUM \u2014 woody percussive patch, useful as one-shot percussion or melodic hits. Range c2-c5. Used in: tribal-pop, hand-drum simulations, Peter Gabriel-era productions.",
       "samples_dir": "patches/log-drum/raw"
     },
     {
       "name": "fm-pad",
-      "notes": "FM PAD — slow-attack pad with FM 'shimmer' on top. Range c2-c5. Used in: ambient productions, soundtracks, atmospheric layering. Less iconic but a workhorse.",
+      "notes": "FM PAD \u2014 slow-attack pad with FM 'shimmer' on top. Range c2-c5. Used in: ambient productions, soundtracks, atmospheric layering. Less iconic but a workhorse.",
       "samples_dir": "patches/fm-pad/raw"
     },
     {
       "name": "fretless-bass",
-      "notes": "FRETLESS BS — DX7's fretless bass impression. Smooth attack with subtle vibrato. Range a1-a3. Used in: smooth jazz, R&B ballads, Wayman Tisdale era.",
+      "notes": "FRETLESS BS \u2014 DX7's fretless bass impression. Smooth attack with subtle vibrato. Range a1-a3. Used in: smooth jazz, R&B ballads, Wayman Tisdale era.",
       "samples_dir": "patches/fretless-bass/raw"
     }
   ],

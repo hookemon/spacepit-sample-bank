@@ -4,9 +4,22 @@
   "category": "synth",
   "tier": "gold",
   "sampling_dates": [],
-  "chains_captured": ["raw"],
+  "chains_captured": [
+    {
+      "name": "raw",
+      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
+      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "studio": "the spacepit",
+      "credit_line": "Captured at the spacepit through Radial J+4",
+      "captured_at": null
+    }
+  ],
   "patches": [
-    { "name": "lead01", "notes": "TBD — knob positions, vibe one-liner", "samples_dir": "patches/lead01/raw" }
+    {
+      "name": "lead01",
+      "notes": "TBD \u2014 knob positions, vibe one-liner",
+      "samples_dir": "patches/lead01/raw"
+    }
   ],
   "one_shots_dir": null,
   "loops": [],

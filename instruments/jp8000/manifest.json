@@ -8,7 +8,14 @@
     "2026-05-26"
   ],
   "chains_captured": [
-    "raw"
+    {
+      "name": "raw",
+      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
+      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "studio": "the spacepit",
+      "credit_line": "Captured at the spacepit through Radial J+4",
+      "captured_at": null
+    }
   ],
   "patches": [
     {

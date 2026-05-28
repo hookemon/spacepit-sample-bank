@@ -6,67 +6,74 @@
   "tier": "gold",
   "sampling_dates": [],
   "chains_captured": [
-    "raw"
+    {
+      "name": "raw",
+      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
+      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "studio": "the spacepit",
+      "credit_line": "Captured at the spacepit through Radial J+4",
+      "captured_at": null
+    }
   ],
   "patches": [
     {
       "name": "impact-i-a-32",
-      "notes": "THE TRITON SOUND — A-32 IMPACT. The piano-stab heard on more 2000s hip-hop records than any other preset. Layered piano + bell + bass triggered by single key. Range a1-a5. Used in: Drake 'In My Feelings', Cardi B 'Bodak Yellow', Just Blaze productions, ~80+ charting tracks. Producers chase this preset for the Jay-Z 'Heart of the City' era sound.",
+      "notes": "THE TRITON SOUND \u2014 A-32 IMPACT. The piano-stab heard on more 2000s hip-hop records than any other preset. Layered piano + bell + bass triggered by single key. Range a1-a5. Used in: Drake 'In My Feelings', Cardi B 'Bodak Yellow', Just Blaze productions, ~80+ charting tracks. Producers chase this preset for the Jay-Z 'Heart of the City' era sound.",
       "samples_dir": "patches/impact-i-a-32/raw"
     },
     {
       "name": "mother-of-pearl",
-      "notes": "MOTHER OF PEARL (A-12) — atmospheric pad with shimmer, the 'Future R&B' pad. Slow attack, wide stereo. Range c2-c6. Used in: The Weeknd, Bryson Tiller, PartyNextDoor productions, all of OVO Sound late 2010s.",
+      "notes": "MOTHER OF PEARL (A-12) \u2014 atmospheric pad with shimmer, the 'Future R&B' pad. Slow attack, wide stereo. Range c2-c6. Used in: The Weeknd, Bryson Tiller, PartyNextDoor productions, all of OVO Sound late 2010s.",
       "samples_dir": "patches/mother-of-pearl/raw"
     },
     {
       "name": "rock-organ",
-      "notes": "ROCK ORGAN — Triton's Hammond-style B3 organ. With Leslie sim. Range a2-a5. Used in: 2000s rap-rock productions, hip-hop soul, R&B 'feeling-spirit' moments.",
+      "notes": "ROCK ORGAN \u2014 Triton's Hammond-style B3 organ. With Leslie sim. Range a2-a5. Used in: 2000s rap-rock productions, hip-hop soul, R&B 'feeling-spirit' moments.",
       "samples_dir": "patches/rock-organ/raw"
     },
     {
       "name": "studio-grand",
-      "notes": "STUDIO GRAND PIANO — Triton's signature acoustic piano patch. THE go-to piano sample for 2000s pop+R&B production. Range a1-a5. Used in: Beyoncé 'Halo', Alicia Keys productions, mainstream pop-soul.",
+      "notes": "STUDIO GRAND PIANO \u2014 Triton's signature acoustic piano patch. THE go-to piano sample for 2000s pop+R&B production. Range a1-a5. Used in: Beyonc\u00e9 'Halo', Alicia Keys productions, mainstream pop-soul.",
       "samples_dir": "patches/studio-grand/raw"
     },
     {
       "name": "old-tape-rhodes",
-      "notes": "OLD TAPE RHODES — vintage EP impression with tape saturation character baked in. Range a1-a5. Used in: D'Angelo-era neo-soul productions, ?uestlove sets.",
+      "notes": "OLD TAPE RHODES \u2014 vintage EP impression with tape saturation character baked in. Range a1-a5. Used in: D'Angelo-era neo-soul productions, ?uestlove sets.",
       "samples_dir": "patches/old-tape-rhodes/raw"
     },
     {
       "name": "smooth-strings",
-      "notes": "SMOOTH STRINGS (PRES) — lush legato strings. Range c2-c6. Used in: 2000s ballad backgrounds, hip-hop soul layering, Just Blaze epic-mode productions.",
+      "notes": "SMOOTH STRINGS (PRES) \u2014 lush legato strings. Range c2-c6. Used in: 2000s ballad backgrounds, hip-hop soul layering, Just Blaze epic-mode productions.",
       "samples_dir": "patches/smooth-strings/raw"
     },
     {
       "name": "808-sub-bass",
-      "notes": "808 SUB BASS — Triton's emulation of the TR-808 kick as a tuned sub. Range a0-a2. Used in: 2000s/2010s hip-hop, trap, Atlanta sound.",
+      "notes": "808 SUB BASS \u2014 Triton's emulation of the TR-808 kick as a tuned sub. Range a0-a2. Used in: 2000s/2010s hip-hop, trap, Atlanta sound.",
       "samples_dir": "patches/808-sub-bass/raw"
     },
     {
       "name": "lead-saw",
-      "notes": "LEAD SAW — Triton's classic supersaw lead. Range c3-c6. Used in: 2000s pop-rap leads, Timbaland productions, mainstream hip-hop hooks.",
+      "notes": "LEAD SAW \u2014 Triton's classic supersaw lead. Range c3-c6. Used in: 2000s pop-rap leads, Timbaland productions, mainstream hip-hop hooks.",
       "samples_dir": "patches/lead-saw/raw"
     },
     {
       "name": "fingerstyle-bass",
-      "notes": "FINGERSTYLE BASS — Triton's realistic fingered bass impression. Range a1-a3. Used in: 2000s R&B, neo-soul productions where you need a real-sounding bass but no live player.",
+      "notes": "FINGERSTYLE BASS \u2014 Triton's realistic fingered bass impression. Range a1-a3. Used in: 2000s R&B, neo-soul productions where you need a real-sounding bass but no live player.",
       "samples_dir": "patches/fingerstyle-bass/raw"
     },
     {
       "name": "wide-pad",
-      "notes": "WIDE PAD — slow-attack atmospheric pad. Range c2-c6. Used in: ambient R&B intros, trap atmosphere layers, modern hip-hop production beds.",
+      "notes": "WIDE PAD \u2014 slow-attack atmospheric pad. Range c2-c6. Used in: ambient R&B intros, trap atmosphere layers, modern hip-hop production beds.",
       "samples_dir": "patches/wide-pad/raw"
     },
     {
       "name": "kalimba",
-      "notes": "KALIMBA — thumb piano sample with attack snap. Range c3-c6. Used in: world-pop productions, Drake-era African-influenced hip-hop ('One Dance' vibe).",
+      "notes": "KALIMBA \u2014 thumb piano sample with attack snap. Range c3-c6. Used in: world-pop productions, Drake-era African-influenced hip-hop ('One Dance' vibe).",
       "samples_dir": "patches/kalimba/raw"
     },
     {
       "name": "drum-kit",
-      "notes": "Triton's stock drum kit — including the iconic kick + snare layers that defined a generation of hip-hop drum programming. One-shot capture per element.",
+      "notes": "Triton's stock drum kit \u2014 including the iconic kick + snare layers that defined a generation of hip-hop drum programming. One-shot capture per element.",
       "samples_dir": "patches/drum-kit/raw"
     }
   ],

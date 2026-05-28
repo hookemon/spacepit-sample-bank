@@ -1,0 +1,23 @@
+{
+  "device": "Teenage Engineering EP-133 K.O. II",
+  "midi_channel": 1,
+  "learned_at": "2026-05-27",
+  "pad_map": {
+    "kick": 36,
+    "snare": 40,
+    "closed_hat": 43,
+    "open_hat": 44
+  },
+  "gm_to_ko_remap": {
+    "35": 36,
+    "36": 36,
+    "38": 40,
+    "40": 40,
+    "37": 40,
+    "42": 43,
+    "44": 43,
+    "46": 44,
+    "0": 44
+  },
+  "note": "Pad notes learned by tapping each pad + capturing via bench MIDI listener. NOT GM standard."
+}

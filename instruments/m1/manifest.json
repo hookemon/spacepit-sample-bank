@@ -6,67 +6,74 @@
   "tier": "gold",
   "sampling_dates": [],
   "chains_captured": [
-    "raw"
+    {
+      "name": "raw",
+      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
+      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "studio": "the spacepit",
+      "credit_line": "Captured at the spacepit through Radial J+4",
+      "captured_at": null
+    }
   ],
   "patches": [
     {
       "name": "organ2",
-      "notes": "THE M1 sound — ORGAN 2 (INT 17). The house-music organ of all time. Every Italo-house and early house track 1988-1994. Range c2-c6. Used in: Robin S 'Show Me Love', Black Box 'Ride on Time', Madonna 'Vogue', every classic house anthem. Probably the most-sampled digital preset in dance music history.",
+      "notes": "THE M1 sound \u2014 ORGAN 2 (INT 17). The house-music organ of all time. Every Italo-house and early house track 1988-1994. Range c2-c6. Used in: Robin S 'Show Me Love', Black Box 'Ride on Time', Madonna 'Vogue', every classic house anthem. Probably the most-sampled digital preset in dance music history.",
       "samples_dir": "patches/organ2/raw"
     },
     {
       "name": "universe-pad",
-      "notes": "UNIVERSE (PRES 88) — wide ethereal pad with shimmer + airy strings layer. Range c2-c6. Used in: Enya productions, ambient electronica, 90s film scores, Soul II Soul backing pads.",
+      "notes": "UNIVERSE (PRES 88) \u2014 wide ethereal pad with shimmer + airy strings layer. Range c2-c6. Used in: Enya productions, ambient electronica, 90s film scores, Soul II Soul backing pads.",
       "samples_dir": "patches/universe-pad/raw"
     },
     {
       "name": "piano-16",
-      "notes": "PIANO 16 — M1's stock electric piano. Soft Rhodes-ish character. Range a1-a5. Used in: 80s/90s pop ballads, all over R&B productions that needed a pad-piano hybrid.",
+      "notes": "PIANO 16 \u2014 M1's stock electric piano. Soft Rhodes-ish character. Range a1-a5. Used in: 80s/90s pop ballads, all over R&B productions that needed a pad-piano hybrid.",
       "samples_dir": "patches/piano-16/raw"
     },
     {
       "name": "fretless-bass",
-      "notes": "FRETLESS BASS (INT 23) — smooth jazz fretless impression. Mwah character. Range a1-a3. Used in: smooth jazz, 90s R&B ballads, Babyface productions.",
+      "notes": "FRETLESS BASS (INT 23) \u2014 smooth jazz fretless impression. Mwah character. Range a1-a3. Used in: smooth jazz, 90s R&B ballads, Babyface productions.",
       "samples_dir": "patches/fretless-bass/raw"
     },
     {
       "name": "slap-bass",
-      "notes": "SLAP BASS — the percussive slap-bass preset. Bright attack. Range a1-a3. Used in: 80s/90s funk-pop, Whitney Houston, Mariah Carey productions.",
+      "notes": "SLAP BASS \u2014 the percussive slap-bass preset. Bright attack. Range a1-a3. Used in: 80s/90s funk-pop, Whitney Houston, Mariah Carey productions.",
       "samples_dir": "patches/slap-bass/raw"
     },
     {
       "name": "strings-pad",
-      "notes": "STRINGS — M1's stock string pad. Lush, slow attack. Range c2-c6. Used in: house anthem backgrounds, R&B ballads, ambient productions.",
+      "notes": "STRINGS \u2014 M1's stock string pad. Lush, slow attack. Range c2-c6. Used in: house anthem backgrounds, R&B ballads, ambient productions.",
       "samples_dir": "patches/strings-pad/raw"
     },
     {
       "name": "horn-section",
-      "notes": "HORN SECTION — brass stab patch. Bright, punchy. Range c3-c5. Used in: 90s R&B, hip-hop soul productions, Mary J Blige era.",
+      "notes": "HORN SECTION \u2014 brass stab patch. Bright, punchy. Range c3-c5. Used in: 90s R&B, hip-hop soul productions, Mary J Blige era.",
       "samples_dir": "patches/horn-section/raw"
     },
     {
       "name": "fantasia",
-      "notes": "FANTASIA — bell + pad layer, vector-synth movement. Range c3-c6. Used in: 80s/90s ambient pop, soundtracks, Enya-adjacent productions.",
+      "notes": "FANTASIA \u2014 bell + pad layer, vector-synth movement. Range c3-c6. Used in: 80s/90s ambient pop, soundtracks, Enya-adjacent productions.",
       "samples_dir": "patches/fantasia/raw"
     },
     {
       "name": "vocal-pad",
-      "notes": "VOCAL PAD — voice-like pad with formants. Range c3-c6. Used in: house anthem 'aaah' pads, R&B background swells.",
+      "notes": "VOCAL PAD \u2014 voice-like pad with formants. Range c3-c6. Used in: house anthem 'aaah' pads, R&B background swells.",
       "samples_dir": "patches/vocal-pad/raw"
     },
     {
       "name": "marimba",
-      "notes": "MARIMBA — woody mallet sample. Range c2-c6. Used in: 80s/90s pop melodic hooks, jazz-pop productions.",
+      "notes": "MARIMBA \u2014 woody mallet sample. Range c2-c6. Used in: 80s/90s pop melodic hooks, jazz-pop productions.",
       "samples_dir": "patches/marimba/raw"
     },
     {
       "name": "shaker-perc",
-      "notes": "SHAKER / TAMBOURINE percussion samples — useful one-shots for adding 80s/90s pop percussion. Range c3-c5.",
+      "notes": "SHAKER / TAMBOURINE percussion samples \u2014 useful one-shots for adding 80s/90s pop percussion. Range c3-c5.",
       "samples_dir": "patches/shaker-perc/raw"
     },
     {
       "name": "kicks-snares",
-      "notes": "M1's stock drum samples — kick, snare, hi-hat. Defined the 'M1 drums' sound that's on hundreds of house/R&B tracks. Range c1-c2 (drum-mapped). One-shot capture.",
+      "notes": "M1's stock drum samples \u2014 kick, snare, hi-hat. Defined the 'M1 drums' sound that's on hundreds of house/R&B tracks. Range c1-c2 (drum-mapped). One-shot capture.",
       "samples_dir": "patches/kicks-snares/raw"
     }
   ],
