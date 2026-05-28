@@ -289,6 +289,14 @@ def main() -> None:
                 continue
             patch_name = patch_folder.name
 
+            # Real Roland factory name for everything the user SEES (Ableton device name,
+            # README, pack list) — e.g. "A57 · Euro SAW". The slug stays the folder/file id.
+            _mp = next((p for p in manifest.get("patches", []) if p.get("name") == patch_name), {})
+            if _mp.get("preset_name") and _mp.get("preset_position"):
+                display_name = f"{_mp['preset_position']} · {_mp['preset_name']}"
+            else:
+                display_name = _mp.get("preset_name") or patch_name
+
             # iterate chains (raw, spring, etc.) — skip backup folders the cleaner left behind
             for chain_folder in sorted(patch_folder.iterdir()):
                 if not chain_folder.is_dir():
@@ -340,7 +348,7 @@ def main() -> None:
                 # The .adv embeds absolute paths to the WAVs we just copied into pack/audio/...
                 # so anyone who unzips the pack at the same location will get working presets.
                 # For shipping: the .adv samples references point INTO the pack itself.
-                ableton_label = patch_name if chain == "raw" else f"{patch_name}-{chain}"
+                ableton_label = display_name if chain == "raw" else f"{display_name} ({chain})"
                 wav_dest_paths = sorted((pack_dir / "audio/multisamples" / patch_name / chain).glob("*.wav"))
                 ableton_extras = ""
                 # Find seamless loop points on the copied WAVs (writes loops.json beside

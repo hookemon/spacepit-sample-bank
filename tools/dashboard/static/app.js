@@ -1360,19 +1360,27 @@
       const s = data.summary;
       summaryEl.innerHTML = `<b style="color: var(--green);">${s.captured}</b> captured · <b style="color: var(--amber);">${s.pending}</b> pending · <b>${s.todo}</b> todo · <b>${s.total}</b> total`;
 
+      const roleColors = { lead: '#F2B705', bass: '#7AA2F7', pad: '#9D7CD8', keys: '#73DACA', synth: '#8A8FA3', drums: '#F7768E', arp: '#E0AF68' };
       const iconicHtml = data.patches.length ? data.patches.map(p => {
         const icon = p.status === 'captured' ? '✓' : p.status === 'pending' ? '◐' : '○';
         const color = p.status === 'captured' ? 'var(--green)' : p.status === 'pending' ? 'var(--amber)' : 'var(--fg-faint)';
         const wavInfo = p.status === 'captured' ? ` <span style="color: var(--fg-faint); font-size: 10px;">(${p.wav_count} wav)</span>` : '';
         const notesTrim = (p.notes || '').slice(0, 90) + ((p.notes || '').length > 90 ? '…' : '');
         const notesEscaped = (p.notes || '').replace(/"/g, '&quot;');
-        const pcBadge = (p.program_change != null) ? `<span style="background: var(--grad-amber); color: #1a0e00; padding: 1px 6px; border-radius: 2px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; margin-left: 6px; vertical-align: middle;" title="Linked to factory preset — click row to send PC ${p.program_change}">${p.gearbase_preset_id || 'PC'+p.program_change}</span>` : '';
+        // HERO = the real Roland name + bank slot (e.g. "A57 · Euro SAW") — matches what
+        // the synth screen shows, so loading + capture is verified by eye. Falls back to
+        // the technical slug for instruments not yet enriched with factory names.
+        const heroName = p.preset_name ? `${p.preset_position ? p.preset_position + ' · ' : ''}${p.preset_name}` : p.name;
+        const slugTag = p.preset_name ? `<span style="color: var(--fg-faint); font-family: var(--mono); font-size: 9px; opacity: 0.75;">${p.name}</span> · ` : '';
+        const rc = roleColors[p.role];
+        const roleChip = p.role ? `<span style="background: ${rc || 'var(--bg-2)'}22; color: ${rc || 'var(--fg-faint)'}; border: 1px solid ${rc || 'var(--border)'}55; padding: 0 5px; border-radius: 2px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 6px; vertical-align: middle;">${p.role}</span>` : '';
+        const pcBadge = (p.program_change != null) ? `<span style="background: var(--grad-amber); color: #1a0e00; padding: 1px 6px; border-radius: 2px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; margin-left: 6px; vertical-align: middle;" title="Linked to factory preset — click row to send PC ${p.program_change}">PC ${p.program_change}</span>` : '';
         return `
           <div class="iconic-patch-row" data-patch="${p.name}" data-pc="${p.program_change ?? ''}" data-msb="${p.bank_msb ?? ''}" data-lsb="${p.bank_lsb ?? ''}" data-preset-id="${p.gearbase_preset_id || ''}" title="${notesEscaped}" style="display: flex; gap: 10px; padding: 9px 10px; background: var(--bg-3); border-left: 3px solid ${color}; cursor: pointer; transition: all 0.12s ease;" onmouseover="this.style.background='var(--bg-2)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='var(--bg-3)';this.style.transform=''">
             <span style="color: ${color}; font-weight: 700; min-width: 14px; font-size: 14px; line-height: 1;">${icon}</span>
             <div style="flex: 1; min-width: 0;">
-              <div style="font-family: var(--display); color: var(--fg); font-weight: 600; font-size: 13px; letter-spacing: 0.02em;">${p.name}${pcBadge}${wavInfo}</div>
-              <div style="color: var(--fg-faint); font-size: 10px; line-height: 1.4; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${notesTrim}</div>
+              <div style="font-family: var(--display); color: var(--fg); font-weight: 600; font-size: 13px; letter-spacing: 0.02em;">${heroName}${roleChip}${pcBadge}${wavInfo}</div>
+              <div style="color: var(--fg-faint); font-size: 10px; line-height: 1.4; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${slugTag}${notesTrim}</div>
             </div>
           </div>
         `;

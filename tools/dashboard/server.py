@@ -409,6 +409,12 @@ def list_instrument_patches(slug):
             status = "todo"
         out.append({
             "name": p["name"],
+            # Real Roland factory name + bank slot (e.g. "Euro SAW", "A57"), sourced from
+            # gearbase. Shown at capture time so the bench label matches the synth screen =
+            # visual proof the right preset is loaded before recording.
+            "preset_name": p.get("preset_name"),
+            "preset_position": p.get("preset_position"),
+            "role": p.get("role"),
             "notes": p.get("notes", ""),
             "samples_dir": p.get("samples_dir"),
             "status": status,
