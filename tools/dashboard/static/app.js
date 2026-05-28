@@ -2955,7 +2955,7 @@
   // ---------- captures log ----------
   async function loadCapturesLog() {
     try {
-      const r = await fetch('/api/captures');
+      const r = await fetch('/api/captures?t=' + Date.now());  // cache-bust so a refresh always reflects reality (clears/deletes show immediately)
       const captures = await r.json();
       renderSessionReport(captures);
       const listEl = document.getElementById('captures-list');
