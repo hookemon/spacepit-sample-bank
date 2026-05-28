@@ -257,6 +257,22 @@ def build_adv(template_xml: str, sample_parts_xml: str) -> bytes:
     return gzip.compress(new_xml.encode("utf-8"))
 
 
+def find_onset_sample(wav_path, sample_rate):
+    """First sample above ~-45 dBFS, snapped back to a zero crossing (<=6ms) so
+    the instrument can start playback right on the transient (no dead air)."""
+    audio, sr = sf.read(str(wav_path))
+    mono = audio.mean(axis=1) if getattr(audio, "ndim", 1) > 1 else audio
+    thr = 10 ** (-45 / 20)
+    idx = np.where(np.abs(mono) > thr)[0]
+    if len(idx) == 0:
+        return 0
+    o = int(idx[0])
+    for j in range(o, max(0, o - int(0.006 * sr)), -1):
+        if j > 0 and ((mono[j - 1] <= 0 < mono[j]) or (mono[j - 1] >= 0 > mono[j])):
+            return j
+    return o
+
+
 # Public API — used by build-pack.py to integrate Ableton preset generation
 # into the full pack pipeline without subprocess'ing this script.
 def build_presets_for_wavs(
@@ -290,6 +306,16 @@ def build_presets_for_wavs(
     samples.sort(key=lambda s: s[0])
     roots = [s[0] for s in samples]
 
+    # bake-loops sidecar: exact matched loop points (crossfade already in audio)
+    _loops_sidecar = {}
+    try:
+        import json as _json
+        _sc = Path(samples[0][1]).parent / "loops.json"
+        if _sc.exists():
+            _loops_sidecar = _json.loads(_sc.read_text())
+    except Exception:
+        _loops_sidecar = {}
+
     parts_xml = []
     for i, (root, wav, frames, sr) in enumerate(samples):
         if i == 0:
@@ -300,11 +326,17 @@ def build_presets_for_wavs(
             key_max = 127
         else:
             key_max = (root + roots[i + 1]) // 2
-        lp = find_loop_points(wav, sr) if loop else None
+        ss = find_onset_sample(wav, sr)
+        sc = _loops_sidecar.get(wav.name, "MISSING")
+        if isinstance(sc, dict):
+            ls, le, xf = int(sc["start"]), int(sc["end"]), 0   # crossfade baked into audio
+        elif sc is None:
+            ls, le, xf = None, None, 0                          # explicitly a one-shot
+        else:
+            lp = find_loop_points(wav, sr) if loop else None
+            ls, le, xf = (lp[0], lp[1], lp[2]) if lp else (None, None, 0)
         block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
-                                  loop_start=(lp[0] if lp else None),
-                                  loop_end=(lp[1] if lp else None),
-                                  loop_crossfade=(lp[2] if lp else 0))
+                                  loop_start=ls, loop_end=le, loop_crossfade=xf, sample_start=ss)
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
