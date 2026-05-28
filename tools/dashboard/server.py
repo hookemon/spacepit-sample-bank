@@ -373,7 +373,10 @@ def list_instrument_patches(slug):
         abort(404)
     manifest = json.loads(manifest_path.read_text())
     patches = manifest.get("patches", [])
-    chains = manifest.get("chains_captured", ["raw"])
+    chains_raw = manifest.get("chains_captured", ["raw"])
+    # chains_captured can be a list of strings (legacy) or list of {name, signal_chain, ...} objects (current).
+    # Normalize to a list of chain-name strings for the path-iteration logic below.
+    chains = [c["name"] if isinstance(c, dict) else c for c in chains_raw]
     out = []
     for p in patches:
         # Walk all chains for this patch, summarize capture state
