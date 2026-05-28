@@ -39,3 +39,15 @@ clock_state.json
 *.tmp
 *.log
 .cache/
+
+# WAV captures live on external storage (T7) — symlinks back into the project.
+# Never commit raw audio to git: bloats the repo + bad for public clone speed.
+instruments/*/patches/
+instruments/*/one-shots/
+instruments/*/loops/
+*.wav
+*.aif
+*.flac
+
+# Pack releases are built artifacts — don't commit; ship via GitHub Releases instead
+releases/spacepit-*/
