@@ -1,0 +1,17 @@
+{
+  "name": "trap-808-slide",
+  "type": "bass",
+  "genre": "trap",
+  "bpm": 140,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Trap 808 — long sustained root on the 1, slide to 5th, half-bar rest, return. Pitch glides if you set portamento on the synth.",
+  "events": [
+    {"tick": 0,   "note": "C1", "vel": 115, "len": 84},
+    {"tick": 96,  "note": "G1", "vel": 100, "len": 60},
+    {"tick": 168, "note": "A#1","vel": 105, "len": 24}
+  ],
+  "tags": ["trap", "808", "slide", "half-time"]
+}

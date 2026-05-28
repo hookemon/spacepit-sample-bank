@@ -1,0 +1,13 @@
+{
+  "name": "dub-am-em",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 75,
+  "vibe": "Am Em held 4 bars each — classic dub i-v motion. King Tubby / Scientist space.",
+  "chords": ["Am", "Em"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "reggae", "slow", "minimal", "spring-reverb", "king-tubby", "atmospheric"]
+}

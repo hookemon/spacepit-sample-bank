@@ -1,0 +1,15 @@
+{
+  "name": "dnb-rolling",
+  "type": "drums",
+  "bpm": 174,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "D&B rolling break — kick on 1, snare on 2 and 4, shuffled hats with off-beat accents.",
+  "tracks": {
+    "kick":      [0, 60],
+    "snare":     [24, 72],
+    "hh-closed": [0, 12, 24, 36, 48, 60, 72, 84],
+    "ride":      [42, 90]
+  },
+  "tags": ["dnb", "rolling", "amen", "liquid"]
+}

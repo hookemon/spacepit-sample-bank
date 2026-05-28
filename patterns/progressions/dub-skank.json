@@ -1,0 +1,13 @@
+{
+  "name": "dub-skank",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 78,
+  "vibe": "Am F Em G — walking dub skank, 2 bars each, modal mixture. Movement without losing dub space.",
+  "chords": ["Am", "F", "Em", "G"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "reggae", "skank", "walking", "modal", "movement"]
+}

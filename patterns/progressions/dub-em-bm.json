@@ -1,0 +1,13 @@
+{
+  "name": "dub-em-bm",
+  "type": "progression",
+  "key": "Em",
+  "bpm": 72,
+  "vibe": "Em Bm held 4 bars each — minor i-v in E. Lee Scratch / Adrian Sherwood territory.",
+  "chords": ["Em", "Bm"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "reggae", "lee-scratch", "on-u-sound", "minor", "spacious"]
+}

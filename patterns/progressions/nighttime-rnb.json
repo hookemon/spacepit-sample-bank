@@ -1,0 +1,13 @@
+{
+  "name": "nighttime-rnb",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 70,
+  "vibe": "Cm Bbmaj7 held 4 bars each — slow nighttime R&B / bedroom soul. Weeknd / Daniel Caesar / Brent Faiyaz space.",
+  "chords": ["Cm", "Bbmaj7"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["rnb", "nighttime", "bedroom-soul", "slow", "the-weeknd", "atmospheric", "moody"]
+}

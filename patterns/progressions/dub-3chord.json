@@ -1,0 +1,13 @@
+{
+  "name": "dub-3chord",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 70,
+  "vibe": "Am G F Am — descending dub turnaround, 2 bars each. Aggrovators / Roots Radics rhythm section feel.",
+  "chords": ["Am", "G", "F", "Am"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "reggae", "roots", "descending", "70s-dub", "aggrovators"]
+}

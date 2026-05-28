@@ -1,0 +1,12 @@
+{
+  "name": "uk-garage",
+  "type": "progression",
+  "key": "Bm",
+  "bpm": 138,
+  "vibe": "Bm A G F#m — UK garage / 2-step minor melancholy. Burial / MJ Cole / Todd Edwards.",
+  "chords": ["Bm", "A", "G", "F#m"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "tags": ["uk-garage", "2-step", "garage", "burial", "uk", "138bpm", "moody"]
+}

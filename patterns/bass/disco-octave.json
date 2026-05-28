@@ -1,0 +1,22 @@
+{
+  "name": "disco-octave",
+  "type": "bass",
+  "genre": "disco",
+  "bpm": 118,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Classic disco octave bass — 8ths bouncing between root and octave. Nile Rodgers / Bernard Edwards. Best with a Stingray or P-bass tone.",
+  "events": [
+    {"tick": 0,  "note": "C2", "vel": 105, "len": 10},
+    {"tick": 12, "note": "C3", "vel": 90,  "len": 10},
+    {"tick": 24, "note": "C2", "vel": 100, "len": 10},
+    {"tick": 36, "note": "C3", "vel": 90,  "len": 10},
+    {"tick": 48, "note": "C2", "vel": 105, "len": 10},
+    {"tick": 60, "note": "C3", "vel": 90,  "len": 10},
+    {"tick": 72, "note": "C2", "vel": 100, "len": 10},
+    {"tick": 84, "note": "C3", "vel": 90,  "len": 10}
+  ],
+  "tags": ["disco", "octave", "nile-rodgers", "70s"]
+}

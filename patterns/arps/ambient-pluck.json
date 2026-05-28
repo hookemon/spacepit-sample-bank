@@ -1,0 +1,22 @@
+{
+  "name": "ambient-pluck",
+  "type": "arp",
+  "genre": "ambient",
+  "bpm": 90,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "major",
+  "vibe": "Slow ambient pluck arp — sparse 1/8ths through a Cmaj9 voicing. Brian Eno / Stars of the Lid territory.",
+  "events": [
+    {"tick": 0,   "note": "C3",  "vel": 80, "len": 18},
+    {"tick": 24,  "note": "E3",  "vel": 75, "len": 18},
+    {"tick": 48,  "note": "G3",  "vel": 80, "len": 18},
+    {"tick": 72,  "note": "B3",  "vel": 75, "len": 18},
+    {"tick": 96,  "note": "D4",  "vel": 80, "len": 18},
+    {"tick": 120, "note": "B3",  "vel": 70, "len": 18},
+    {"tick": 144, "note": "G3",  "vel": 75, "len": 18},
+    {"tick": 168, "note": "E3",  "vel": 70, "len": 18}
+  ],
+  "tags": ["ambient", "pluck", "eno", "spacious", "maj9"]
+}

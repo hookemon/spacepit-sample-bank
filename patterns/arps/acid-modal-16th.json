@@ -1,0 +1,30 @@
+{
+  "name": "acid-modal-16th",
+  "type": "arp",
+  "genre": "acid",
+  "bpm": 128,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Acid arp with chromatic surprises — root, b3, 5, b6, b7 modal staircase. Sounds best with a high-resonance filter sweep.",
+  "events": [
+    {"tick": 0,  "note": "C2",  "vel": 110, "len": 5},
+    {"tick": 6,  "note": "D#2", "vel": 95,  "len": 5},
+    {"tick": 12, "note": "G2",  "vel": 100, "len": 5},
+    {"tick": 18, "note": "G#2", "vel": 90,  "len": 5},
+    {"tick": 24, "note": "A#2", "vel": 100, "len": 5},
+    {"tick": 30, "note": "C3",  "vel": 110, "len": 5},
+    {"tick": 36, "note": "A#2", "vel": 95,  "len": 5},
+    {"tick": 42, "note": "G#2", "vel": 90,  "len": 5},
+    {"tick": 48, "note": "G2",  "vel": 100, "len": 5},
+    {"tick": 54, "note": "D#2", "vel": 95,  "len": 5},
+    {"tick": 60, "note": "C2",  "vel": 110, "len": 5},
+    {"tick": 66, "note": "G1",  "vel": 95,  "len": 5},
+    {"tick": 72, "note": "C2",  "vel": 100, "len": 5},
+    {"tick": 78, "note": "D#2", "vel": 95,  "len": 5},
+    {"tick": 84, "note": "G2",  "vel": 100, "len": 5},
+    {"tick": 90, "note": "C3",  "vel": 105, "len": 5}
+  ],
+  "tags": ["acid", "modal", "303", "high-res"]
+}

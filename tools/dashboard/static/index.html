@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>thespacepit / the bench</title>
+<style>
+  :root {
+    /* C+C warm-dark palette — pushed further, visibly warm */
+    --bg-base: #1a1208;                              /* deep warm brown-black */
+    --bg: #1a1208;
+    --bg-2: #251a0e;                                 /* card warm */
+    --bg-3: #2e2114;                                 /* input warm */
+    --border: #4a3520;                               /* warm cocoa border */
+    --fg: #fff0d6;                                   /* warm cream */
+    --fg-dim: #c5a987;
+    --fg-faint: #806550;
+    --amber: #F2B705;
+    --amber-warm: #ff9a3c;
+    --amber-glow: rgba(242, 183, 5, 0.5);
+    --orange-glow: rgba(255, 154, 60, 0.4);
+    --terracotta: #c45a3a;                           /* deep warm red */
+    --plum: #4a2540;                                 /* sunset complement */
+    --green: #5fb866;
+    --red: #d65656;
+    --shadow: 4px 4px 0 rgba(0, 0, 0, 0.7);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display: 'Antonio', system-ui, sans-serif;
+
+    /* visible sunset-like gradients */
+    --grad-bg:
+      radial-gradient(ellipse at 20% 0%, rgba(255, 154, 60, 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(196, 90, 58, 0.14) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(74, 37, 64, 0.10) 0%, transparent 70%),
+      linear-gradient(135deg, #1a1208 0%, #110a04 100%);
+    --grad-amber: linear-gradient(135deg, #ffd84a 0%, #F2B705 40%, #ff9a3c 100%);
+    --grad-card: linear-gradient(180deg, rgba(37, 26, 14, 0.95) 0%, rgba(26, 18, 8, 0.95) 100%);
+    --grad-card-top: linear-gradient(135deg, rgba(242, 183, 5, 0.08) 0%, rgba(37, 26, 14, 0) 60%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { color: var(--fg); font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--bg-base); }
+  body {
+    max-width: 1400px; margin: 0 auto; padding: 20px;
+    display: grid; grid-template-columns: 360px 1fr; gap: 20px; min-height: 100vh;
+    background: var(--grad-bg);
+    background-attachment: fixed;
+  }
+  @media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+
+  /* common */
+  h1 {
+    font-family: var(--display); font-size: 26px; letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--grad-amber); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  h2 { font-family: var(--display); font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--fg-dim); margin: 16px 0 8px; }
+  h3 { font-family: var(--display); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg); margin-bottom: 6px; }
+  label { display: block; font-size: 10px; color: var(--fg-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; background: var(--bg-3); border: 1px solid var(--border); color: var(--fg);
+    font-family: var(--mono); font-size: 12px; padding: 8px 10px; margin-bottom: 12px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--amber); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  button { font-family: var(--mono); font-size: 12px; padding: 10px 16px; border: none; cursor: pointer;
+    letter-spacing: 0.08em; text-transform: uppercase; transition: transform 0.05s ease; }
+  button:active { transform: translate(2px, 2px); }
+  button.primary {
+    background: var(--grad-amber);
+    color: #1a0e00;
+    font-weight: 700;
+    box-shadow: var(--shadow);
+    border-radius: 2px;
+  }
+  button.primary:hover { filter: brightness(1.1); transform: translate(-1px, -1px); box-shadow: 5px 5px 0 rgba(0,0,0,0.7); }
+  button.primary:active { box-shadow: 2px 2px 0 rgba(0,0,0,0.7); transform: translate(2px, 2px); }
+  button.secondary { background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); }
+  button.green { background: var(--green); color: #000; font-weight: 700; box-shadow: var(--shadow); }
+  button.green:active { box-shadow: 2px 2px 0 #000; }
+  button.red { background: var(--red); color: #000; font-weight: 700; box-shadow: var(--shadow); }
+  button.red:active { box-shadow: 2px 2px 0 #000; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
+
+  /* sidebar */
+  aside.sidebar {
+    background:
+      var(--grad-card-top),
+      var(--grad-card);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--amber);
+    border-radius: 4px;
+    padding: 20px;
+    min-height: 600px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 32px rgba(242, 183, 5, 0.05);
+    position: relative;
+  }
+  aside.sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: var(--grad-amber);
+    border-radius: 2px 2px 0 0;
+  }
+  .progress-bar { height: 6px; background: var(--bg-3); margin: 8px 0 16px; position: relative; overflow: hidden; border-radius: 3px; }
+  .progress-bar > div { height: 100%; background: var(--grad-amber); transition: width 0.3s; border-radius: 3px; box-shadow: 0 0 8px rgba(242, 183, 5, 0.4); }
+  .progress-pct { color: var(--amber); font-size: 11px; }
+  .checklist { font-size: 11px; }
+  .checklist-section { margin-bottom: 16px; }
+  .check { display: flex; gap: 6px; align-items: center; padding: 3px 0; color: var(--fg-dim); }
+  .check.done { color: var(--fg); }
+  .check.done::before { content: '☑'; color: var(--green); }
+  .check.partial::before { content: '◐'; color: var(--amber); }
+  .check.todo::before { content: '☐'; color: var(--fg-faint); }
+  .check .num { color: var(--amber); margin-left: auto; }
+
+  /* main panel */
+  main.panel { display: flex; flex-direction: column; gap: 16px; }
+  section.card {
+    background:
+      var(--grad-card-top),
+      var(--grad-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    position: relative;
+  }
+  section.card h3:first-child {
+    color: var(--amber);
+    text-shadow: 0 0 12px rgba(242, 183, 5, 0.3);
+  }
+  .styles { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+  .styles button { flex: 1; min-width: 120px; padding: 10px; }
+  .styles button.selected { background: var(--grad-amber); color: #1a0e00; font-weight: 700; box-shadow: 0 2px 8px rgba(242, 183, 5, 0.25); }
+  .styles button:not(.selected) { background: var(--bg-3); color: var(--fg-dim); border: 1px solid var(--border); }
+  .styles button:not(.selected):hover { background: rgba(242, 183, 5, 0.08); color: var(--fg); border-color: var(--amber); }
+  .style-form { display: none; }
+  .style-form.active { display: block; }
+
+  /* status */
+  .status {
+    padding: 12px 16px; background: var(--bg-3); border-left: 3px solid var(--fg-faint);
+    border-radius: 0 2px 2px 0;
+    font-size: 11px; color: var(--fg-dim); margin-top: 12px;
+  }
+  .status.busy { border-left-color: var(--amber); color: var(--amber); background: linear-gradient(90deg, rgba(242, 183, 5, 0.06) 0%, var(--bg-3) 50%); }
+  .status.success { border-left-color: var(--green); color: var(--green); background: linear-gradient(90deg, rgba(95, 184, 102, 0.06) 0%, var(--bg-3) 50%); }
+  .status.error { border-left-color: var(--red); color: var(--red); background: linear-gradient(90deg, rgba(214, 86, 86, 0.06) 0%, var(--bg-3) 50%); }
+
+  /* playback */
+  .playback { display: none; }
+  .playback.visible { display: block; }
+  audio { width: 100%; filter: invert(0.9) hue-rotate(180deg); margin: 12px 0; }
+  .playback-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* misc */
+  .small { font-size: 10px; color: var(--fg-faint); }
+  pre.console { background: #000; color: var(--fg-dim); padding: 12px; font-size: 10px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+      <h1>thespacepit</h1>
+      <div class="small" style="margin-bottom: 16px; color: var(--fg-faint); letter-spacing: 0.1em; text-transform: uppercase;">/ the bench</div>
+    </div>
+    <button class="red" id="panic-btn" title="Send All Notes Off + All Sound Off to the synth"
+            style="padding: 8px 12px; font-size: 11px;">⚡ PANIC</button>
+  </div>
+
+  <!-- Persistent MIDI clock + browser click — collapsed to a single compact strip by default.
+       Click the strip to expand into full controls (subdivision, click vol). -->
+  <details id="clock-panel-wrap" style="margin-bottom: 12px;">
+    <summary id="clock-panel" style="background: var(--bg-3); padding: 10px 12px; border: 1px solid var(--border); border-radius: 2px; cursor: pointer; display: flex; align-items: center; gap: 8px; list-style: none;">
+      <span id="clock-led" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #444; box-shadow: 0 0 4px transparent; flex-shrink: 0;"></span>
+      <input type="number" id="clock-bpm" value="120" min="40" max="220" style="width: 56px; padding: 4px 6px; font-size: 11px; margin: 0; background: var(--bg-2);" onclick="event.stopPropagation()" />
+      <span style="font-size: 10px; color: var(--fg-faint); letter-spacing: 0.1em;">BPM</span>
+      <button class="secondary" id="clock-reset-btn" style="padding: 5px 8px; font-size: 10px; margin-left: auto;" title="Reset transport — Stop→Start so synth snaps to the downbeat" onclick="event.stopPropagation()">⏮ 1</button>
+      <button class="secondary" id="clock-toggle-btn" style="padding: 5px 10px; font-size: 11px;" onclick="event.stopPropagation()">START</button>
+      <span id="click-led" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #444; flex-shrink: 0;" title="Click track LED"></span>
+      <button class="secondary" id="click-toggle-btn" style="padding: 5px 10px; font-size: 11px;" onclick="event.stopPropagation()" title="Browser click track on/off">ON</button>
+    </summary>
+    <div style="background: var(--bg-3); padding: 10px 12px; border: 1px solid var(--border); border-top: none; border-radius: 0 0 2px 2px; display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 10px; color: var(--fg-dim); letter-spacing: 0.1em;">CLICK</span>
+      <select id="click-subdiv" style="width: 80px; padding: 4px 6px; font-size: 11px; margin: 0; background: var(--bg-2);">
+        <option value="1" selected>1/4</option>
+        <option value="2">1/8</option>
+        <option value="4">1/16</option>
+        <option value="8">1/32</option>
+        <option value="3">1/8T</option>
+        <option value="6">1/16T</option>
+      </select>
+      <input type="range" id="click-vol" min="0" max="100" value="35" style="flex: 1; margin: 0;" title="Click volume" />
+    </div>
+  </details>
+
+  <label>Instrument</label>
+  <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+    <select id="instrument-select" style="flex: 1; margin-bottom: 0;"></select>
+    <button class="secondary" id="add-instrument-btn" title="Add new instrument" style="padding: 8px 10px; margin: 0;">+</button>
+  </div>
+
+  <!-- Audio settings panel — collapsed by default. The defaults work; only opens if you need to tweak. -->
+  <details id="audio-settings" style="background: var(--bg-3); padding: 8px 10px; margin: 8px 0; border: 1px solid var(--border); border-radius: 2px; font-size: 11px;">
+    <summary style="cursor: pointer; color: var(--amber); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;">⚙ Audio routing (for this instrument)</summary>
+    <div style="margin-top: 10px;">
+      <label style="font-size: 10px;">Audio input device</label>
+      <select id="set-audio-device" style="margin-bottom: 8px; font-size: 11px; padding: 6px 8px;"></select>
+      <label style="font-size: 10px;">Input channels</label>
+      <select id="set-input-channels-select" style="margin-bottom: 4px; font-size: 11px; padding: 6px 8px;"></select>
+      <input type="text" id="set-input-channels" placeholder="custom: 1,2 or 11,12" style="margin-bottom: 8px; font-size: 11px; padding: 6px 8px;" />
+      <label style="font-size: 10px;">MIDI output port (to synth)</label>
+      <select id="set-midi-port" style="margin-bottom: 4px; font-size: 11px; padding: 6px 8px;"></select>
+      <div id="midi-routing-hint" class="small" style="margin-bottom: 8px; min-height: 14px; color: var(--fg-faint);" title="Bench auto-resolves: if the synth's natural name appears as a port (direct USB), it uses that. Else falls back to whatever routing interface (mio, motu) is configured. Green = direct, amber = routed, red = not connected."></div>
+      <label style="font-size: 10px;">Polyphony (affects how chord progressions are sent)</label>
+      <select id="set-polyphony" style="margin-bottom: 4px; font-size: 11px; padding: 6px 8px;">
+        <option value="unknown">— unknown —</option>
+        <option value="monophonic">Monophonic (one note at a time)</option>
+        <option value="polyphonic">Polyphonic (chords play as chords)</option>
+      </select>
+      <div class="small" style="color: var(--fg-faint); margin-top: 4px;">Settings saved to this instrument's manifest.</div>
+
+      <!-- Audio output switcher REMOVED 2026-05-26 — wedged USB-MIDI on switch.
+           Endpoints remain in server.py for future use but the panel is gone. -->
+      <div id="audio-output-panel" style="display: none;"></div>
+
+      <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border);">
+        <label style="font-size: 10px;">Diagnostics</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+          <button class="secondary" id="meter-btn" style="padding: 6px 10px; font-size: 10px;" title="Record 5 sec on current channels — verify input level">⏵ Check level</button>
+          <button class="secondary" id="scan-btn" style="padding: 6px 10px; font-size: 10px;" title="Find which channel the synth audio is on (fires one MIDI note)">🔎 Scan ch</button>
+          <button class="secondary" id="scan-all-btn" style="padding: 6px 10px; font-size: 10px;" title="Test every audio device on the Mac">🌐 All devices</button>
+          <button class="secondary" id="test-midi-btn" style="padding: 6px 10px; font-size: 10px;" title="Send one MIDI note to verify MIDI path (no recording)">🔊 Test MIDI</button>
+          <button class="secondary" id="refresh-devices-btn" style="padding: 6px 10px; font-size: 10px;">↻ Refresh</button>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div id="add-instrument-form" style="display: none; background: var(--bg-3); padding: 10px; margin-bottom: 12px; border: 1px solid var(--border);">
+    <div class="row" style="grid-template-columns: 1fr;">
+      <div><label>Slug (lowercase, hyphens)</label><input type="text" id="new-instr-slug" placeholder="ms-20, mother-32, jp-8000" /></div>
+      <div><label>Display name</label><input type="text" id="new-instr-name" placeholder="Korg MS-20" /></div>
+    </div>
+    <div class="row">
+      <div><label>Category</label><select id="new-instr-category">
+        <option value="synth">synth</option>
+        <option value="drum-machine">drum-machine</option>
+        <option value="sampler">sampler</option>
+        <option value="keys">keys</option>
+        <option value="fx">fx</option>
+      </select></div>
+      <div><label>Tier</label><select id="new-instr-tier">
+        <option value="quick">quick</option>
+        <option value="standard" selected>standard</option>
+        <option value="gold">gold</option>
+      </select></div>
+    </div>
+    <div style="display: flex; gap: 6px;">
+      <button class="primary" id="create-instrument-btn" style="padding: 8px 14px; font-size: 11px;">Create</button>
+      <button class="secondary" id="cancel-instrument-btn" style="padding: 8px 14px; font-size: 11px;">Cancel</button>
+    </div>
+  </div>
+
+  <h2>Progress</h2>
+  <div class="progress-bar"><div id="progress-fill" style="width: 0%;"></div></div>
+  <div class="progress-pct"><span id="progress-pct">—%</span> · tier <span id="progress-tier">—</span></div>
+
+  <div class="checklist" id="checklist"></div>
+
+  <!-- Iconic patches — the heart of the bench. Click a patch → patch detail card pulls up in the main panel. -->
+  <h2 style="margin-top: 20px;">Iconic patches</h2>
+  <div class="small" style="color: var(--fg-faint); margin-bottom: 10px;" id="iconic-summary">— loading —</div>
+  <div id="iconic-patches-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 11px; max-height: 520px; overflow-y: auto; padding-right: 4px;"></div>
+
+  <!-- "Bang it out" — auto-capture queue. Fires the whole list one after the other. -->
+  <button class="primary" id="bang-it-out-btn" style="margin-top: 14px; width: 100%; padding: 12px; font-size: 12px;" title="Auto-capture every iconic patch in sequence. Bench fires PC + runs multisample for each. Walks away ADD-proof. Default mode = skip already-captured.">🎯 Bang it out — capture all iconic</button>
+  <button class="red" id="bang-it-out-stop-btn" style="margin-top: 8px; width: 100%; padding: 12px; font-size: 12px; display: none;">■ Stop queue</button>
+  <div id="queue-progress" style="display: none; margin-top: 12px; padding: 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px; font-size: 11px;"></div>
+</aside>
+
+<main class="panel">
+  <!-- PATCH DETAIL CARD — appears when you click an iconic patch in the sidebar.
+       Shows the patch's name, vibe, capture status, and the two big buttons
+       (Audition + Capture) that are the bench's whole reason for existing. -->
+  <section class="card" id="patch-detail-card" style="display: none; position: relative; overflow: hidden;">
+    <div id="patch-detail-pc-pill" style="position: absolute; top: 18px; right: 20px; background: var(--grad-amber); color: #1a0e00; padding: 4px 10px; font-family: var(--mono); font-weight: 700; font-size: 11px; letter-spacing: 0.1em; border-radius: 2px; box-shadow: 2px 2px 0 rgba(0,0,0,0.6);"></div>
+    <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--fg-faint); text-transform: uppercase; margin-bottom: 4px;">Now selected</div>
+    <h2 id="patch-detail-name" style="font-family: var(--display); font-size: 32px; letter-spacing: 0.02em; text-transform: none; margin: 0 0 12px; color: var(--fg); text-shadow: 0 0 24px rgba(242, 183, 5, 0.2);">—</h2>
+    <div id="patch-detail-instrument" style="font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px;">—</div>
+    <div id="patch-detail-vibe" style="font-size: 13px; color: var(--fg-dim); line-height: 1.7; margin-bottom: 20px; max-width: 700px;">—</div>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <button class="primary" id="patch-fire-pc-btn" style="padding: 12px 22px; font-size: 13px;" title="Send Program Change to the synth — reloads the preset on hardware">🎛 Reload on synth</button>
+      <button class="secondary" id="patch-bind-btn" style="padding: 12px 22px; font-size: 13px; border: 1px solid var(--terracotta); color: var(--terracotta);" title="Listen for a PC from the synth — Nick scrolls JP-8000 to his actual version, bench captures the PC + Bank Select">🎯 Bind from synth</button>
+      <button class="secondary" id="patch-capture-btn" style="padding: 12px 22px; font-size: 13px; border: 1px solid var(--amber); color: var(--amber);" title="Fire the multisample capture pipeline — records every note of this patch">📸 Capture multisample</button>
+      <div style="flex: 1;"></div>
+      <div id="patch-detail-status" style="font-family: var(--mono); font-size: 10px; color: var(--fg-faint); letter-spacing: 0.1em; text-transform: uppercase;">— pending —</div>
+    </div>
+
+    <!-- MULTISAMPLE STRIP — all N captured WAVs as mini Serato waveforms in a row.
+         Visual proof of capture health: silent ones jump out as flat lines. Zoom +/- to scale. -->
+    <div id="patch-wavstrip-block" style="display: none; margin-top: 18px; padding: 14px; background: #050505; border: 1px solid var(--border); border-radius: 3px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; color: var(--amber); text-transform: uppercase;" id="patch-wavstrip-title">Captured multisamples</span>
+        <span id="patch-wavstrip-count" style="font-family: var(--mono); font-size: 10px; color: var(--fg-dim);">—</span>
+        <div style="margin-left: auto; display: flex; gap: 4px;">
+          <button class="secondary" id="patch-wavstrip-zoom-out" title="Zoom out — see more wavs from afar" style="padding: 4px 10px; font-size: 13px; margin: 0; line-height: 1;">−</button>
+          <button class="secondary" id="patch-wavstrip-zoom-in" title="Zoom in — bigger wavs" style="padding: 4px 10px; font-size: 13px; margin: 0; line-height: 1;">+</button>
+        </div>
+      </div>
+      <div id="patch-wavstrip" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;"></div>
+    </div>
+
+    <!-- LISTEN/BIND overlay — appears below the buttons when 🎯 Bind from synth is clicked.
+         Shows pulsing indicator, latest PC captured, confirm/cancel. -->
+    <div id="patch-bind-overlay" style="display: none; margin-top: 18px; padding: 18px; background: rgba(196, 90, 58, 0.08); border: 1px solid var(--terracotta); border-radius: 4px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+        <span id="bind-listen-dot" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--terracotta); box-shadow: 0 0 12px var(--terracotta); animation: bench-pulse 1s infinite ease-in-out;"></span>
+        <span style="font-family: var(--mono); font-size: 11px; color: var(--fg); letter-spacing: 0.15em; text-transform: uppercase;">Listening — scroll <span id="bind-instrument-name" style="color: var(--amber);">your synth</span> to YOUR version of <span id="bind-patch-name" style="color: var(--amber);">this patch</span></span>
+      </div>
+      <div id="bind-latest-pc" style="font-family: var(--display); font-size: 24px; color: var(--fg-faint); padding: 14px; background: var(--bg-3); border-left: 3px solid var(--fg-faint); margin-bottom: 14px;">— waiting for a Program Change —</div>
+      <div style="display: flex; gap: 10px;">
+        <button class="primary" id="bind-confirm-btn" style="padding: 10px 18px; font-size: 12px;" disabled>✓ Bind this patch</button>
+        <button class="secondary" id="bind-cancel-btn" style="padding: 10px 18px; font-size: 12px;">✗ Cancel</button>
+      </div>
+    </div>
+  </section>
+  <style>
+    @keyframes bench-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+  </style>
+
+  <section class="card">
+    <h3>Capture new</h3>
+    <div class="styles">
+      <button data-style="multisample" class="selected">Multisample</button>
+      <button data-style="progression">Chord progression</button>
+      <button data-style="hihat">Hi-hat suite</button>
+      <button data-style="sweep">Sweep / performance</button>
+      <button data-style="drums">Drum pattern</button>
+    </div>
+
+    <!-- progression -->
+    <div class="style-form" data-form="progression">
+      <label>Browse the library</label>
+      <!-- 4-up filter row: style → root → mode → tempo. List narrows live. -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+        <select id="prog-filter-genre" style="margin: 0;">
+          <option value="">all styles</option>
+        </select>
+        <select id="prog-filter-root" style="margin: 0;">
+          <option value="">any root</option>
+          <option value="c">C</option><option value="c#">C#</option><option value="d">D</option><option value="d#">D#</option>
+          <option value="e">E</option><option value="f">F</option><option value="f#">F#</option><option value="g">G</option>
+          <option value="g#">G#</option><option value="a">A</option><option value="a#">A#</option><option value="b">B</option>
+        </select>
+        <select id="prog-filter-mode" style="margin: 0;">
+          <option value="">any mode</option>
+          <option value="minor">minor</option>
+          <option value="major">major</option>
+        </select>
+        <select id="prog-filter-tempo" style="margin: 0;">
+          <option value="">any tempo</option>
+          <option value="60-90">60-90 BPM</option>
+          <option value="91-110">91-110 BPM</option>
+          <option value="111-130">111-130 BPM</option>
+          <option value="131-180">131-180 BPM</option>
+        </select>
+      </div>
+      <!-- Free text + clear -->
+      <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+        <input type="text" id="prog-filter" placeholder="search vibe / artist / tag — dilla, weeknd, premier, 90s…" style="flex: 1; margin: 0;" />
+        <button id="prog-filter-clear" class="secondary" style="padding: 4px 10px; font-size: 11px; margin: 0;" title="Clear all filters">✗</button>
+      </div>
+
+      <select id="prog-saved" size="6" style="margin-bottom: 8px; height: auto;">
+        <option value="">— filtered progressions appear here —</option>
+      </select>
+      <div class="small" id="prog-saved-vibe" style="margin: -4px 0 12px; color: var(--fg-faint);"></div>
+      <!-- Hidden legacy chips container — still present for backward compat with renderGenreChips() -->
+      <div id="prog-genre-chips" style="display: none;"></div>
+
+      <label>Send mode <span id="poly-hint" style="color: var(--fg-faint); text-transform: none; letter-spacing: 0;"></span></label>
+      <select id="prog-send-mode" style="margin-bottom: 8px;">
+        <option value="chord">chord — send all notes (poly synth OR mono with arp engaged)</option>
+        <option value="root">root only — bass line of progression (mono, no arp)</option>
+        <option value="arp">arp — script sequences notes (mono, no arp engaged)</option>
+      </select>
+      <div id="prog-mode-warning" style="display: none; font-size: 10px; color: var(--amber); padding: 6px 8px; background: rgba(242, 183, 5, 0.08); border-left: 2px solid var(--amber); margin-bottom: 8px;"></div>
+
+      <div style="border-top: 1px solid var(--border); margin: 12px 0; padding-top: 12px;">
+        <label>OR — generate a fresh one (algorithmic)</label>
+        <div class="row" style="grid-template-columns: 1fr 1fr auto;">
+          <select id="gen-genre" style="margin-bottom: 0;">
+            <option value="house">house</option>
+            <option value="hip-hop">hip-hop</option>
+            <option value="neo-soul">neo-soul</option>
+            <option value="rnb">rnb</option>
+            <option value="dub">dub</option>
+            <option value="soul">soul</option>
+            <option value="jazz">jazz</option>
+            <option value="trap">trap</option>
+            <option value="lofi">lofi</option>
+            <option value="disco">disco</option>
+            <option value="dnb">dnb</option>
+          </select>
+          <select id="gen-key" style="margin-bottom: 0;">
+            <option value="Cm">Cm</option>
+            <option value="Am">Am</option>
+            <option value="Dm">Dm</option>
+            <option value="Em">Em</option>
+            <option value="Fm">Fm</option>
+            <option value="Gm">Gm</option>
+            <option value="Bm">Bm</option>
+            <option value="C">Cmaj</option>
+            <option value="G">Gmaj</option>
+            <option value="F">Fmaj</option>
+          </select>
+          <button class="secondary" id="gen-btn" style="padding: 8px 14px; font-size: 11px; margin: 0; white-space: nowrap;">🎲 Generate</button>
+        </div>
+        <div class="small" id="gen-output" style="margin-top: 6px; color: var(--fg-faint);"></div>
+        <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center;">
+          <button class="primary" id="audition-btn" style="padding: 8px 16px; font-size: 12px;" title="Loop MIDI to the actual synth — hear your real patch. No recording.">🎹 Preview (live, loop)</button>
+          <button class="red" id="preview-stop-btn" disabled style="padding: 8px 16px; font-size: 12px;">■ Stop</button>
+        </div>
+        <!-- Hidden browser preview kept in DOM (some flows still reference it) but not shown -->
+        <button id="preview-btn" style="display: none;"></button>
+        <input type="checkbox" id="preview-loop" checked style="display: none;" />
+      </div>
+      <div class="row">
+        <div><label>Pattern name</label><input type="text" id="prog-name" value="untitled-prog" /></div>
+        <div><label>BPM</label><input type="number" id="prog-bpm" value="120" min="40" max="220" /></div>
+      </div>
+      <label>Chord progression (space-separated)</label>
+      <input type="text" id="prog-chords" value="Cm Ab Eb Bb" placeholder="Cm Ab Eb Bb" />
+      <div class="row">
+        <div>
+          <label>Loop length</label>
+          <select id="prog-loop-length">
+            <option value="4">4 bars</option>
+            <option value="8" selected>8 bars</option>
+            <option value="16">16 bars</option>
+          </select>
+        </div>
+        <div>
+          <label style="color: var(--fg-faint);">= bars per chord (auto)</label>
+          <input type="number" id="prog-bpc" value="2" min="1" max="16" readonly style="background: var(--bg-2); color: var(--fg-dim); cursor: not-allowed;" title="Computed from loop length ÷ chord count" />
+        </div>
+      </div>
+      <!-- Live readout: how long this loop is. Goes red if not a power-of-2 bar count. -->
+      <div id="prog-length-readout" style="margin-top: 8px; padding: 8px 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; color: var(--fg-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;">
+        <span style="color: var(--fg-faint);">Loop length:</span>
+        <span id="prog-length-text">4 chords × 2 bars = 8 bars / 32 beats @ 120 BPM (4.0s per chord, 16.0s total)</span>
+      </div>
+    </div>
+
+    <!-- multisample -->
+    <div class="style-form active" data-form="multisample">
+      <!-- LIVE WAVEFORM — always rendering. Play the synth, see it move. Silent = flat line. -->
+      <div id="ms-live-wave-block" style="margin-bottom: 20px; padding: 14px; background: #050505; border: 1px solid var(--border); border-left: 4px solid var(--amber); border-radius: 3px; position: relative; overflow: hidden;">
+        <canvas id="ms-live-wave-canvas" width="600" height="160" style="width: 100%; height: 200px; display: block; image-rendering: auto;"></canvas>
+        <div id="ms-live-wave-overlay" style="position: absolute; top: 18px; left: 22px; right: 22px; display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--fg-faint); pointer-events: none; text-shadow: 0 0 4px rgba(0,0,0,0.9); letter-spacing: 0.05em;">
+          <span id="ms-live-wave-label">🎚 LIVE INPUT — click "Connect" to start streaming</span>
+          <span id="ms-live-wave-peak" style="color: var(--fg-dim); font-weight: 700;">— dBFS</span>
+        </div>
+        <div id="ms-live-wave-controls" style="position: absolute; bottom: 14px; right: 18px; display: flex; gap: 6px; align-items: center;">
+          <span style="font-family: var(--mono); font-size: 9px; color: var(--fg-faint); text-shadow: 0 0 4px #000; margin-right: 2px;">AMP</span>
+          <button class="secondary" id="ms-live-wave-zoom-out" title="Y zoom out — smaller waves, more headroom" style="padding: 4px 9px; font-size: 13px; margin: 0; line-height: 1;">−</button>
+          <button class="secondary" id="ms-live-wave-zoom-in" title="Y zoom in — bigger waves" style="padding: 4px 9px; font-size: 13px; margin: 0; line-height: 1;">+</button>
+          <span style="font-family: var(--mono); font-size: 9px; color: var(--fg-faint); text-shadow: 0 0 4px #000; margin-left: 6px; margin-right: 2px;">TIME</span>
+          <button class="secondary" id="ms-live-wave-time-out" title="Time zoom out — see longer history (envelope of 7-sec sustains)" style="padding: 4px 9px; font-size: 13px; margin: 0; line-height: 1;">−</button>
+          <button class="secondary" id="ms-live-wave-time-in" title="Time zoom in — back to instant scope" style="padding: 4px 9px; font-size: 13px; margin: 0; line-height: 1;">+</button>
+          <button class="secondary" id="ms-live-wave-connect-btn" style="padding: 6px 14px; font-size: 11px; margin: 0 0 0 8px;">▶ Connect</button>
+          <button class="secondary" id="ms-live-wave-stop-btn" style="padding: 6px 14px; font-size: 11px; margin: 0; display: none;">■</button>
+        </div>
+      </div>
+      <label>Quick presets</label>
+      <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+        <button class="secondary" data-ms-preset="bass" style="padding: 6px 10px; font-size: 11px;">Bass A1–A4</button>
+        <button class="secondary" data-ms-preset="sub" style="padding: 6px 10px; font-size: 11px;">Sub C2–C5</button>
+        <button class="secondary" data-ms-preset="lead" style="padding: 6px 10px; font-size: 11px;">Lead A2–A5</button>
+        <button class="secondary" data-ms-preset="pad" style="padding: 6px 10px; font-size: 11px;">Pad C2–C5 (slow)</button>
+        <button class="secondary" data-ms-preset="stab" style="padding: 6px 10px; font-size: 11px;">Stab A2–A5 (short)</button>
+      </div>
+      <div class="row">
+        <div><label>Patch name</label><input type="text" id="ms-patch" value="untitled-patch" /></div>
+        <div><label>Chain</label><select id="ms-chain"><option>raw</option><option>spring</option><option>processed</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Note range (lo-hi)</label><input type="text" id="ms-range" value="a1-a4" /></div>
+        <div><label>Step (semitones)</label><input type="number" id="ms-step" value="3" min="1" max="12" /></div>
+      </div>
+      <div class="row">
+        <div><label>Velocity</label><input type="number" id="ms-vel" value="100" min="1" max="127" /></div>
+        <div><label>Sustain sec</label><input type="number" id="ms-sustain" value="4" step="0.5" /></div>
+      </div>
+    </div>
+
+    <!-- hihat -->
+    <div class="style-form" data-form="hihat">
+      <div class="row">
+        <div><label>Name prefix</label><input type="text" id="hihat-name" value="trap-140" /></div>
+        <div><label>Target BPM</label><input type="number" id="hihat-bpm" value="140" min="60" max="220" /></div>
+      </div>
+      <div class="small">Captures 5 sections in one performance: 1/4 · 1/8 · 1/16 · 1/32 · random fill. <br/>Synth must have arp ON, div=1/16, clock EXT, latched note + percussive patch.</div>
+    </div>
+
+    <!-- sweep -->
+    <div class="style-form" data-form="sweep">
+      <div class="row">
+        <div><label>Name</label><input type="text" id="sweep-name" value="untitled-sweep" /></div>
+        <div><label>Duration (sec)</label><input type="number" id="sweep-dur" value="8" min="2" max="60" /></div>
+      </div>
+      <div class="small">Arp off. Hold a note (or use latch), perform a filter sweep / swell / knob ride during the recording window.</div>
+    </div>
+
+    <!-- drums -->
+    <div class="style-form" data-form="drums">
+      <label>Drum pattern (from library)</label>
+      <select id="drums-pattern"><option value="">— pick a pattern —</option></select>
+      <div class="small" id="drums-pattern-vibe" style="margin: -4px 0 12px; color: var(--fg-faint);"></div>
+      <div class="row">
+        <div><label>Bars to record</label><input type="number" id="drums-bars" value="4" min="1" max="32" /></div>
+        <div><label>BPM (override)</label><input type="number" id="drums-bpm" placeholder="(use pattern's bpm)" /></div>
+      </div>
+      <div class="row">
+        <div><label>MIDI port</label><input type="text" id="drums-port" value="TR-808" placeholder="TR-808, SP-1200, EP-133…" /></div>
+        <div><label>MIDI channel</label><input type="number" id="drums-channel" value="10" min="1" max="16" /></div>
+      </div>
+      <div class="small">For non-GM drum machines, add a <code>voice_map</code> to that instrument's manifest.json to override the kick/snare/hh MIDI note numbers.</div>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+      <button class="primary" id="capture-btn">▶ Capture</button>
+      <button class="red" id="capture-stop-btn" style="display: none;">■ Stop capture</button>
+    </div>
+    <div class="status" id="status">Ready.</div>
+  </section>
+
+  <!-- Composer — the synthesis machine v0.0. Pick vibe → get a curated trio + download MIDI -->
+  <section class="card" id="compose-card">
+    <h3>🧬 Compose <span style="font-size: 11px; color: var(--fg-faint); font-weight: 400; margin-left: 8px;">/ synthesis machine v0</span></h3>
+    <div class="small" style="margin-bottom: 10px; color: var(--fg-dim);">
+      Picks matched progression + bass line + drum pattern from the library based on your vibe, plus suggests a patch from your captured instruments. Optionally writes a combined 3-track .mid (chords ch1, bass ch2, drums ch10).
+    </div>
+    <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 6px; margin-bottom: 10px; align-items: end;">
+      <div>
+        <label style="font-size: 10px;">Genre</label>
+        <select id="compose-genre" style="margin: 0; padding: 6px 8px; font-size: 11px;"><option>house</option></select>
+      </div>
+      <div>
+        <label style="font-size: 10px;">Target BPM</label>
+        <input type="number" id="compose-bpm" value="120" min="60" max="200" style="margin: 0; padding: 6px 8px; font-size: 11px;" />
+      </div>
+      <div>
+        <label style="font-size: 10px;">Key</label>
+        <select id="compose-key" style="margin: 0; padding: 6px 8px; font-size: 11px;">
+          <option value="">any</option>
+          <option>C</option><option>C#</option><option>D</option><option>D#</option>
+          <option>E</option><option>F</option><option>F#</option><option>G</option>
+          <option>G#</option><option>A</option><option>A#</option><option>B</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size: 10px;">Mode</label>
+        <select id="compose-mode" style="margin: 0; padding: 6px 8px; font-size: 11px;">
+          <option value="">any</option>
+          <option value="minor">minor</option>
+          <option value="major">major</option>
+        </select>
+      </div>
+      <button class="primary" id="compose-btn" style="padding: 8px 16px; font-size: 12px; margin: 0;">🧬 Compose</button>
+      <button class="secondary" id="compose-shuffle-btn" style="padding: 8px 10px; font-size: 12px; margin: 0;" title="Re-roll with new random seed">🎲</button>
+    </div>
+    <div id="compose-result" style="display: none; margin-top: 8px;"></div>
+  </section>
+
+  <section class="card" id="captures-card">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+      <h3 style="margin: 0;">This session's captures</h3>
+      <button class="red" id="captures-clear-all-btn" style="margin-left: auto; padding: 6px 12px; font-size: 11px;" title="Wipe the session log (does NOT delete WAVs on disk — just clears this panel)">✗ Clear all</button>
+    </div>
+    <div class="small" style="margin-bottom: 8px; color: var(--fg-dim);">
+      Every WAV you record this session lands here. <b style="color: var(--amber);">◐ pending</b> = freshly captured, audition it and decide; <b style="color: var(--green);">✓ kept</b> = locked in with notes; <b style="color: var(--fg-faint);">✗ discarded</b> = gone. Hit <b>✗</b> on any pending row to delete it on the spot if you know it's no good.
+    </div>
+    <!-- Live session report — totals + breakdown. Hidden when no captures yet. -->
+    <div id="session-report" style="display: none; margin-bottom: 12px; padding: 10px 12px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+      <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+        <div><span style="color: var(--fg-faint);">total</span> <b id="sr-total" style="color: var(--fg);">0</b></div>
+        <div><span style="color: var(--fg-faint);">kept</span> <b id="sr-kept" style="color: var(--green);">0</b></div>
+        <div><span style="color: var(--fg-faint);">pending</span> <b id="sr-pending" style="color: var(--amber);">0</b></div>
+        <div><span style="color: var(--fg-faint);">discarded</span> <b id="sr-discarded" style="color: var(--fg-faint);">0</b></div>
+        <div style="margin-left: auto; color: var(--fg-faint);" id="sr-elapsed">—</div>
+      </div>
+      <div style="margin-top: 6px; color: var(--fg-dim); display: flex; gap: 16px; flex-wrap: wrap;">
+        <div id="sr-styles"></div>
+        <div id="sr-bpms"></div>
+      </div>
+      <div style="margin-top: 6px; color: var(--fg-faint); font-size: 10px;" id="sr-top-patches"></div>
+    </div>
+    <div id="captures-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+  </section>
+
+  <section class="card playback" id="playback">
+    <h3>Playback</h3>
+    <div class="small" id="playback-name">—</div>
+    <canvas id="waveform" width="800" height="80" style="width: 100%; height: 80px; background: #050505; border: 1px solid var(--border); margin: 8px 0; display: block;"></canvas>
+    <div class="small" id="wave-stats" style="margin: -4px 0 8px; color: var(--fg-faint);"></div>
+    <audio controls id="audio-player"></audio>
+    <label style="margin-top: 8px;">Notes (optional — saved to sidecar)</label>
+    <input type="text" id="keep-notes" placeholder="e.g. 'use for outro, dialed res slightly higher than spec'" />
+    <div class="playback-actions">
+      <button class="secondary" id="trim-btn" title="Auto-trim leading silence + fade out + normalize to -3 dBFS">✂ Trim + Normalize</button>
+      <button class="green" id="keep-btn">✓ Keep + Save Notes</button>
+      <button class="secondary" id="retake-btn">🔄 Retake</button>
+      <button class="red" id="discard-btn">✗ Discard</button>
+    </div>
+  </section>
+
+  <section class="card" style="display: none;" id="console-card">
+    <h3>Console</h3>
+    <pre class="console" id="console"></pre>
+  </section>
+
+  <section class="card">
+    <h3>Pack</h3>
+    <div class="small" style="margin-bottom: 12px;">When you're done capturing, rebuild + zip the pack for Gumroad.</div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="primary" id="build-pack-btn">▶ BUILD PACK</button>
+      <button class="secondary" id="zip-pack-btn">📦 ZIP for Gumroad</button>
+    </div>
+    <div class="small" id="build-status" style="margin-top: 8px;"></div>
+
+    <h3 style="margin-top: 20px;">Pack Health (QC)</h3>
+    <div class="small" style="margin-bottom: 8px;">Run a full audit on the built pack — checks every WAV has audio, presets parse, no missing files.</div>
+    <button class="secondary" id="audit-pack-btn">🔍 Run Audit</button>
+    <div id="audit-results" style="margin-top: 12px;"></div>
+
+    <h3 style="margin-top: 20px;">Open in Finder</h3>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+      <button class="secondary" data-open="pack">📁 Pack folder</button>
+      <button class="secondary" data-open="source">📁 Source bank</button>
+      <button class="secondary" data-open="patches">📁 Patches</button>
+      <button class="secondary" data-open="loops">📁 Loops</button>
+      <button class="secondary" data-open="photos">📁 Photos</button>
+      <button class="secondary" data-open="ableton-ready">📁 Ableton-ready</button>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "soul-call",
+  "type": "melody",
+  "genre": "soul",
+  "bpm": 100,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "F",
+  "key_mode": "minor",
+  "vibe": "Soul horn-call phrase — F minor pentatonic call-and-response. Stax / Hi Records / Muscle Shoals. Pad or organ.",
+  "events": [
+    {"tick": 0,   "note": "F3",  "vel": 105, "len": 36},
+    {"tick": 36,  "note": "G#3", "vel": 95,  "len": 12},
+    {"tick": 48,  "note": "A#3", "vel": 100, "len": 24},
+    {"tick": 84,  "note": "C4",  "vel": 110, "len": 60},
+    {"tick": 144, "note": "A#3", "vel": 95,  "len": 24},
+    {"tick": 168, "note": "F3",  "vel": 100, "len": 24}
+  ],
+  "tags": ["soul", "stax", "hi-records", "pentatonic", "horn-call"]
+}

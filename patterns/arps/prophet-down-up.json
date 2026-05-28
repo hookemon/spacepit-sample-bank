@@ -1,0 +1,22 @@
+{
+  "name": "prophet-down-up",
+  "type": "arp",
+  "genre": "synthpop",
+  "bpm": 120,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Down-up arp — Prophet-5 / Juno-60 classic. Goes down through the chord then back up. 80s synthpop.",
+  "events": [
+    {"tick": 0,  "note": "C4",  "vel": 100, "len": 8},
+    {"tick": 12, "note": "G3",  "vel": 95,  "len": 8},
+    {"tick": 24, "note": "D#3", "vel": 95,  "len": 8},
+    {"tick": 36, "note": "C3",  "vel": 95,  "len": 8},
+    {"tick": 48, "note": "D#3", "vel": 95,  "len": 8},
+    {"tick": 60, "note": "G3",  "vel": 95,  "len": 8},
+    {"tick": 72, "note": "C4",  "vel": 100, "len": 8},
+    {"tick": 84, "note": "D#4", "vel": 95,  "len": 8}
+  ],
+  "tags": ["prophet", "juno", "80s", "synthpop", "down-up"]
+}

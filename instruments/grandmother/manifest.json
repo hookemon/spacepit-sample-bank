@@ -1,0 +1,104 @@
+{
+  "slug": "grandmother",
+  "name": "Moog Grandmother",
+  "category": "synth",
+  "tier": "gold",
+  "sampling_dates": [
+    "2026-05-24"
+  ],
+  "chains_captured": [
+    "raw",
+    "spring"
+  ],
+  "patches": [
+    {
+      "name": "moogbass",
+      "notes": "Classic Moog ladder bass. Saw 16', filter ~25% cutoff + 20% res, vel 100 punchy attack. Range a1-a4.",
+      "samples_dir": "patches/moogbass/raw"
+    },
+    {
+      "name": "dubbass",
+      "notes": "Dubby/smooth bass. Heavy filter rolloff, dark sub-heavy dub-system character. Range a1-a4.",
+      "samples_dir": "patches/dubbass/raw"
+    },
+    {
+      "name": "hookesquelch-pluck",
+      "notes": "Acid pluck. Short envelope, short decay, the 303-style staccato. Range a1-a4.",
+      "samples_dir": "patches/hookesquelch-pluck/raw"
+    },
+    {
+      "name": "hookesquelch-bite",
+      "notes": "Acid mid-snarl. Mid resonance + env amount, balanced bite. Range a1-a4. Most consistent acid capture (1.7 dB variation).",
+      "samples_dir": "patches/hookesquelch-bite/raw"
+    },
+    {
+      "name": "hookesquelch-scream",
+      "notes": "Acid scream. Hot resonance, aggressive filter env. Range a1-a4. Output gain self-limits \u2014 1.6 dB variation across keyboard.",
+      "samples_dir": "patches/hookesquelch-scream/raw"
+    },
+    {
+      "name": "hookesub",
+      "notes": "Pure sub. Triangle 32', filter near-closed, no res, no env. Range c2-c5 (Grandmother keyboard span).",
+      "samples_dir": "patches/hookesub/raw"
+    },
+    {
+      "name": "hookedaft",
+      "notes": "Square house bass \u2014 Daft Punk territory. Square wave 8', filter 55-65% cutoff, mid res, snappy env. Range a2-a5.",
+      "samples_dir": "patches/hookedaft/raw"
+    },
+    {
+      "name": "hookelead",
+      "notes": "Moog lead/wail \u2014 HERO PATCH. Saw + high filter env amount, the classic Moog hook sound. Range a2-a5. 2.4 dB variation (self-leveling).",
+      "samples_dir": "patches/hookelead/raw"
+    },
+    {
+      "name": "hookepad",
+      "notes": "Atmospheric pad. Two saws slightly detuned, slow attack on both envelopes, filter blooms with the VCA. Range c2-c5.",
+      "samples_dir": "patches/hookepad/raw"
+    },
+    {
+      "name": "hookestab",
+      "notes": "Percussive stab. Square wave, short ADR on both envelopes, sustain faders down. 1.2 dB variation across keyboard \u2014 tightest in pack. Range a2-a5.",
+      "samples_dir": "patches/hookestab/raw"
+    },
+    {
+      "name": "hookeclav",
+      "notes": "Moog clav. Saw + medium decay + 50-60% env amount on filter, mid sustain on VCA, low sustain on filter. Stevie Wonder territory with Moog character. Range a2-a5.",
+      "samples_dir": "patches/hookeclav/raw"
+    }
+  ],
+  "one_shots_dir": null,
+  "loops": [],
+  "exports": {
+    "ableton_move": null,
+    "mpc": null,
+    "op_z": null,
+    "ep_133": null,
+    "sfz": null,
+    "decent_sampler": null
+  },
+  "preview_samples": [],
+  "site": {
+    "gear_slug_in_sanity": null,
+    "published_at": null,
+    "free_preview_count": 5
+  },
+  "video": {
+    "process_video_url": null,
+    "shot_list": []
+  },
+  "store": {
+    "free_tier_count": 5,
+    "paid_kit_url": null,
+    "price_usd": null
+  },
+  "capture_settings": {
+    "audio_device": "TX-6",
+    "input_channels": "3,4",
+    "midi_port": "mio",
+    "midi_channel": 1
+  },
+  "polyphony": "polyphonic",
+  "voices": 1,
+  "synth_name": "Moog Grandmother"
+}

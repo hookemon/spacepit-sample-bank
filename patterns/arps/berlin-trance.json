@@ -1,0 +1,30 @@
+{
+  "name": "berlin-trance",
+  "type": "arp",
+  "genre": "trance",
+  "bpm": 138,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "A",
+  "key_mode": "minor",
+  "vibe": "Classic Berlin-school / trance 16th-note arp — root, 3rd, 5th, octave. Endless. The Sasha & Digweed sound.",
+  "events": [
+    {"tick": 0,  "note": "A2",  "vel": 100, "len": 5},
+    {"tick": 6,  "note": "C3",  "vel": 95,  "len": 5},
+    {"tick": 12, "note": "E3",  "vel": 100, "len": 5},
+    {"tick": 18, "note": "A3",  "vel": 95,  "len": 5},
+    {"tick": 24, "note": "A2",  "vel": 100, "len": 5},
+    {"tick": 30, "note": "C3",  "vel": 95,  "len": 5},
+    {"tick": 36, "note": "E3",  "vel": 100, "len": 5},
+    {"tick": 42, "note": "A3",  "vel": 95,  "len": 5},
+    {"tick": 48, "note": "A2",  "vel": 100, "len": 5},
+    {"tick": 54, "note": "C3",  "vel": 95,  "len": 5},
+    {"tick": 60, "note": "E3",  "vel": 100, "len": 5},
+    {"tick": 66, "note": "A3",  "vel": 95,  "len": 5},
+    {"tick": 72, "note": "A2",  "vel": 100, "len": 5},
+    {"tick": 78, "note": "C3",  "vel": 95,  "len": 5},
+    {"tick": 84, "note": "E3",  "vel": 100, "len": 5},
+    {"tick": 90, "note": "A3",  "vel": 95,  "len": 5}
+  ],
+  "tags": ["trance", "berlin-school", "16ths", "endless"]
+}

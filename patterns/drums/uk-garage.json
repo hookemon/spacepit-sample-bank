@@ -1,0 +1,15 @@
+{
+  "name": "uk-garage",
+  "type": "drums",
+  "bpm": 130,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "UK garage 2-step — kick on 1 and 3, snare on 2.5 (skip the 4), shuffled hats. Wookie / Todd Edwards.",
+  "tracks": {
+    "kick":      [0, 48],
+    "snare":     [36, 84],
+    "hh-closed": [0, 12, 24, 36, 48, 60, 72, 84],
+    "shaker":    [18, 42, 66, 90]
+  },
+  "tags": ["uk-garage", "2-step", "shuffle", "wookie"]
+}

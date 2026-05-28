@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>spacepit — audition</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f0e9d9;
+    --dim: #555;
+    --amber: #F2B705;
+    --shadow: 4px 4px 0 #000;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --display: 'Antonio', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--fg); font-family: var(--mono); height: 100%; }
+  body { display: flex; flex-direction: column; padding: 24px; gap: 20px; }
+  header { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #222; padding-bottom: 16px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--amber); }
+  .sub { font-size: 12px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .controls label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; }
+  .controls input, .controls select, .controls button {
+    background: #111; border: 1px solid #333; color: var(--fg); font-family: var(--mono); font-size: 13px;
+    padding: 8px 12px; border-radius: 0;
+  }
+  .controls button {
+    background: var(--amber); color: #000; border: none; cursor: pointer; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; box-shadow: var(--shadow);
+    transition: transform 0.05s ease;
+  }
+  .controls button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+  .controls button[disabled] { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  .info { display: flex; flex-wrap: wrap; gap: 24px; font-size: 12px; }
+  .info span { color: var(--dim); }
+  .info b { color: var(--fg); font-weight: 400; }
+  .info b.ok { color: var(--amber); }
+  .info b.err { color: #ff4444; }
+  #keyboard {
+    position: relative; display: flex; height: 220px; user-select: none; margin-top: 8px;
+    background: #050505; border: 1px solid #222; padding: 4px;
+  }
+  .key { position: relative; cursor: pointer; transition: background 0.05s ease; }
+  .key.white { flex: 1 1 0; background: #f0e9d9; border-right: 1px solid #000; height: 100%; }
+  .key.white:last-child { border-right: none; }
+  .key.white.active { background: var(--amber); }
+  .key.black {
+    position: absolute; top: 0; width: 3.2%; height: 62%; background: #000;
+    border: 1px solid #222; border-top: none; z-index: 2;
+  }
+  .key.black.active { background: var(--amber); }
+  .key .label { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 9px;
+    color: #888; pointer-events: none; }
+  .key.white .label { color: #555; }
+  .key .src {
+    position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 8px;
+    color: var(--amber); opacity: 0; transition: opacity 0.1s; pointer-events: none;
+  }
+  .key.active .src { opacity: 1; }
+  .log {
+    font-size: 11px; color: var(--dim); margin-top: 8px; min-height: 18px;
+    font-family: var(--mono);
+  }
+  .log b { color: var(--amber); }
+  footer { font-size: 10px; color: var(--dim); margin-top: auto; padding-top: 12px; border-top: 1px solid #222; letter-spacing: 0.05em; }
+  kbd {
+    display: inline-block; padding: 2px 6px; border: 1px solid #333; border-radius: 3px;
+    background: #111; font-family: var(--mono); font-size: 10px; color: var(--fg);
+    margin: 0 2px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>audition</h1>
+  <div class="sub">thespacepit · sample bank</div>
+</header>
+
+<div class="controls">
+  <label>patch
+    <input type="text" id="patch" value="moogbass" />
+  </label>
+  <label>chain
+    <select id="chain">
+      <option value="raw">raw</option>
+      <option value="spring">spring</option>
+    </select>
+  </label>
+  <label>instrument
+    <input type="text" id="instrument" value="grandmother" />
+  </label>
+  <button id="load">load</button>
+  <button id="ab">A/B raw ↔ spring</button>
+</div>
+
+<div class="info">
+  <div><span>status:</span> <b id="status">idle</b></div>
+  <div><span>captured notes:</span> <b id="count">0</b></div>
+  <div><span>last:</span> <b id="last">—</b></div>
+</div>
+
+<div id="keyboard"></div>
+<div class="log" id="log"></div>
+
+<footer>
+  play with mouse or keyboard:
+  <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd>
+  = white keys ·
+  <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd>
+  = black keys ·
+  <kbd>Z</kbd>/<kbd>X</kbd> = octave down/up
+</footer>
+
+<script>
+(() => {
+  const NOTE_NAMES = ['c','cs','d','ds','e','f','fs','g','gs','a','as','b'];
+  const noteToMidi = (name) => {
+    const m = name.toLowerCase().match(/^([a-g])(s|#|b)?(-?\d+)$/);
+    if (!m) return null;
+    const [, letter, acc, oct] = m;
+    const base = { c:0,d:2,e:4,f:5,g:7,a:9,b:11 }[letter];
+    const off = acc === 's' || acc === '#' ? 1 : acc === 'b' ? -1 : 0;
+    return base + off + (parseInt(oct,10) + 1) * 12;
+  };
+  const midiToName = (midi) => {
+    const o = Math.floor(midi / 12) - 1;
+    return NOTE_NAMES[midi % 12] + o;
+  };
+
+  // captured notes the script writes (A1-A4 step 3 minor thirds)
+  const CAPTURED_NOTE_NAMES = ['a1','c2','ds2','fs2','a2','c3','ds3','fs3','a3','c4','ds4','fs4','a4'];
+
+  const KEYBOARD_LOW = noteToMidi('c2');   // bottom of visible range
+  const KEYBOARD_HIGH = noteToMidi('c5');   // top
+  let octaveShift = 0;
+
+  // computer key → midi note offset (relative to C of current playing octave)
+  const KEYMAP = {
+    a: 0, w: 1, s: 2, e: 3, d: 4, f: 5, t: 6, g: 7, y: 8, h: 9, u: 10, j: 11,
+    k: 12, o: 13, l: 14, p: 15
+  };
+
+  let ctx = null;
+  let buffers = {};  // midi → AudioBuffer
+  let capturedMidi = [];  // sorted list of captured MIDI numbers
+  let activeSources = new Map();
+  let abMode = false;
+
+  const $ = (id) => document.getElementById(id);
+  const setStatus = (t, cls='') => { const e = $('status'); e.textContent = t; e.className = cls; };
+  const log = (msg) => { const e = $('log'); e.innerHTML = msg; };
+
+  function ensureCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  async function load() {
+    ensureCtx();
+    const instrument = $('instrument').value.trim();
+    const patch = $('patch').value.trim();
+    const chain = $('chain').value;
+    if (!instrument || !patch) { setStatus('need patch + instrument', 'err'); return; }
+
+    setStatus('loading…');
+    buffers = {};
+    capturedMidi = [];
+
+    const baseUrl = `../../instruments/${instrument}/patches/${patch}/${chain}/`;
+    let loaded = 0, failed = 0;
+
+    await Promise.all(CAPTURED_NOTE_NAMES.map(async (n) => {
+      const filename = `${instrument}_${patch}_${n}_v100_rr1.wav`;
+      const url = baseUrl + filename;
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+        const ab = await r.arrayBuffer();
+        const buf = await ctx.decodeAudioData(ab);
+        const midi = noteToMidi(n);
+        buffers[midi] = buf;
+        capturedMidi.push(midi);
+        loaded++;
+      } catch (e) {
+        failed++;
+      }
+    }));
+
+    // also try v075 if v100 didn't load (smooth variant)
+    if (loaded === 0) {
+      await Promise.all(CAPTURED_NOTE_NAMES.map(async (n) => {
+        const filename = `${instrument}_${patch}_${n}_v075_rr1.wav`;
+        const url = baseUrl + filename;
+        try {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error();
+          const ab = await r.arrayBuffer();
+          const buf = await ctx.decodeAudioData(ab);
+          const midi = noteToMidi(n);
+          buffers[midi] = buf;
+          capturedMidi.push(midi);
+          loaded++;
+        } catch (_) {}
+      }));
+    }
+
+    capturedMidi.sort((a,b) => a-b);
+    $('count').textContent = `${loaded}/13`;
+    if (loaded === 0) {
+      setStatus(`no files found at ${baseUrl}`, 'err');
+    } else if (loaded < 13) {
+      setStatus(`loaded ${loaded} of 13 — partial`, 'err');
+    } else {
+      setStatus('loaded ✓', 'ok');
+    }
+  }
+
+  function nearestCapture(midi) {
+    if (capturedMidi.length === 0) return null;
+    let nearest = capturedMidi[0];
+    let bestDist = Math.abs(midi - nearest);
+    for (const c of capturedMidi) {
+      const d = Math.abs(midi - c);
+      if (d < bestDist) { bestDist = d; nearest = c; }
+    }
+    return nearest;
+  }
+
+  function play(midi) {
+    ensureCtx();
+    const src = nearestCapture(midi);
+    if (src === null) { setStatus('no samples loaded', 'err'); return; }
+    const buf = buffers[src];
+    const semis = midi - src;
+    const rate = Math.pow(2, semis / 12);
+
+    const node = ctx.createBufferSource();
+    node.buffer = buf;
+    node.playbackRate.value = rate;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.9;
+    node.connect(gain).connect(ctx.destination);
+
+    // soft release tail
+    const stopAt = ctx.currentTime + buf.duration / rate;
+    node.start();
+    activeSources.set(midi, { node, gain, src });
+
+    node.onended = () => activeSources.delete(midi);
+
+    const targetName = midiToName(midi);
+    const srcName = midiToName(src);
+    $('last').textContent = `${targetName} ← ${srcName} (${semis>=0?'+':''}${semis} st)`;
+    log(`play <b>${targetName}</b> · source <b>${srcName}</b> · pitch ratio <b>${rate.toFixed(3)}</b>`);
+
+    highlightKey(midi, true);
+    setTimeout(() => highlightKey(midi, false), 200);
+  }
+
+  function highlightKey(midi, on) {
+    const el = document.querySelector(`.key[data-midi="${midi}"]`);
+    if (el) el.classList.toggle('active', on);
+  }
+
+  // build keyboard
+  function buildKeyboard() {
+    const kb = $('keyboard');
+    kb.innerHTML = '';
+    const whites = [];
+    const blacks = [];
+    // white keys first
+    for (let m = KEYBOARD_LOW; m <= KEYBOARD_HIGH; m++) {
+      const pc = m % 12;
+      if ([0,2,4,5,7,9,11].includes(pc)) whites.push(m);
+      else blacks.push(m);
+    }
+    whites.forEach((m, i) => {
+      const k = document.createElement('div');
+      k.className = 'key white';
+      k.dataset.midi = m;
+      const name = midiToName(m);
+      k.innerHTML = `<div class="src" id="src-${m}"></div><div class="label">${name}</div>`;
+      k.addEventListener('mousedown', () => play(m));
+      kb.appendChild(k);
+    });
+    // black keys positioned absolutely over the whites
+    const whiteW = 100 / whites.length;
+    blacks.forEach((m) => {
+      // find which white it sits between (left white = previous lower white)
+      const leftWhiteIdx = whites.findIndex(w => w > m) - 1;
+      if (leftWhiteIdx < 0) return;
+      const k = document.createElement('div');
+      k.className = 'key black';
+      k.dataset.midi = m;
+      const name = midiToName(m);
+      k.style.left = `calc(${(leftWhiteIdx + 1) * whiteW}% - 1.6%)`;
+      k.innerHTML = `<div class="label" style="color:#888">${name}</div>`;
+      k.addEventListener('mousedown', (e) => { e.stopPropagation(); play(m); });
+      kb.appendChild(k);
+    });
+  }
+
+  // keyboard input
+  const keyState = {};
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const k = e.key.toLowerCase();
+    if (k === 'z') { octaveShift = Math.max(-2, octaveShift - 1); log(`octave shift: ${octaveShift}`); return; }
+    if (k === 'x') { octaveShift = Math.min(2, octaveShift + 1); log(`octave shift: ${octaveShift}`); return; }
+    if (keyState[k]) return;
+    keyState[k] = true;
+    if (k in KEYMAP) {
+      const baseC = noteToMidi('c3') + octaveShift * 12;
+      const midi = baseC + KEYMAP[k];
+      play(midi);
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    keyState[e.key.toLowerCase()] = false;
+  });
+
+  // A/B toggle
+  $('ab').addEventListener('click', async () => {
+    const sel = $('chain');
+    sel.value = sel.value === 'raw' ? 'spring' : 'raw';
+    await load();
+  });
+
+  $('load').addEventListener('click', load);
+  $('patch').addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+
+  // init
+  buildKeyboard();
+
+  // auto-load if URL has ?patch=…
+  const params = new URLSearchParams(location.search);
+  if (params.get('patch')) $('patch').value = params.get('patch');
+  if (params.get('chain')) $('chain').value = params.get('chain');
+  if (params.get('instrument')) $('instrument').value = params.get('instrument');
+  if (params.get('patch')) load();
+})();
+</script>
+</body>
+</html>

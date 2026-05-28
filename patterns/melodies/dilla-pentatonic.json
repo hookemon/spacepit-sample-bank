@@ -1,0 +1,21 @@
+{
+  "name": "dilla-pentatonic",
+  "type": "melody",
+  "genre": "neo-soul",
+  "bpm": 88,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Dilla-pocket melodic phrase — C minor pentatonic, slightly off-grid swing. Pad / wurli / rhodes territory.",
+  "events": [
+    {"tick": 0,   "note": "G3",  "vel": 100, "len": 22},
+    {"tick": 30,  "note": "A#3", "vel": 90,  "len": 18},
+    {"tick": 48,  "note": "C4",  "vel": 100, "len": 22},
+    {"tick": 78,  "note": "G3",  "vel": 85,  "len": 18},
+    {"tick": 96,  "note": "F3",  "vel": 95,  "len": 22},
+    {"tick": 126, "note": "D#3", "vel": 90,  "len": 18},
+    {"tick": 144, "note": "C3",  "vel": 105, "len": 48}
+  ],
+  "tags": ["dilla", "neo-soul", "pentatonic", "swing"]
+}

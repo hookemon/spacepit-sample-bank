@@ -1,0 +1,12 @@
+{
+  "name": "reggaeton-min",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 96,
+  "vibe": "Am Dm Em Am — minor reggaeton / dembow harmony. Bad Bunny / Rauw Alejandro / J Balvin territory.",
+  "chords": ["Am", "Dm", "Em", "Am"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["reggaeton", "dembow", "latin", "perreo", "modern-latin", "bad-bunny", "minor"]
+}

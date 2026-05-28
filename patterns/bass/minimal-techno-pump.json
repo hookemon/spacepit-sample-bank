@@ -1,0 +1,22 @@
+{
+  "name": "minimal-techno-pump",
+  "type": "bass",
+  "genre": "minimal-techno",
+  "bpm": 126,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Minimal techno bass — root on every quarter for a bar, then a hop to the 7th for the second bar. Hawtin / Villalobos pump.",
+  "events": [
+    {"tick": 0,   "note": "C2", "vel": 108, "len": 22},
+    {"tick": 24,  "note": "C2", "vel": 88,  "len": 22},
+    {"tick": 48,  "note": "C2", "vel": 100, "len": 22},
+    {"tick": 72,  "note": "C2", "vel": 88,  "len": 22},
+    {"tick": 96,  "note": "C2", "vel": 108, "len": 22},
+    {"tick": 120, "note": "A#1","vel": 88,  "len": 22},
+    {"tick": 144, "note": "C2", "vel": 100, "len": 22},
+    {"tick": 168, "note": "A#1","vel": 88,  "len": 22}
+  ],
+  "tags": ["minimal-techno", "hawtin", "villalobos", "4/4", "pump"]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "uk-garage-2step",
+  "type": "bass",
+  "genre": "uk-garage",
+  "bpm": 130,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "UK garage 2-step bass — accents on the off-beat 8ths with a sub-bass under. Wookie / MJ Cole territory.",
+  "events": [
+    {"tick": 0,  "note": "C2",  "vel": 105, "len": 11},
+    {"tick": 36, "note": "C2",  "vel": 95,  "len": 11},
+    {"tick": 48, "note": "G2",  "vel": 90,  "len": 11},
+    {"tick": 72, "note": "A#2", "vel": 100, "len": 11}
+  ],
+  "tags": ["uk-garage", "2-step", "wookie", "sub-bass"]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "half-hold-min",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 70,
+  "vibe": "Cm Ab held 4 bars each — slow half-time. Arp climbs through octaves of each chord. Cinematic / hip-hop slow / R&B.",
+  "chords": ["Cm", "Ab"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["half-time", "hold", "cinematic", "slow", "hip-hop", "rnb", "atmospheric"]
+}

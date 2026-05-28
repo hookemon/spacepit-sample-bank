@@ -1,0 +1,14 @@
+{
+  "name": "boom-bap",
+  "type": "drums",
+  "bpm": 90,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "classic boom-bap — kick on 1 + the &-of-2, snare on 2 and 4, 8th-note hats. Premier territory.",
+  "tracks": {
+    "kick":      [0, 36, 72],
+    "snare":     [24, 72],
+    "hh-closed": [0, 12, 24, 36, 48, 60, 72, 84]
+  },
+  "tags": ["hip-hop", "boom-bap", "premier", "90s"]
+}

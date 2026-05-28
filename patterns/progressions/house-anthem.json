@@ -1,0 +1,12 @@
+{
+  "name": "house-anthem",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 124,
+  "vibe": "vi-I-V-IV — modern anthemic deep house. Disclosure, Duke Dumont, Solomun.",
+  "chords": ["Am", "C", "G", "F"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "deep-house", "anthem", "modern"]
+}

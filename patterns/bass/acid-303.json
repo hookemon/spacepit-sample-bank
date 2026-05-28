@@ -1,0 +1,30 @@
+{
+  "name": "acid-303",
+  "type": "bass",
+  "genre": "acid-house",
+  "bpm": 130,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "A",
+  "key_mode": "minor",
+  "vibe": "Classic 303 acid line — 16ths, alternating root and octave with chromatic slips. Run it through a moogish filter env.",
+  "events": [
+    {"tick": 0,  "note": "A1", "vel": 110, "len": 5},
+    {"tick": 6,  "note": "A2", "vel": 90,  "len": 5},
+    {"tick": 12, "note": "A1", "vel": 100, "len": 5},
+    {"tick": 18, "note": "G#2","vel": 95,  "len": 5},
+    {"tick": 24, "note": "A1", "vel": 105, "len": 5},
+    {"tick": 30, "note": "A2", "vel": 88,  "len": 5},
+    {"tick": 36, "note": "C3", "vel": 100, "len": 5},
+    {"tick": 42, "note": "A1", "vel": 95,  "len": 5},
+    {"tick": 48, "note": "A1", "vel": 110, "len": 5},
+    {"tick": 54, "note": "A2", "vel": 90,  "len": 5},
+    {"tick": 60, "note": "G2", "vel": 100, "len": 5},
+    {"tick": 66, "note": "A1", "vel": 95,  "len": 5},
+    {"tick": 72, "note": "A1", "vel": 105, "len": 5},
+    {"tick": 78, "note": "E2", "vel": 92,  "len": 5},
+    {"tick": 84, "note": "A2", "vel": 100, "len": 5},
+    {"tick": 90, "note": "A1", "vel": 90,  "len": 5}
+  ],
+  "tags": ["acid", "303", "techno", "16ths"]
+}

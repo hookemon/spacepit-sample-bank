@@ -1,0 +1,13 @@
+{
+  "name": "single-hold",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 60,
+  "vibe": "Cm held for 8 bars — single chord, MAXIMUM arp octave cycling. Dub space, ambient hold, drone-adjacent.",
+  "chords": ["Cm"],
+  "bars_per_chord": 8,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["single-chord", "drone", "dub", "ambient", "meditative", "minimal", "hold"]
+}

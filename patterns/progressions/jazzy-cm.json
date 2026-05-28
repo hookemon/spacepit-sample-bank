@@ -1,0 +1,11 @@
+{
+  "name": "jazzy-cm",
+  "type": "progression",
+  "key": "Cm (relative Eb major)",
+  "bpm": 100,
+  "vibe": "ii-V-I-ish in Eb major — neo-soul, future-funk, j-dilla territory",
+  "chords": ["Cm7", "Fm7", "Bb7", "Ebmaj7"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "tags": ["jazz", "neo-soul", "dilla", "minor7"]
+}

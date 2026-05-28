@@ -1,0 +1,12 @@
+{
+  "name": "jazz-iiv-circle",
+  "type": "progression",
+  "key": "Cmaj (jazz)",
+  "bpm": 120,
+  "vibe": "Dm7 G7 Cmaj7 Am7 Dm7 G7 Cmaj7 Am7 — classic ii-V-I-vi cycled twice. Real Book jazz changes.",
+  "chords": ["Dm7", "G7", "Cmaj7", "Am7", "Dm7", "G7", "Cmaj7", "Am7"],
+  "bars_per_chord": 1,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["jazz", "real-book", "ii-V-I", "circle-of-fourths", "standard", "swing", "bebop"]
+}

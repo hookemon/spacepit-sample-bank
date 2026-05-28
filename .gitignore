@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Backups + audit folders (created by cleanup operations)
+_backup_*/
+_backup_silent_*/
+_backup_final_*/
+_silent_audit_*/
+instruments/*/_backup_*/
+
+# Build outputs / large binary artifacts
+releases/*.zip
+*.adv.bak
+_meter_previews/
+
+# Bench runtime state
+log.json
+session.json
+clock_state.json
+
+# Temp + cache
+/tmp/
+*.tmp
+*.log
+.cache/

@@ -1,0 +1,11 @@
+{
+  "name": "minor-blues",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 90,
+  "vibe": "i-iv-i-V minor blues feel — soul, dub, slow funk",
+  "chords": ["Cm", "Fm", "Cm", "G"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "tags": ["minor", "blues", "soul", "dub", "funk"]
+}

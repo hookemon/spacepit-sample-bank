@@ -1,0 +1,12 @@
+{
+  "name": "deep-house-jazz",
+  "type": "progression",
+  "key": "Dm (deep)",
+  "bpm": 122,
+  "vibe": "Smooth m7-m7-maj7-maj7 cycle. Masters at Work, Kerri Chandler, Dixon territory. Deep house jazz.",
+  "chords": ["Dm7", "Gm7", "Cmaj7", "Fmaj7"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "deep-house", "jazz-house", "smooth"]
+}

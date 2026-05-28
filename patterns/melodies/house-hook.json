@@ -1,0 +1,18 @@
+{
+  "name": "house-hook",
+  "type": "melody",
+  "genre": "house",
+  "bpm": 124,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Classic house hook — Chicago/Detroit. Short stabby phrase using b3 + 5 + b7. Vocodered organ / hookelead territory.",
+  "events": [
+    {"tick": 0,  "note": "D#3", "vel": 100, "len": 18},
+    {"tick": 24, "note": "G3",  "vel": 100, "len": 18},
+    {"tick": 48, "note": "A#3", "vel": 100, "len": 18},
+    {"tick": 72, "note": "G3",  "vel": 95,  "len": 18}
+  ],
+  "tags": ["house", "chicago", "detroit", "hook", "stab"]
+}

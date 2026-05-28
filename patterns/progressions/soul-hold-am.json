@@ -1,0 +1,13 @@
+{
+  "name": "soul-hold-am",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 70,
+  "vibe": "Am F held 4 bars each — vi-IV classic soul slow. Marvin Gaye / Curtis Mayfield space.",
+  "chords": ["Am", "F"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["soul", "slow", "hold", "marvin-gaye", "curtis-mayfield", "70s-soul", "rnb"]
+}

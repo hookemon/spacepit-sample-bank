@@ -1,0 +1,26 @@
+{
+  "name": "gated-trance",
+  "type": "arp",
+  "genre": "trance",
+  "bpm": 138,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "F",
+  "key_mode": "minor",
+  "vibe": "Gated trance arp — 16th-note hits with rests for a stutter rhythm. Above & Beyond / Armin van Buuren stutter.",
+  "events": [
+    {"tick": 0,  "note": "F3",  "vel": 110, "len": 4},
+    {"tick": 6,  "note": "F3",  "vel": 95,  "len": 4},
+    {"tick": 18, "note": "G#3", "vel": 105, "len": 4},
+    {"tick": 24, "note": "C4",  "vel": 95,  "len": 4},
+    {"tick": 30, "note": "F4",  "vel": 110, "len": 4},
+    {"tick": 42, "note": "C4",  "vel": 95,  "len": 4},
+    {"tick": 48, "note": "G#3", "vel": 100, "len": 4},
+    {"tick": 60, "note": "C4",  "vel": 95,  "len": 4},
+    {"tick": 66, "note": "F4",  "vel": 105, "len": 4},
+    {"tick": 78, "note": "G#4", "vel": 100, "len": 4},
+    {"tick": 84, "note": "F4",  "vel": 95,  "len": 4},
+    {"tick": 90, "note": "C4",  "vel": 95,  "len": 4}
+  ],
+  "tags": ["trance", "gated", "stutter", "above-beyond"]
+}

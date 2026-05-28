@@ -1,0 +1,12 @@
+{
+  "name": "disco-circle",
+  "type": "progression",
+  "key": "Am (circle of fourths motion)",
+  "bpm": 120,
+  "vibe": "Am7 D7 Gmaj7 Cmaj7 — circle of fourths motion. Classic disco-house lift, Studio 54 energy on modern gear.",
+  "chords": ["Am7", "D7", "Gmaj7", "Cmaj7"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "disco", "disco-house", "70s", "uplifting"]
+}

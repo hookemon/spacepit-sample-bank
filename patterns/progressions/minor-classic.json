@@ -1,0 +1,11 @@
+{
+  "name": "minor-classic",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 120,
+  "vibe": "classic minor i-VI-III-VII — hip-hop, R&B, soul foundation",
+  "chords": ["Cm", "Ab", "Eb", "Bb"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "tags": ["minor", "hip-hop", "rnb", "soul", "foundational"]
+}

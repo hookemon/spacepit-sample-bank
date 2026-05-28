@@ -1,0 +1,12 @@
+{
+  "name": "hiphop-soul",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 90,
+  "vibe": "Cm7 Fm7 Bbm7 Eb7 — D'Angelo / Erykah Badu / J Dilla soul-sample changes. m7 vamp.",
+  "chords": ["Cm7", "Fm7", "Bbm7", "Eb7"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8 or 1/16",
+  "tags": ["hip-hop", "neo-soul", "soul", "dilla", "dangelo", "minor7", "smooth"]
+}

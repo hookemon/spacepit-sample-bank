@@ -1,0 +1,13 @@
+{
+  "name": "dub-hold",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 65,
+  "vibe": "Cm Fm held 4 bars each — slow dub minimalism. Two chords, octaves to spare. Heavy spring reverb territory.",
+  "chords": ["Cm", "Fm"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "minimal", "slow", "atmospheric", "hold", "reggae", "spaceship"]
+}

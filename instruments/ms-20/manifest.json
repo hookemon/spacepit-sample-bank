@@ -1,0 +1,36 @@
+{
+  "slug": "ms-20",
+  "name": "Korg MS-20",
+  "category": "synth",
+  "tier": "gold",
+  "sampling_dates": [],
+  "chains_captured": ["raw"],
+  "patches": [
+    { "name": "lead01", "notes": "TBD — knob positions, vibe one-liner", "samples_dir": "patches/lead01/raw" }
+  ],
+  "one_shots_dir": null,
+  "loops": [],
+  "exports": {
+    "ableton_move": null,
+    "mpc": null,
+    "op_z": null,
+    "ep_133": null,
+    "sfz": null,
+    "decent_sampler": null
+  },
+  "preview_samples": [],
+  "site": {
+    "gear_slug_in_sanity": null,
+    "published_at": null,
+    "free_preview_count": 5
+  },
+  "video": {
+    "process_video_url": null,
+    "shot_list": []
+  },
+  "store": {
+    "free_tier_count": 5,
+    "paid_kit_url": null,
+    "price_usd": null
+  }
+}

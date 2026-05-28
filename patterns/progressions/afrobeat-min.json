@@ -1,0 +1,12 @@
+{
+  "name": "afrobeat-min",
+  "type": "progression",
+  "key": "Em",
+  "bpm": 108,
+  "vibe": "Em Am Bm Em — afrobeat / afrobeats modal minor groove. Burna Boy / Wizkid / Tems energy.",
+  "chords": ["Em", "Am", "Bm", "Em"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["afrobeat", "afrobeats", "modern-african", "burna-boy", "wizkid", "tems", "global", "modal"]
+}

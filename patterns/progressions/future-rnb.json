@@ -1,0 +1,12 @@
+{
+  "name": "future-rnb",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 80,
+  "vibe": "Cm Bbmaj7 Abmaj7 Gm7 — modern R&B descending. The Weeknd / Frank Ocean / Daniel Caesar / Brent Faiyaz energy.",
+  "chords": ["Cm", "Bbmaj7", "Abmaj7", "Gm7"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "tags": ["rnb", "future-rnb", "modern-rnb", "the-weeknd", "frank-ocean", "alt-rnb", "smooth", "moody"]
+}

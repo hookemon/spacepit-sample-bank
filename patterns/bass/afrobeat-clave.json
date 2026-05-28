@@ -1,0 +1,23 @@
+{
+  "name": "afrobeat-clave",
+  "type": "bass",
+  "genre": "afrobeat",
+  "bpm": 108,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Afrobeat bass — syncopated clave-aligned 16ths around root + fifth. Tony Allen + Fela rhythm-section pocket.",
+  "events": [
+    {"tick": 0,   "note": "C2", "vel": 110, "len": 11},
+    {"tick": 18,  "note": "C2", "vel": 90,  "len": 11},
+    {"tick": 36,  "note": "G2", "vel": 100, "len": 11},
+    {"tick": 60,  "note": "C2", "vel": 95,  "len": 11},
+    {"tick": 84,  "note": "G2", "vel": 90,  "len": 11},
+    {"tick": 96,  "note": "C2", "vel": 105, "len": 11},
+    {"tick": 132, "note": "D#2","vel": 95,  "len": 11},
+    {"tick": 156, "note": "G2", "vel": 100, "len": 11},
+    {"tick": 180, "note": "C2", "vel": 90,  "len": 11}
+  ],
+  "tags": ["afrobeat", "fela", "tony-allen", "clave", "16ths"]
+}

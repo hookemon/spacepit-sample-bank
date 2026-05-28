@@ -1,0 +1,11 @@
+{
+  "name": "minor-lift",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 110,
+  "vibe": "minor lifting through major colors — uplifting, gospel, late-night R&B",
+  "chords": ["Cm", "Eb", "Ab", "Bb"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "tags": ["minor", "uplifting", "gospel", "rnb"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "dub-cycle",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 76,
+  "vibe": "Am Dm Am Em — dub minimalism, two-chord-ish back-and-forth with the Em as turnaround. Scientist / King Tubby / Lee Scratch space.",
+  "chords": ["Am", "Dm", "Am", "Em"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["dub", "reggae", "minimal", "scientist", "king-tubby", "lee-scratch-perry", "space", "echo"]
+}

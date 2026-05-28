@@ -1,0 +1,22 @@
+{
+  "name": "house-octave",
+  "type": "bass",
+  "genre": "house",
+  "bpm": 124,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "House bass bouncing between root and octave on the 8ths — Daft Punk / disco-house territory.",
+  "events": [
+    {"tick": 0,  "note": "C2", "vel": 105, "len": 11},
+    {"tick": 12, "note": "C3", "vel": 85,  "len": 11},
+    {"tick": 24, "note": "C2", "vel": 100, "len": 11},
+    {"tick": 36, "note": "C3", "vel": 85,  "len": 11},
+    {"tick": 48, "note": "C2", "vel": 105, "len": 11},
+    {"tick": 60, "note": "C3", "vel": 85,  "len": 11},
+    {"tick": 72, "note": "C2", "vel": 100, "len": 11},
+    {"tick": 84, "note": "C3", "vel": 85,  "len": 11}
+  ],
+  "tags": ["house", "disco-house", "octave", "daft-punk"]
+}

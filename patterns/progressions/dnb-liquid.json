@@ -1,0 +1,12 @@
+{
+  "name": "dnb-liquid",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 174,
+  "vibe": "Am F C G — liquid drum & bass at 174. Foundation pop changes over breakneck energy. LTJ Bukem / Calibre territory.",
+  "chords": ["Am", "F", "C", "G"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "tags": ["dnb", "drum-and-bass", "liquid", "jungle", "fast", "uk", "174bpm"]
+}

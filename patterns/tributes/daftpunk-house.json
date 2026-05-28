@@ -1,0 +1,18 @@
+{
+  "name": "daftpunk-house",
+  "type": "tribute",
+  "artist": "Daft Punk",
+  "era": "1997-2001 (Homework / Discovery)",
+  "reference_tracks": ["Around the World", "One More Time", "Da Funk", "Rollin' & Scratchin'"],
+  "synth_class": "analog mono with square + saw oscillators, ladder/OTA filter",
+  "patch_notes": {
+    "oscillators": "VCO 1 SQUARE 8' (mid-bass register, not sub)",
+    "filter": "cutoff 50-60%, resonance 30%, env amount on filter 20-30% (subtle filter open on attack)",
+    "envelope_amp": "fast attack, full sustain, medium release",
+    "envelope_filter": "fast attack, short decay (filter snaps back), low sustain",
+    "lfo": "off — slide character comes from glide/portamento on phrases, NOT LFO modulation",
+    "performance": "groove sits on 4-on-the-floor; bass plays root + fifth + octave with slight glide between notes"
+  },
+  "best_on": ["Moog Grandmother", "Moog Mother-32", "Roland Juno-106", "Pro-One", "ARP 2600"],
+  "tags": ["house", "french-house", "tribute", "square-wave", "dance"]
+}

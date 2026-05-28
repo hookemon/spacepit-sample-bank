@@ -1,0 +1,15 @@
+{
+  "name": "techno-driving",
+  "type": "drums",
+  "bpm": 132,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "Driving techno — 4-on-floor kick, offbeat hihats, claps on 2 and 4. Berlin / industrial.",
+  "tracks": {
+    "kick":      [0, 24, 48, 72],
+    "clap":      [24, 72],
+    "hh-closed": [12, 36, 60, 84],
+    "hh-open":   [12, 60]
+  },
+  "tags": ["techno", "berlin", "4-on-floor", "driving"]
+}

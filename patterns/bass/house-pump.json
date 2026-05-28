@@ -1,0 +1,18 @@
+{
+  "name": "house-pump",
+  "type": "bass",
+  "genre": "house",
+  "bpm": 124,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Classic 4/4 house bass — root note on every quarter, soft accent on 1 and 3. The pump.",
+  "events": [
+    {"tick": 0,  "note": "C2", "vel": 110, "len": 22},
+    {"tick": 24, "note": "C2", "vel": 88,  "len": 22},
+    {"tick": 48, "note": "C2", "vel": 100, "len": 22},
+    {"tick": 72, "note": "C2", "vel": 88,  "len": 22}
+  ],
+  "tags": ["house", "4/4", "classic", "pump"]
+}

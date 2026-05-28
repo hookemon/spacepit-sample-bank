@@ -1,0 +1,21 @@
+{
+  "name": "funk-pocket",
+  "type": "bass",
+  "genre": "funk",
+  "bpm": 104,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Tight funk pocket — root on the 1 and 3, syncopated 16ths around it with ghost notes. James Jamerson / Bootsy territory.",
+  "events": [
+    {"tick": 0,  "note": "C2",  "vel": 110, "len": 11},
+    {"tick": 18, "note": "C2",  "vel": 60,  "len": 5},
+    {"tick": 24, "note": "D#2", "vel": 95,  "len": 11},
+    {"tick": 36, "note": "C2",  "vel": 55,  "len": 5},
+    {"tick": 48, "note": "C2",  "vel": 105, "len": 11},
+    {"tick": 66, "note": "G2",  "vel": 90,  "len": 11},
+    {"tick": 84, "note": "C2",  "vel": 60,  "len": 5}
+  ],
+  "tags": ["funk", "pocket", "jamerson", "bootsy", "ghost-notes"]
+}

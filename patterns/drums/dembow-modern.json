@@ -1,0 +1,15 @@
+{
+  "name": "dembow-modern",
+  "type": "drums",
+  "bpm": 96,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "Modern dembow / reggaeton — boom-cha boom-chick. Kick on the 1 and the 3-and, snare on the 2 and 4.",
+  "tracks": {
+    "kick":      [0, 60],
+    "snare":     [24, 72],
+    "hh-closed": [0, 12, 24, 36, 48, 60, 72, 84],
+    "clap":      [24, 72]
+  },
+  "tags": ["dembow", "reggaeton", "modern", "boom-cha"]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "dancehall-riddim",
+  "type": "bass",
+  "genre": "dancehall",
+  "bpm": 96,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "G",
+  "key_mode": "minor",
+  "vibe": "Modern dancehall riddim bass — held root over a half-bar, drop to the 5th on the &-of-3. Sleng Teng / Diwali stride.",
+  "events": [
+    {"tick": 0,   "note": "G1", "vel": 110, "len": 60},
+    {"tick": 60,  "note": "D2", "vel": 95,  "len": 24},
+    {"tick": 96,  "note": "G1", "vel": 105, "len": 60},
+    {"tick": 156, "note": "F2", "vel": 100, "len": 24}
+  ],
+  "tags": ["dancehall", "riddim", "sleng-teng", "diwali", "jamaica"]
+}

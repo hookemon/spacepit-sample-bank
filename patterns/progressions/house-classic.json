@@ -1,0 +1,12 @@
+{
+  "name": "house-classic",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 124,
+  "vibe": "vi-IV-I-V — the ur-house progression. Robin S, Crystal Waters, every classic 90s house anthem.",
+  "chords": ["Am", "F", "C", "G"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "classic-house", "90s", "anthem"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "jamie-principle",
+  "type": "tribute",
+  "artist": "Jamie Principle",
+  "era": "1984-1988 Chicago warehouse house",
+  "reference_tracks": ["Your Love", "Waiting on My Angel", "Baby Wants to Ride"],
+  "synth_class": "mono analog or virtual analog with square wave + ladder/OTA filter, played as a bass-lead (bass register but melodically)",
+  "patch_notes": {
+    "oscillators": "VCO 1 SQUARE 8' or 16' (bass register, not sub — you want to hear the harmonics)",
+    "filter": "cutoff 25-40% (slightly open to hear the square's woody character), resonance 30-50% (snap, plucky)",
+    "envelope_amp": "fast attack, full sustain, medium release",
+    "envelope_filter": "fast attack, short decay (filter snaps closed), mid sustain, env amount 40-60% (filter follows envelope shape)",
+    "lfo": "off — Chicago bass-leads use the arp itself for motion, not LFO modulation",
+    "arp_settings": "1/16 division, UP-DOWN mode, hold root + octave (e.g., C2 + C3) for the classic Chicago bass-lead bounce",
+    "performance": "the magic is the arp + octave switch on the panel. Flip octave switches mid-song for breakdown/build moments. Filter slowly opens through the track."
+  },
+  "best_on": ["Moog Grandmother", "Korg Poly-61", "Roland Juno-60/106", "Roland SH-101", "Roland TB-303"],
+  "tags": ["house", "chicago-house", "warehouse", "80s", "jamie-principle", "frankie-knuckles", "tribute", "bass-lead"]
+}

@@ -1,0 +1,107 @@
+{
+  "slug": "prophet-6",
+  "name": "Sequential Prophet-6",
+  "synth_name": "Prophet-6",
+  "category": "synth",
+  "tier": "gold",
+  "sampling_dates": [],
+  "chains_captured": [
+    "raw",
+    "fx"
+  ],
+  "patches": [
+    {
+      "name": "p6-funky-brass",
+      "notes": "THE Prophet brass — Dave Smith's signature sound through the P5/P6 lineage. OSC 1 + 2 SAW slightly detuned, OSC 2 +0 to +5 cents, filter cutoff ~50% with snappy env amount, fast attack on amp, medium decay. The stab that defined synthpop brass. Range c2-c6. Used in: modern synthwave, The Weeknd 'Blinding Lights' brass tones, '80s nostalgia productions.",
+      "samples_dir": "patches/p6-funky-brass/raw"
+    },
+    {
+      "name": "p6-insane-lead",
+      "notes": "Singing analog lead with portamento — the Prophet scream. SAW + SQUARE mix, filter cutoff 60-70%, resonance 30%, env amount HIGH, glide ON ~30%. Mod wheel patched to filter cutoff for expression. Range a2-a5. Used in: modern prog, Mac Miller leads, contemporary R&B solos.",
+      "samples_dir": "patches/p6-insane-lead/raw"
+    },
+    {
+      "name": "p6-synth-bass",
+      "notes": "Punchy poly bass — OSC 1 SAW 16', OSC 2 SQUARE 8' detuned slightly, sub osc on, filter cutoff 30%, snappy env. The fattest, most direct analog bass on a modern synth. Range a1-a3. Used in: synthwave, modern funk, Mura Masa-era productions.",
+      "samples_dir": "patches/p6-synth-bass/raw"
+    },
+    {
+      "name": "p6-crystal-pad",
+      "notes": "Slow-attack lush pad — two detuned saws, slow attack (~800ms), wide filter cutoff (~85%), low resonance, built-in chorus engaged. Range c2-c6. Used in: ambient sections, film scoring, modern dream-pop production.",
+      "samples_dir": "patches/p6-crystal-pad/raw"
+    },
+    {
+      "name": "p6-sequencer-pluck",
+      "notes": "Plucky sequencer line — short envelope (A=0, D=300ms, S=0, R=0), SQUARE wave, filter cutoff 50% with mod env, glide off. Designed to drive the P6's built-in step sequencer. Range c3-c6. Used in: synthwave sequences, Tycho-style productions, modern minimal techno.",
+      "samples_dir": "patches/p6-sequencer-pluck/raw"
+    },
+    {
+      "name": "p6-classic-strings",
+      "notes": "Analog string ensemble — two SAW oscs octave-stacked, slow attack (~600ms), full sustain, chorus on full. The OBX/Prophet strings every '80s synth pad chases. Range c2-c6. Used in: synthwave pads, modern soundtracks, Stranger Things-era nostalgia.",
+      "samples_dir": "patches/p6-classic-strings/raw"
+    },
+    {
+      "name": "p6-acid-squelch",
+      "notes": "P6 acid — proves the modern analog can squelch. OSC 1 SAW, filter cutoff 30%, resonance HIGH (~70%), env amount maxed, fast decay. Range a1-a4. Used in: modern acid house, Floating Points-era productions, IDM bass leads.",
+      "samples_dir": "patches/p6-acid-squelch/raw"
+    },
+    {
+      "name": "p6-house-stab",
+      "notes": "Short chord stab — SAW + SQUARE, very short envelope (~150ms decay), high filter env amount, no sustain. Built-in distortion engaged for grit. Range c3-c5. Used in: modern deep house, Disclosure-era stabs, jackin' UK productions.",
+      "samples_dir": "patches/p6-house-stab/raw"
+    },
+    {
+      "name": "p6-wide-lead",
+      "notes": "Wide unison lead — both oscs SAW, max detune via fine tune knob, sub osc on, filter cutoff 70%, low resonance. Mod wheel sweeps filter for expression. Range a2-a5. Used in: modern progressive house leads, Tycho melodies, Bonobo lead lines.",
+      "samples_dir": "patches/p6-wide-lead/raw"
+    },
+    {
+      "name": "p6-ambient-pad",
+      "notes": "Slow-evolving atmospheric pad — supersaw-ish detune, very slow attack (2sec+), LFO patched to filter cutoff (slow triangle), built-in REVERB + DELAY drenched. Range c2-c6. Used in: ambient electronica, Floating Points pad work, soundtrack beds.",
+      "samples_dir": "patches/p6-ambient-pad/raw"
+    },
+    {
+      "name": "p6-fm-bell",
+      "notes": "Cross-mod metallic bell — OSC 2 → OSC 1 frequency modulation (P6's X-MOD knob up), short percussive envelope, slight reverb. Synth-bell character that's harder/grittier than DX7. Range c3-c6. Used in: modern electronic productions, IDM melodic textures.",
+      "samples_dir": "patches/p6-fm-bell/raw"
+    },
+    {
+      "name": "p6-sub-drone",
+      "notes": "Held sub drone — OSC 1 TRIANGLE 32', filter wide open, no envelope movement, sub osc on. The deepest, cleanest analog sub you can get from a modern poly. Range a0-a2. Used in: dub productions, ambient sub layers, modern trap sublayers.",
+      "samples_dir": "patches/p6-sub-drone/raw"
+    }
+  ],
+  "one_shots_dir": null,
+  "loops": [],
+  "exports": {
+    "ableton_move": null,
+    "mpc": null,
+    "op_z": null,
+    "ep_133": null,
+    "sfz": null,
+    "decent_sampler": null
+  },
+  "preview_samples": [],
+  "site": {
+    "gear_slug_in_sanity": null,
+    "published_at": null,
+    "free_preview_count": 5
+  },
+  "video": {
+    "process_video_url": null,
+    "shot_list": []
+  },
+  "store": {
+    "free_tier_count": 5,
+    "paid_kit_url": null,
+    "price_usd": null
+  },
+  "capture_settings": {
+    "audio_device": "TX-6",
+    "input_channels": "1,2",
+    "midi_port": "Prophet-6",
+    "midi_channel": 1
+  },
+  "polyphony": "polyphonic",
+  "voices": 6
+}

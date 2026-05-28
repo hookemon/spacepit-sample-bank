@@ -1,0 +1,15 @@
+{
+  "name": "dilla-swing",
+  "type": "drums",
+  "bpm": 86,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "J Dilla shuffle — kick pushed late, snare drunkenly behind the beat, hats off the grid. Donuts feel.",
+  "tracks": {
+    "kick":      [0, 18, 38, 70],
+    "snare":     [26, 74],
+    "hh-closed": [3, 15, 27, 39, 51, 63, 75, 87]
+  },
+  "swing": "humanized — note positions intentionally off-grid",
+  "tags": ["hip-hop", "dilla", "neo-soul", "shuffle"]
+}

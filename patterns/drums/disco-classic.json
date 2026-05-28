@@ -1,0 +1,15 @@
+{
+  "name": "disco-classic",
+  "type": "drums",
+  "bpm": 118,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "Classic disco — 4-on-floor kick, snare on 2 and 4, busy open hats on the offbeats, tambourine throughout.",
+  "tracks": {
+    "kick":       [0, 24, 48, 72],
+    "snare":      [24, 72],
+    "hh-open":    [12, 36, 60, 84],
+    "tambourine": [0, 12, 24, 36, 48, 60, 72, 84]
+  },
+  "tags": ["disco", "4-on-floor", "nile-rodgers", "70s"]
+}

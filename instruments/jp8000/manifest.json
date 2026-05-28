@@ -1,0 +1,159 @@
+{
+  "slug": "jp8000",
+  "name": "Roland JP-8000",
+  "synth_name": "Roland JP-8000",
+  "category": "synth",
+  "tier": "gold",
+  "sampling_dates": [
+    "2026-05-26"
+  ],
+  "chains_captured": [
+    "raw"
+  ],
+  "patches": [
+    {
+      "name": "supersaw-1",
+      "notes": "THE patch \u2014 JP-8000's signature 7-saw supersaw. OSC 1: SUPER SAW, all 6 detune voices ON. Filter cutoff ~70%, resonance 30%, env amount 50%. Amp env: A=0, D=0, S=full, R=2sec. Velocity sensitive. Range a2-a5. Used in: Above & Beyond, Armin van Buuren, Daft Punk, virtually every trance track 1997-2010.",
+      "samples_dir": "patches/supersaw-1/raw",
+      "gearbase_preset_id": "P:A57",
+      "program_change": 38,
+      "target_mode": "single"
+    },
+    {
+      "name": "mega-saw",
+      "notes": "Wider, fatter supersaw \u2014 push the DETUNE knob hard, MIX 100% saw, two-osc layer if possible. Filter wider open (~85%), high res (~50%). Long release. Range a2-a5. Used in: Above & Beyond 'Sun & Moon', Sasha & Digweed sets.",
+      "samples_dir": "patches/mega-saw/raw",
+      "gearbase_preset_id": "P:A84",
+      "program_change": 59,
+      "target_mode": "dual"
+    },
+    {
+      "name": "tb-echo",
+      "notes": "JP-8000's TB-303 emulation \u2014 modeled after Roland's own 303. OSC sawtooth, FEEDBACK OSC engaged (the secret weapon), filter env amount HIGH, resonance ~70%, short decay. Range a1-a4. Used in: Eric Prydz 'Opus', Tale of Us tracks.",
+      "samples_dir": "patches/tb-echo/raw",
+      "gearbase_preset_id": "P:A33",
+      "program_change": 18,
+      "target_mode": "single"
+    },
+    {
+      "name": "trance-pad",
+      "notes": "Classic trance pad \u2014 two supersaws octave-detuned, slow attack (~1sec), full sustain, slow release (3sec). Filter cutoff modulated by LFO (slow triangle). Range c2-c5. Used in: Above & Beyond, ATB, Ti\u00ebsto early stuff.",
+      "samples_dir": "patches/trance-pad/raw",
+      "gearbase_preset_id": "P:A66",
+      "program_change": 45,
+      "target_mode": "dual"
+    },
+    {
+      "name": "acid-bass",
+      "notes": "Squelchy 303-style acid bass via the FEEDBACK OSC trick \u2014 saw oscillator, feedback engaged, filter cutoff 30-40%, resonance 80%+, env amount maxed. Range a1-a4. Used in: Hardfloor, Acid Pauli, Josh Wink 'Higher State of Consciousness'.",
+      "samples_dir": "patches/acid-bass/raw",
+      "gearbase_preset_id": "P:A24",
+      "program_change": 11,
+      "target_mode": "single"
+    },
+    {
+      "name": "fat-lead",
+      "notes": "Daft Punk territory \u2014 square + saw mix, slight detune, mod wheel sweeps filter cutoff. Punchy env. Range a2-a5. Used in: Daft Punk 'One More Time' lead, French house bangers.",
+      "samples_dir": "patches/fat-lead/raw",
+      "gearbase_preset_id": "P:A88",
+      "program_change": 63,
+      "target_mode": "single"
+    },
+    {
+      "name": "analog-strings",
+      "notes": "Synth strings \u2014 two saws octave-stacked, slow attack (~600ms), high cutoff (90%), low res. Chorus engaged. Range c2-c5. Used in: Underworld, Orbital, Sasha pads.",
+      "samples_dir": "patches/analog-strings/raw",
+      "gearbase_preset_id": "P:B21",
+      "program_change": 72,
+      "target_mode": "dual"
+    },
+    {
+      "name": "pluck-stab",
+      "notes": "Short percussive stab \u2014 square wave, very short decay (~150ms), no sustain. High res for character. Range a2-a5. Used in: UK garage / 2-step productions, MJ Cole stabs.",
+      "samples_dir": "patches/pluck-stab/raw",
+      "gearbase_preset_id": "P:A42",
+      "program_change": 25,
+      "target_mode": "single"
+    },
+    {
+      "name": "rave-hoover",
+      "notes": "Classic Roland Alpha Juno hoover sound recreated on JP \u2014 saw + sub osc, pulse width modulation slowly, low cutoff, slight pitch wobble (LFO \u2192 pitch, very small amount). Range c2-c5. Used in: Joey Beltram 'Mentasm', 90s rave, jungle/dnb stabs.",
+      "samples_dir": "patches/rave-hoover/raw",
+      "gearbase_preset_id": "P:A34",
+      "program_change": 19,
+      "target_mode": "single"
+    },
+    {
+      "name": "wide-pad",
+      "notes": "Atmospheric pad \u2014 supersaw with maximum detune, very slow attack (2sec+), filter sweep on mod wheel, drenched in built-in chorus. Range c2-c5. Used in: ambient/electronica beds, Boards of Canada-ish tones.",
+      "samples_dir": "patches/wide-pad/raw",
+      "gearbase_preset_id": "P:B32",
+      "program_change": 81,
+      "target_mode": "dual"
+    },
+    {
+      "name": "fm-bell",
+      "notes": "FM-style bell \u2014 feedback osc + ring mod for metallic harmonics. Short percussive decay, high cutoff. Range c3-c6. Useful for melodic hooks, FKA twigs-style production.",
+      "samples_dir": "patches/fm-bell/raw",
+      "gearbase_preset_id": "P:B58",
+      "program_change": 103,
+      "target_mode": "single"
+    },
+    {
+      "name": "sub-bass",
+      "notes": "Pure sub \u2014 sine/triangle low osc only, filter wide open, no envelope movement on filter. Just clean low end. Range a1-a3. Used in: house/techno sub layers, dub productions.",
+      "samples_dir": "patches/sub-bass/raw",
+      "gearbase_preset_id": "P:A14",
+      "program_change": 3,
+      "target_mode": "single"
+    }
+  ],
+  "one_shots_dir": null,
+  "loops": [],
+  "exports": {
+    "ableton_move": null,
+    "mpc": null,
+    "op_z": null,
+    "ep_133": null,
+    "sfz": null,
+    "decent_sampler": null
+  },
+  "preview_samples": [],
+  "site": {
+    "gear_slug_in_sanity": null,
+    "published_at": null,
+    "free_preview_count": 5
+  },
+  "video": {
+    "process_video_url": null,
+    "shot_list": []
+  },
+  "store": {
+    "free_tier_count": 5,
+    "paid_kit_url": null,
+    "price_usd": null
+  },
+  "capture_settings": {
+    "audio_device": "TX-6",
+    "input_channels": "1,2",
+    "midi_port": "mio",
+    "midi_channel": 1
+  },
+  "polyphony": "polyphonic",
+  "voices": 8,
+  "midi_quirks": {
+    "send_bank_select": false,
+    "bare_pc_targets_patch_bank": true,
+    "patch_bank_addressable_via_midi": true,
+    "required_synth_setup": [
+      "Synth must be in PATCH mode (not PERFORM) on the front panel",
+      "Performance Control Channel must be OFF (MIDI menu) \u2014 otherwise any incoming PC kicks the synth to PERFORMANCE bank, ignoring PATCH mode",
+      "Program Change Tx/Rx Switch must be BANK SEL + PC (already on by default usually)"
+    ],
+    "default_pc_workflow": "Bench sends bare Program Change on channel 1. JP-8000 (in PATCH mode + Performance Control OFF) loads the PATCH bank preset at that PC slot. Bank A = PC 0-63 (A11-A88), Bank B = PC 64-127 (B11-B88).",
+    "verified": "2026-05-27 \u2014 Nick confirmed PC=38 (PATCH A57 = Euro SAW) loads correctly with Performance Control Channel OFF.",
+    "transmits_mode_change": false,
+    "mode_must_be_set_manually": true,
+    "mode_switching_via_midi": "not supported \u2014 SINGLE/DUAL/SPLIT toggle is front-panel-only. Bench should pause + prompt user when target_mode changes between queue items."
+  }
+}

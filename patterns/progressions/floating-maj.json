@@ -1,0 +1,13 @@
+{
+  "name": "floating-maj",
+  "type": "progression",
+  "key": "Cmaj",
+  "bpm": 70,
+  "vibe": "Cmaj7 Fmaj7 held 4 bars each — major key floating / dreamy. Lofi, ambient, golden-hour.",
+  "chords": ["Cmaj7", "Fmaj7"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["floating", "dreamy", "lofi", "ambient", "major", "uplifting", "golden-hour"]
+}

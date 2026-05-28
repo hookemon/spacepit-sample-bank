@@ -1,0 +1,18 @@
+{
+  "name": "dub-skank",
+  "type": "bass",
+  "genre": "dub",
+  "bpm": 75,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "A",
+  "key_mode": "minor",
+  "vibe": "Dub bass — heavy root on the 1, walk down to the 5th on beat 3. Aggrovators rhythm. Spring reverb required.",
+  "events": [
+    {"tick": 0,   "note": "A1", "vel": 110, "len": 36},
+    {"tick": 48,  "note": "E2", "vel": 100, "len": 36},
+    {"tick": 96,  "note": "A1", "vel": 108, "len": 36},
+    {"tick": 144, "note": "G2", "vel": 95,  "len": 36}
+  ],
+  "tags": ["dub", "reggae", "roots", "skank", "aggrovators"]
+}

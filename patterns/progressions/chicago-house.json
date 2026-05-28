@@ -1,0 +1,13 @@
+{
+  "name": "chicago-house",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 120,
+  "vibe": "Cm Fm Bb Eb — i-iv-VII-III. Jamie Principle / Frankie Knuckles / Mr. Fingers / Marshall Jefferson territory. Mid-80s Chicago warehouse era.",
+  "chords": ["Cm", "Fm", "Bb", "Eb"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "best_with_spring": false,
+  "tags": ["house", "chicago-house", "jamie-principle", "frankie-knuckles", "mr-fingers", "larry-heard", "warehouse", "80s", "bass-lead", "tribute"]
+}

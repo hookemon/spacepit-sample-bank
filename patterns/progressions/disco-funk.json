@@ -1,0 +1,12 @@
+{
+  "name": "disco-funk",
+  "type": "progression",
+  "key": "Am (modal)",
+  "bpm": 110,
+  "vibe": "Am7 D7 Gmaj7 Cmaj7 Fmaj7 Bm7 Em7 Am7 — 8-bar circle-of-fourths disco. Studio 54, Chic, Nile Rodgers DNA.",
+  "chords": ["Am7", "D7", "Gmaj7", "Cmaj7", "Fmaj7", "Bm7", "Em7", "Am7"],
+  "bars_per_chord": 1,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "tags": ["disco", "funk", "70s", "studio-54", "chic", "circle-of-fourths", "uplifting"]
+}

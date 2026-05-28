@@ -1,0 +1,11 @@
+{
+  "name": "minor-dramatic",
+  "type": "progression",
+  "key": "Cm",
+  "bpm": 100,
+  "vibe": "i-VI-iv-V dramatic minor — cinematic, dark hip-hop, trap",
+  "chords": ["Cm", "Ab", "Fm", "G"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "tags": ["minor", "cinematic", "dramatic", "trap", "dark"]
+}

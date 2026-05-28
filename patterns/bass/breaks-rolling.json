@@ -1,0 +1,22 @@
+{
+  "name": "breaks-rolling",
+  "type": "bass",
+  "genre": "breakbeat",
+  "bpm": 138,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "F",
+  "key_mode": "minor",
+  "vibe": "Big beat / breaks bass — rolling 8ths on root with a syncopated kick to the b6 on the &-of-2. Chemical Brothers / Crystal Method.",
+  "events": [
+    {"tick": 0,  "note": "F1",  "vel": 110, "len": 11},
+    {"tick": 12, "note": "F1",  "vel": 95,  "len": 11},
+    {"tick": 24, "note": "F1",  "vel": 100, "len": 11},
+    {"tick": 36, "note": "D#2", "vel": 90,  "len": 11},
+    {"tick": 48, "note": "F1",  "vel": 105, "len": 11},
+    {"tick": 60, "note": "F1",  "vel": 95,  "len": 11},
+    {"tick": 72, "note": "F1",  "vel": 100, "len": 11},
+    {"tick": 84, "note": "C2",  "vel": 95,  "len": 11}
+  ],
+  "tags": ["breakbeat", "big-beat", "chemical-brothers", "rolling"]
+}

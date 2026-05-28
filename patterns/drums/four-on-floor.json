@@ -1,0 +1,14 @@
+{
+  "name": "four-on-floor",
+  "type": "drums",
+  "bpm": 124,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "house / techno foundation — kick on every quarter, snare on 2 and 4, off-beat 8th hats",
+  "tracks": {
+    "kick":      [0, 24, 48, 72],
+    "snare":     [24, 72],
+    "hh-closed": [12, 36, 60, 84]
+  },
+  "tags": ["house", "techno", "4x4"]
+}

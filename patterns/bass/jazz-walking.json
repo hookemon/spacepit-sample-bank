@@ -1,0 +1,22 @@
+{
+  "name": "jazz-walking",
+  "type": "bass",
+  "genre": "jazz",
+  "bpm": 130,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "C",
+  "key_mode": "minor",
+  "vibe": "Walking jazz bass over Cm — root, 3rd, 5th, 6th up; 5th, 3rd, root, 7th down. Paul Chambers / Ron Carter feel.",
+  "events": [
+    {"tick": 0,   "note": "C2",  "vel": 100, "len": 22},
+    {"tick": 24,  "note": "D#2", "vel": 92,  "len": 22},
+    {"tick": 48,  "note": "G2",  "vel": 98,  "len": 22},
+    {"tick": 72,  "note": "A2",  "vel": 92,  "len": 22},
+    {"tick": 96,  "note": "G2",  "vel": 100, "len": 22},
+    {"tick": 120, "note": "D#2", "vel": 90,  "len": 22},
+    {"tick": 144, "note": "C2",  "vel": 98,  "len": 22},
+    {"tick": 168, "note": "A#1", "vel": 92,  "len": 22}
+  ],
+  "tags": ["jazz", "walking", "swing", "ron-carter", "paul-chambers"]
+}

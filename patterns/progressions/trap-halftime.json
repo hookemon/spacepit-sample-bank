@@ -1,0 +1,12 @@
+{
+  "name": "trap-halftime",
+  "type": "progression",
+  "key": "Am",
+  "bpm": 140,
+  "vibe": "Am Em Dm Am — halftime trap, dark + sparse. Travis Scott / Future / Metro Boomin territory.",
+  "chords": ["Am", "Em", "Dm", "Am"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/16",
+  "tags": ["trap", "hip-hop", "halftime", "dark", "modern", "metro-boomin", "futuristic"]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "trap",
+  "type": "drums",
+  "bpm": 140,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "trap halftime — 808 kick sparse, snare on 3 (halftime backbeat), hi-hat rolls",
+  "tracks": {
+    "kick":      [0, 60],
+    "snare":     [48],
+    "hh-closed": [0, 12, 24, 30, 36, 48, 60, 66, 72, 78, 84, 90]
+  },
+  "note": "hi-hat positions include some 16th and 32nd subdivision for the trap roll feel",
+  "tags": ["trap", "halftime", "modern-hip-hop"]
+}

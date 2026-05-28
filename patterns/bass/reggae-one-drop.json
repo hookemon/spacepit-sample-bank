@@ -1,0 +1,18 @@
+{
+  "name": "reggae-one-drop",
+  "type": "bass",
+  "genre": "reggae",
+  "bpm": 78,
+  "ppqn": 24,
+  "bars": 2,
+  "key_root": "A",
+  "key_mode": "minor",
+  "vibe": "Reggae one-drop bass — root on the 3, walk down on the 4-and. Aston Barrett pocket.",
+  "events": [
+    {"tick": 48,  "note": "A1", "vel": 110, "len": 36},
+    {"tick": 84,  "note": "G2", "vel": 90,  "len": 24},
+    {"tick": 144, "note": "F2", "vel": 100, "len": 36},
+    {"tick": 180, "note": "E2", "vel": 90,  "len": 24}
+  ],
+  "tags": ["reggae", "one-drop", "aston-barrett", "wailers"]
+}

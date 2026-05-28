@@ -1,0 +1,12 @@
+{
+  "name": "daft-disco",
+  "type": "progression",
+  "key": "Bbm",
+  "bpm": 123,
+  "vibe": "Daft Punk 'One More Time' / disco house — moves around Bbm sevenths with Abmaj7 lift. French house DNA.",
+  "chords": ["Bbm7", "Abmaj7", "Dbmaj7", "Ebmaj7"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "french-house", "disco", "daft-punk", "tribute"]
+}

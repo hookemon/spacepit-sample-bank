@@ -1,0 +1,12 @@
+{
+  "name": "boombap-jazz",
+  "type": "progression",
+  "key": "Cmaj (jazz changes)",
+  "bpm": 88,
+  "vibe": "Em7 A7 Dm7 G7 Cmaj7 Fmaj7 Em7 A7 — ii-V chain motion. Premier / Pete Rock / Q-Tip / Madlib jazz-flip energy.",
+  "chords": ["Em7", "A7", "Dm7", "G7", "Cmaj7", "Fmaj7", "Em7", "A7"],
+  "bars_per_chord": 1,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["hip-hop", "boom-bap", "jazz-hop", "premier", "pete-rock", "qtip", "madlib", "90s", "jazz-changes"]
+}

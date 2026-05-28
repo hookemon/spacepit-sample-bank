@@ -1,0 +1,16 @@
+{
+  "name": "dnb-reese",
+  "type": "bass",
+  "genre": "dnb",
+  "bpm": 174,
+  "ppqn": 24,
+  "bars": 1,
+  "key_root": "F",
+  "key_mode": "minor",
+  "vibe": "Liquid D&B reese bass — sustained held notes that follow the chord movement. Run two detuned saws through a moogish LPF.",
+  "events": [
+    {"tick": 0,  "note": "F1", "vel": 105, "len": 44},
+    {"tick": 48, "note": "G#1","vel": 100, "len": 44}
+  ],
+  "tags": ["dnb", "reese", "liquid", "moog", "sustained"]
+}

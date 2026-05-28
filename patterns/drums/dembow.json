@@ -1,0 +1,14 @@
+{
+  "name": "dembow",
+  "type": "drums",
+  "bpm": 96,
+  "ppqn": 24,
+  "bars": 1,
+  "vibe": "Caribbean dembow / reggaeton foundation — boom-ch-boom-chick pattern",
+  "tracks": {
+    "kick":      [0, 36],
+    "snare":     [18, 54],
+    "hh-closed": [24, 72]
+  },
+  "tags": ["dembow", "reggaeton", "latin", "caribbean"]
+}

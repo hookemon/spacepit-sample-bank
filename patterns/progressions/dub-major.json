@@ -1,0 +1,13 @@
+{
+  "name": "dub-major",
+  "type": "progression",
+  "key": "Cmaj",
+  "bpm": 72,
+  "vibe": "Cmaj7 Fmaj7 held 4 bars each — major dub, sunny side. Lee Scratch 'Live at the Mateys' / lighter dub.",
+  "chords": ["Cmaj7", "Fmaj7"],
+  "bars_per_chord": 4,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "best_with_spring": true,
+  "tags": ["dub", "reggae", "major-dub", "sunny", "uplifting", "lee-scratch"]
+}

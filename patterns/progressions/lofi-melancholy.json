@@ -1,0 +1,12 @@
+{
+  "name": "lofi-melancholy",
+  "type": "progression",
+  "key": "Cmaj",
+  "bpm": 75,
+  "vibe": "Cmaj7 Em7 Am7 Fmaj7 — sustained maj7 / m7 arpeggio. Lofi hip-hop, jinsang, study-beats, late-night.",
+  "chords": ["Cmaj7", "Em7", "Am7", "Fmaj7"],
+  "bars_per_chord": 2,
+  "total_bars": 8,
+  "best_with_arp_division": "1/8",
+  "tags": ["lofi", "hip-hop", "study-beats", "chill", "ambient", "melancholy", "jinsang", "soft"]
+}

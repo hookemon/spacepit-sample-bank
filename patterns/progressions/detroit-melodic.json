@@ -1,0 +1,12 @@
+{
+  "name": "detroit-melodic",
+  "type": "progression",
+  "key": "Em",
+  "bpm": 122,
+  "vibe": "ii-V-i around a melodic minor center — Detroit melodic, Larry Heard, Theo Parrish, Moodymann territory.",
+  "chords": ["Em7", "Am7", "Dm7", "G7"],
+  "bars_per_chord": 1,
+  "total_bars": 4,
+  "best_with_arp_division": "1/16",
+  "tags": ["house", "detroit", "deep-house", "melodic", "moody"]
+}
