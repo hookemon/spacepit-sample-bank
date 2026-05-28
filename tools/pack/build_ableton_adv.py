@@ -109,6 +109,7 @@ def build_sample_part(
     loop_start: Optional[int] = None,
     loop_end: Optional[int] = None,
     loop_crossfade: int = 0,
+    loop_mode: int = 1,
     sample_start: int = 0,
 ) -> str:
     """Generate one <MultiSamplePart> XML block for a single WAV.
@@ -121,8 +122,11 @@ def build_sample_part(
     end_sample = max(0, sample_count - 1)
 
     # Sustain loop -- if loop points were found, holding the key loops forever.
+    # loop_mode: 1 = forward, 2 = back-and-forth (ping-pong). Ping-pong reverses
+    # at the endpoints so there's no jump to click or pump -- seamless by nature,
+    # the way the pro factory leads do it (no baked crossfade needed).
     if loop_start is not None and loop_end is not None and loop_end > loop_start:
-        sus_mode, sus_start, sus_end, sus_xfade = 1, int(loop_start), int(loop_end), int(loop_crossfade)
+        sus_mode, sus_start, sus_end, sus_xfade = int(loop_mode), int(loop_start), int(loop_end), int(loop_crossfade)
     else:
         sus_mode, sus_start, sus_end, sus_xfade = 0, 0, end_sample, 0
 
@@ -240,13 +244,22 @@ def build_sample_part(
 					</MultiSamplePart>"""
 
 
-def build_adv(template_xml: str, sample_parts_xml: str) -> bytes:
+def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str] = None) -> bytes:
     """Splice generated SampleParts into the template, gzip the result.
 
     Works for both .adv (raw Sampler) and .adg (Instrument-Rack-wrapped Sampler)
     templates — both have a <SampleParts>...</SampleParts> section that holds
-    one or more <MultiSamplePart> blocks. We just replace its contents.
+    one or more <MultiSamplePart> blocks. We just replace its contents. If
+    patch_name is given, the leftover template device name (a stray
+    "hookesquelch-bite" from the original export) is renamed to it.
     """
+    if patch_name:
+        template_xml = template_xml.replace("hookesquelch-bite", patch_name)
+    # Loop Snap ON (snaps loop points to zero crossings) — the factory presets all
+    # ship with this on; ours was off, which can leave a click at the loop seam.
+    template_xml = re.sub(
+        r'(<Snap>\s*<LomId Value="0" />\s*<Manual Value=)"false"',
+        r'\1"true"', template_xml, count=1)
     new_xml = re.sub(
         r"<SampleParts>.*?</SampleParts>",
         f"<SampleParts>\n{sample_parts_xml}\n				</SampleParts>",
@@ -329,14 +342,24 @@ def build_presets_for_wavs(
         ss = find_onset_sample(wav, sr)
         sc = _loops_sidecar.get(wav.name, "MISSING")
         if isinstance(sc, dict):
-            ls, le, xf = int(sc["start"]), int(sc["end"]), 0   # crossfade baked into audio
+            ls, le = int(sc["start"]), int(sc["end"])
         elif sc is None:
-            ls, le, xf = None, None, 0                          # explicitly a one-shot
+            ls, le = None, None                                 # explicitly a one-shot
         else:
             lp = find_loop_points(wav, sr) if loop else None
-            ls, le, xf = (lp[0], lp[1], lp[2]) if lp else (None, None, 0)
+            ls, le = (lp[0], lp[1]) if lp else (None, None)
+        # Pro recipe (from the factory presets): forward loop + crossfade ~7% of
+        # the loop length (Glidesynth 7.1%, PAD 7.4%), Ableton-handled on a
+        # pristine WAV, capped so it fits the pre-loop room.
+        if ls is not None and le is not None and le > ls:
+            # keep the crossfade pre-roll inside the sustain (reserve ~0.45s for the
+            # attack) so Ableton's loop crossfade never blends in the onset transient
+            xf = min(int(0.07 * (le - ls)), max(0, ls - int(0.45 * sr)))
+        else:
+            xf = 0
         block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
-                                  loop_start=ls, loop_end=le, loop_crossfade=xf, sample_start=ss)
+                                  loop_start=ls, loop_end=le, loop_crossfade=xf,
+                                  loop_mode=1, sample_start=ss)
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
@@ -346,7 +369,7 @@ def build_presets_for_wavs(
     for ext in formats:
         template_name = "ableton-sampler-template.xml" if ext == "adv" else "ableton-rack-template.xml"
         template_xml = (templates_dir / template_name).read_text()
-        data = build_adv(template_xml, sample_parts_combined)
+        data = build_adv(template_xml, sample_parts_combined, patch_name)
         out_path = out_dir / f"{patch_name}.{ext}"
         out_path.write_bytes(data)
         written.append(out_path)
@@ -448,7 +471,7 @@ def main() -> None:
     written_files = []
     for template_path, ext in output_specs:
         template_xml = template_path.read_text()
-        adv_bytes = build_adv(template_xml, sample_parts_combined)
+        adv_bytes = build_adv(template_xml, sample_parts_combined, args.patch)
         # Where to write this format
         if args.out and len(output_specs) == 1:
             out_path = Path(args.out)

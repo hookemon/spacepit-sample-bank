@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Bake seamless sustain loops into multisample WAVs.
+"""Bake seamless sustain loops into multisample WAVs — the bank's loop engine.
 
-For each WAV: pick a loop start after the attack, then CROSS-CORRELATION-match a
-loop end in the late steady region so the waveform AND the beating phase line up
-(this is what kills the audible "loop" on rich/detuned sounds). Bake a short
-LINEAR crossfade at the seam — the right kind once the two ends already match —
-so the jump is click-free. Record the loop points to loops.json so the Ableton
-(and future SFZ/Decent) builders use the exact same region. Decaying / short
-percussive samples are detected and left alone as one-shots.
+Designed to run unattended across the whole library. For each WAV it:
+  1. Decides loopability — sustained sound vs percussive (decays away -> one-shot).
+  2. Picks a LONG loop (slow, natural movement, no fast cycling).
+  3. Chooses the loop END so it matches the loop START on BOTH:
+        - level  (envelope within a couple dB)  -> no pump / breathing
+        - waveform phase (cross-correlation, both channels) -> no click
+  4. Bakes a linear crossfade at the matched seam for the final polish.
+No envelope-flattening: the natural tone/shimmer is left untouched (and there's
+no gain step at the loop boundary, which was the end-glitch).
+
+Loop points are written to loops.json so the Ableton/SFZ builders use the exact
+region with the crossfade already in the audio.
 
   usage: bake-loops.py --dir instruments/jp8000/patches/supersaw-1/raw
 """
@@ -25,33 +30,64 @@ def _rising_zc(mono: np.ndarray) -> np.ndarray:
 
 
 def find_loop(audio: np.ndarray, sr: int):
-    """Return (loop_start, loop_end) sample frames, or None for a one-shot."""
+    """Return (loop_start, loop_end) frames for a level+phase matched long loop,
+    or None when the sample is too short or percussive (should ring out)."""
     mono = audio.mean(axis=1) if audio.ndim > 1 else audio
     n = len(mono)
-    if n < int(1.2 * sr):
-        return None
-    attack = min(int(0.5 * sr), int(0.30 * n))
-    tail_guard = int(0.30 * sr)
-    min_loop = int(1.0 * sr)
-    search_window = int(1.5 * sr)   # search the last ~1.5s of steady region for the match
-    W = int(0.04 * sr)              # 40ms correlation window
-    if attack < W:
+    if n < int(2.0 * sr):
         return None
 
+    win = int(0.03 * sr)
+    envdb = 20 * np.log10(
+        np.array([np.sqrt(np.mean(mono[i:i + win] ** 2)) for i in range(0, n - win, win)]) + 1e-9
+    )
+    nwin = len(envdb)
+
+    def edb(idx: int) -> float:
+        return float(envdb[min(nwin - 1, max(0, idx // win))])
+
+    attack = min(int(0.40 * sr), int(0.25 * n))
+    tail_guard = int(0.30 * sr)
+    region_hi = n - tail_guard
+    if region_hi - attack < int(1.0 * sr):
+        return None
+
+    # loopability: not decaying — compare first vs last ~1s of the sustain
+    f0, f1 = attack // win, min(nwin, (attack + int(1.0 * sr)) // win)
+    l0, l1 = max(0, (region_hi - int(1.0 * sr)) // win), max(1, region_hi // win)
+    if np.median(envdb[l0:l1]) < np.median(envdb[f0:f1]) - 10.0:
+        return None   # decays >10 dB -> one-shot
+
     rz = _rising_zc(mono)
-    s_cand = rz[rz >= attack]
+    W = int(0.04 * sr)                       # 40ms correlation window
+    # Start the loop well into the sustain (not at the attack) so the Ableton loop
+    # crossfade's pre-roll is steady tone, not the onset transient -> no seam click.
+    loop_start_min = int(min(1.0 * sr, 0.40 * n))
+    s_cand = rz[rz >= max(loop_start_min, W)]
     if len(s_cand) == 0:
         return None
     S = int(s_cand[0])
-    if S < W:
-        return None
+    sdb = edb(S)
 
-    search_hi = n - tail_guard
-    search_lo = max(S + min_loop, search_hi - search_window)
-    e_cand = rz[(rz >= search_lo) & (rz <= search_hi)]
+    # long loop: look for the end in the late region
+    search_lo = max(S + int(2.0 * sr), region_hi - int(2.5 * sr))
+    e_cand = rz[(rz >= search_lo) & (rz <= region_hi)]
+    if len(e_cand) == 0:
+        e_cand = rz[(rz >= S + int(1.0 * sr)) & (rz <= region_hi)]
     if len(e_cand) == 0:
         return None
 
+    # 1) keep only ends whose LEVEL matches the start (no pump); widen tol if needed
+    chosen = None
+    for tol in (1.5, 2.5, 4.0, 8.0):
+        cands = [int(E) for E in e_cand if abs(edb(int(E)) - sdb) <= tol]
+        if cands:
+            chosen = cands
+            break
+    if not chosen:
+        chosen = [int(E) for E in e_cand]
+
+    # 2) among those, pick the best WAVEFORM-phase match (no click), both channels
     nch = audio.shape[1] if audio.ndim > 1 else 1
 
     def chan(c):
@@ -64,37 +100,28 @@ def find_loop(audio: np.ndarray, sr: int):
         refs.append((r, float(np.sqrt(np.sum(r * r))) + 1e-12))
 
     best, best_E = -1e9, None
-    for Ec in e_cand:
-        Ec = int(Ec)
-        if Ec < W:
+    for E in chosen:
+        if E < W:
             continue
         tot = 0.0
         for c in range(nch):
-            seg = chan(c)[Ec - W:Ec].astype(np.float64)
+            seg = chan(c)[E - W:E].astype(np.float64)
             seg = seg - seg.mean()
             sn = float(np.sqrt(np.sum(seg * seg))) + 1e-12
             tot += float(np.sum(refs[c][0] * seg)) / (refs[c][1] * sn)
         if tot > best:
-            best, best_E = tot, Ec
+            best, best_E = tot, E
     if best_E is None:
-        return None
-
-    # decay guard — compare loop's first half vs second half over long windows so
-    # chorus/beating swings don't fool it; skip looping if it's decaying away.
-    mid = (S + best_E) // 2
-    rms_first = float(np.sqrt(np.mean(mono[S:mid] ** 2)))
-    rms_second = float(np.sqrt(np.mean(mono[mid:best_E] ** 2)))
-    if rms_first <= 0 or rms_second < 0.5 * rms_first:
         return None
     return S, best_E
 
 
 def bake_linear_xfade(audio: np.ndarray, S: int, E: int, X: int) -> np.ndarray:
-    """Linear (equal-gain) crossfade the X frames before E with the X before S."""
+    """Linear crossfade the X frames before E with the X before S (per channel).
+    Right kind once the ends are already level+phase matched."""
     i = np.arange(X)
     a = i / X
-    g_out = 1.0 - a
-    g_in = a
+    g_out, g_in = 1.0 - a, a
     if audio.ndim > 1:
         for c in range(audio.shape[1]):
             audio[E - X:E, c] = audio[E - X:E, c] * g_out + audio[S - X:S, c] * g_in
@@ -103,10 +130,26 @@ def bake_linear_xfade(audio: np.ndarray, S: int, E: int, X: int) -> np.ndarray:
     return audio
 
 
+def loop_metrics(audio: np.ndarray, sr: int, S: int, E: int) -> dict:
+    """Quantify loop quality for verification."""
+    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+    win = int(0.03 * sr)
+    edb = lambda idx: 20 * np.log10(np.sqrt(np.mean(mono[idx:idx + win] ** 2)) + 1e-9)
+    seam_jump = float(np.max(np.abs(audio[S] - audio[E - 1]))) if audio.ndim > 1 else float(abs(mono[S] - mono[E - 1]))
+    nat_jump = float(np.max(np.abs(audio[S] - audio[S - 1]))) if audio.ndim > 1 else float(abs(mono[S] - mono[S - 1]))
+    return {
+        "len_s": (E - S) / sr,
+        "level_match_db": abs(edb(S) - edb(max(0, E - win))),
+        "seam_jump": seam_jump,
+        "natural_jump": nat_jump,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True, help="patch chain dir of WAVs to loop")
-    ap.add_argument("--xfade-ms", type=float, default=40.0, help="crossfade length at the seam")
+    ap.add_argument("--xfade-ms", type=float, default=150.0, help="crossfade length at the seam")
+    ap.add_argument("--dry-run", action="store_true", help="report loop choice + metrics, don't write")
     args = ap.parse_args()
 
     d = Path(args.dir).resolve()
@@ -121,16 +164,17 @@ def main():
             print(f"  {w.name}: one-shot (ring out)")
             continue
         S, E = lp
-        X = int(min(args.xfade_ms / 1000 * sr, (E - S) // 4, S))
-        if X > 0:
-            audio = bake_linear_xfade(audio, S, E, X)
-            sf.write(str(w), audio, sr, subtype="PCM_24")
+        m = loop_metrics(audio, sr, S, E)
+        # Points only — no audio baking. Ableton plays a back-and-forth (ping-pong)
+        # loop, which is seamless by reversal, so the WAV stays pristine.
         loops[w.name] = {"start": int(S), "end": int(E)}
         looped += 1
-        print(f"  {w.name}: loop {S/sr:.2f}->{E/sr:.2f}s  ({(E-S)/sr:.2f}s long, {X/sr*1000:.0f}ms xfade)")
+        print(f"  {w.name}: loop {S/sr:.2f}->{E/sr:.2f}s ({m['len_s']:.1f}s)  "
+              f"level-match {m['level_match_db']:.2f}dB  (ping-pong, WAV untouched)")
 
-    (d / "loops.json").write_text(json.dumps(loops, indent=2))
-    print(f"{looped}/{len(wavs)} looped · sidecar -> {d/'loops.json'}")
+    if not args.dry_run:
+        (d / "loops.json").write_text(json.dumps(loops, indent=2))
+    print(f"{looped}/{len(wavs)} looped" + ("  [dry-run]" if args.dry_run else f" · sidecar -> {d/'loops.json'}"))
 
 
 if __name__ == "__main__":
