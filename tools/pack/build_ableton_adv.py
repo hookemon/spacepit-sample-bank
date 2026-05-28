@@ -18,6 +18,7 @@ import textwrap
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import soundfile as sf
 
 
@@ -59,6 +60,43 @@ def parse_note_from_filename(fname: str) -> Optional[int]:
     return note_to_midi(m.group(1))
 
 
+def find_loop_points(wav_path, sample_rate):
+    """Find a clean sustain-loop region so holding a key loops forever.
+
+    Skips the attack, stops before the release/tail, and snaps both ends to
+    RISING zero-crossings (mono mix) so the seam lines up. Returns
+    (loop_start, loop_end, crossfade_samples) in sample frames, or None when the
+    sample is too short or is decaying (percussive) -- those ring out as one-shots.
+    """
+    audio, sr = sf.read(str(wav_path))
+    mono = audio.mean(axis=1) if getattr(audio, "ndim", 1) > 1 else audio
+    n = len(mono)
+    if n < int(0.8 * sr):
+        return None
+    attack = min(int(0.5 * sr), int(0.30 * n))
+    tail_guard = int(0.30 * sr)
+    region_start, region_end = attack, n - tail_guard
+    if region_end - region_start < int(0.3 * sr):
+        return None
+    pos = mono > 0
+    rising = np.where((~pos[:-1]) & (pos[1:]))[0]
+    rising = rising[(rising >= region_start) & (rising <= region_end)]
+    if len(rising) < 2:
+        return None
+    ls, le = int(rising[0]), int(rising[-1])
+    if (le - ls) < int(0.1 * sr):
+        return None
+    # don't loop a decaying tail: compare the loop's first half vs second half,
+    # averaged over long windows so chorus/beating amplitude swings don't fool it.
+    mid = (ls + le) // 2
+    rms_first = float(np.sqrt(np.mean(mono[ls:mid] ** 2))) if mid > ls else 0.0
+    rms_second = float(np.sqrt(np.mean(mono[mid:le] ** 2))) if le > mid else 0.0
+    if rms_first <= 0 or rms_second < 0.5 * rms_first:
+        return None
+    crossfade = int(min(0.05 * sr, (le - ls) / 4))
+    return ls, le, crossfade
+
+
 def build_sample_part(
     part_id: int,
     name: str,
@@ -68,6 +106,9 @@ def build_sample_part(
     wav_path: Path,
     sample_count: int,
     sample_rate: int,
+    loop_start: Optional[int] = None,
+    loop_end: Optional[int] = None,
+    loop_crossfade: int = 0,
 ) -> str:
     """Generate one <MultiSamplePart> XML block for a single WAV.
 
@@ -77,6 +118,12 @@ def build_sample_part(
     rel_path = f"Samples/{wav_path.name}"
     file_size = wav_path.stat().st_size
     end_sample = max(0, sample_count - 1)
+
+    # Sustain loop -- if loop points were found, holding the key loops forever.
+    if loop_start is not None and loop_end is not None and loop_end > loop_start:
+        sus_mode, sus_start, sus_end, sus_xfade = 1, int(loop_start), int(loop_end), int(loop_crossfade)
+    else:
+        sus_mode, sus_start, sus_end, sus_xfade = 0, 0, end_sample, 0
 
     return f"""					<MultiSamplePart Id="{part_id}" InitUpdateAreSlicesFromOnsetsEditableAfterRead="false" HasImportedSlicePoints="false" NeedsAnalysisData="false">
 						<LomId Value="0" />
@@ -111,10 +158,10 @@ def build_sample_part(
 						<SampleStart Value="0" />
 						<SampleEnd Value="{end_sample}" />
 						<SustainLoop>
-							<Start Value="0" />
-							<End Value="{end_sample}" />
-							<Mode Value="0" />
-							<Crossfade Value="0" />
+							<Start Value="{sus_start}" />
+							<End Value="{sus_end}" />
+							<Mode Value="{sus_mode}" />
+							<Crossfade Value="{sus_xfade}" />
 							<Detune Value="0" />
 						</SustainLoop>
 						<ReleaseLoop>
@@ -217,6 +264,7 @@ def build_presets_for_wavs(
     patch_name: str,
     formats: tuple = ("adv", "adg"),
     templates_dir: Optional[Path] = None,
+    loop: bool = True,
 ) -> dict:
     """Build Ableton .adv and/or .adg files from a list of WAV paths.
 
@@ -251,7 +299,11 @@ def build_presets_for_wavs(
             key_max = 127
         else:
             key_max = (root + roots[i + 1]) // 2
-        block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr)
+        lp = find_loop_points(wav, sr) if loop else None
+        block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
+                                  loop_start=(lp[0] if lp else None),
+                                  loop_end=(lp[1] if lp else None),
+                                  loop_crossfade=(lp[2] if lp else 0))
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
@@ -347,7 +399,11 @@ def main() -> None:
         else:
             key_max = (root + roots[i + 1]) // 2
         name = wav.stem  # filename without .wav extension
-        block = build_sample_part(i, name, root, key_min, key_max, wav, frames, sr)
+        lp = find_loop_points(wav, sr)
+        block = build_sample_part(i, name, root, key_min, key_max, wav, frames, sr,
+                                  loop_start=(lp[0] if lp else None),
+                                  loop_end=(lp[1] if lp else None),
+                                  loop_crossfade=(lp[2] if lp else 0))
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
