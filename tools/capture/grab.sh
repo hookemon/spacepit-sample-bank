@@ -29,9 +29,9 @@ echo "=== grab: $INST / $PATCH  ($RANGE step $STEP) ==="
   --note-range "$RANGE" --step "$STEP" \
   --velocities 100 --round-robins 1 \
   --sustain-sec 4 --tail-sec 2.5 \
-  --sample-rate 48000 --bit-depth 24 -y 2>&1 | tail -25
+  --sample-rate 48000 --bit-depth 24 --gain-db "$GAIN" -y 2>&1 | tail -27
 
-"$PY" tools/pack/clean-wavs.py --dir "instruments/$INST/patches/$PATCH/raw" --no-normalize --gain-db "$GAIN" 2>&1 | tail -4
+# (trim + clip-safe make-up gain now happen inside capture-synth.py's post-clean)
 
 "$PY" - "$INST" "$PATCH" <<'PYEOF'
 import soundfile as sf, numpy as np, glob, os, sys

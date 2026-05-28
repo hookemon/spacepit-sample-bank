@@ -231,6 +231,27 @@ def all_notes_off(midi_port, midi_channel: int) -> None:
 
 # ---------- main ----------
 
+def _post_clean_dir(directory: Path, gain_db: float = 3.0) -> int:
+    """Trim dead air + clip-safe make-up gain on every WAV under `directory`.
+
+    Reuses clean_one() from tools/pack/clean-wavs.py so EVERY capture that comes
+    out of the bench (app queue, app single-capture, or CLI) is already trimmed
+    and hot — no separate manual clean step. Returns the count cleaned.
+    """
+    import importlib.util
+    cw = Path(__file__).resolve().parent.parent / "pack" / "clean-wavs.py"
+    spec = importlib.util.spec_from_file_location("_clean_wavs", cw)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    n = 0
+    for wav in sorted(directory.rglob("*.wav")):
+        # target_peak_db=None → no per-file normalize (keep natural dynamics);
+        # gain_db → uniform clip-safe make-up gain so it opens hot.
+        mod.clean_one(wav, target_peak_db=None, gain_db=gain_db)
+        n += 1
+    return n
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="thespacepit chromatic capture tool",
@@ -264,6 +285,10 @@ def main() -> None:
     ap.add_argument("--meter", action="store_true", help="just measure peak level for N sec, no MIDI")
     ap.add_argument("--meter-duration", type=float, default=5.0)
     ap.add_argument("-y", "--yes", action="store_true", help="skip the press-enter confirmation")
+    ap.add_argument("--gain-db", type=float, default=3.0,
+                    help="make-up gain (dB) in the post-clean pass, clip-safe. default +3 so it opens hot")
+    ap.add_argument("--no-post-clean", action="store_true",
+                    help="skip the auto trim + gain pass (keep raw WAVs exactly as recorded)")
     # Program Change + CC sweep automation (the encyclopedia move)
     ap.add_argument("--program-change", type=int, default=None,
                     help="MIDI Program Change number (0-127) to send before capturing. Synth auto-loads the preset.")
@@ -546,6 +571,16 @@ def main() -> None:
         summary += f" · {elapsed/60:.1f} min"
         print(summary)
         print(f"  → {patch_dir}")
+
+        # POST-CLEAN — trim dead air + clip-safe make-up gain so every capture
+        # leaves the bench ready to drop into Ableton hot. On by default; the
+        # app's queue + single-capture both inherit this automatically.
+        if done > 0 and not args.no_post_clean:
+            try:
+                n = _post_clean_dir(patch_dir, gain_db=args.gain_db)
+                print(f"  ✓ trimmed + {args.gain_db:+.0f}dB make-up on {n} file(s)")
+            except Exception as _ce:
+                print(f"  ⚠ post-clean skipped ({_ce}) — WAVs saved un-trimmed", file=sys.stderr)
     except KeyboardInterrupt:
         print("\n\ninterrupted. all notes off sent. partial captures saved.")
     except RuntimeError as _e:
