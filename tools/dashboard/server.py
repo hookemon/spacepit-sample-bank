@@ -1137,8 +1137,13 @@ def list_drum_patterns():
 
 @app.route("/api/capture-stop", methods=["POST"])
 def capture_stop():
-    """Kill the running capture subprocess + send MIDI panic to silence stuck notes."""
+    """Kill the running capture subprocess + send MIDI panic to silence stuck notes.
+    Also halts any running queue / audition so we don't just spawn the next capture."""
     global current_capture_proc
+    # Stop all automation FIRST (set the flags before killing the proc) so the
+    # queue worker sees the stop signal instead of marching on to the next patch.
+    queue_stop_flag.set()
+    audition_stop_flag.set()
     killed = False
     if current_capture_proc and current_capture_proc.poll() is None:
         try:
@@ -1476,7 +1481,25 @@ def capture_queue_stop():
 
 @app.route("/api/midi/panic", methods=["POST"])
 def midi_panic():
-    """Send All Notes Off + All Sound Off on all 16 channels to the synth."""
+    """PANIC — the big red button. Halts EVERYTHING: capture queue, audition
+    loop, and the in-flight capture subprocess, then sends All Notes Off + All
+    Sound Off on all 16 channels. Hitting this during a whole-pack run stops it."""
+    global current_capture_proc
+    # 1) Signal every automation loop to stop
+    queue_stop_flag.set()
+    audition_stop_flag.set()
+    # 2) Kill the in-flight capture subprocess so the queue worker returns now
+    #    (otherwise it stays blocked on communicate() until the capture finishes)
+    if current_capture_proc and current_capture_proc.poll() is None:
+        try:
+            current_capture_proc.terminate()
+            try:
+                current_capture_proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                current_capture_proc.kill()
+        except Exception:
+            pass
+        current_capture_proc = None
     params = request.get_json() or {}
     midi_port_name = params.get("midi_port", "Moog Grandmother")
     try:
