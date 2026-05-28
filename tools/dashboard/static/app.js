@@ -443,7 +443,11 @@
 
   function renderInstrument(i) {
     const t = i.targets || {};
-    const patchPct = Math.min(100, (i.patch_count / (t.patches || 1)) * 100);
+    // captured patches = those with at least one WAV in any chain (NOT total slots).
+    // (this was showing patch_count/target e.g. "12/11" — wrong on both numbers)
+    const capturedPatches = (i.patches || []).filter(p => Object.values(p.chains || {}).some(v => v > 0)).length;
+    const totalPatches = i.patch_count || (i.patches || []).length || 1;
+    const patchPct = Math.min(100, (capturedPatches / totalPatches) * 100);
     const loopPct = Math.min(100, (i.loops_count / (t.loops || 1)) * 100);
     const sweepPct = Math.min(100, (i.sweeps_count / (t.sweeps || 1)) * 100);
     const photoPct = Math.min(100, (i.photos_count / (t.photos || 1)) * 100);
@@ -454,7 +458,7 @@
     els.progressTier.textContent = i.tier || '—';
 
     const checklist = [
-      { label: 'Patches multisampled', current: i.patch_count, target: t.patches },
+      { label: 'Patches multisampled', current: capturedPatches, target: totalPatches },
       { label: 'Loops captured', current: i.loops_count, target: t.loops },
       { label: 'Sweeps captured', current: i.sweeps_count, target: t.sweeps },
       { label: 'Photos', current: i.photos_count, target: t.photos },
