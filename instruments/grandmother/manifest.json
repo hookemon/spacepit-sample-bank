@@ -7,8 +7,24 @@
     "2026-05-24"
   ],
   "chains_captured": [
-    "raw",
-    "spring"
+    {
+      "name": "raw",
+      "signal_chain": "Moog Grandmother direct out \u2192 Teenage Engineering TX-6 (channels 1+2) \u2192 Mac mini USB \u2192 bench capture pipeline",
+      "description": "Clean signal path \u2014 pure Grandmother voice through the TX-6 portable interface. Captured at the bench setup, not the full studio chain. (Bank-quality re-captures through the studio chain are queued.)",
+      "studio": "the spacepit (bench tier)",
+      "credit_line": "Captured at the spacepit (bench session) \u2014 Moog Grandmother direct \u2192 TX-6",
+      "captured_at": "2026-04 to 2026-05 (multiple sessions)",
+      "confirmed_by_nick": false
+    },
+    {
+      "name": "spring",
+      "signal_chain": "Moog Grandmother direct out \u2192 spring reverb tank \u2192 Teenage Engineering TX-6 (channels 1+2) \u2192 Mac mini USB \u2192 bench capture pipeline",
+      "description": "Spring chain \u2014 Grandmother voice run through a physical spring reverb tank for that twangy mechanical decay character.",
+      "studio": "the spacepit (bench tier)",
+      "credit_line": "Captured at the spacepit (bench session) \u2014 Moog Grandmother \u2192 spring tank \u2192 TX-6",
+      "captured_at": "2026-04 to 2026-05",
+      "confirmed_by_nick": false
+    }
   ],
   "patches": [
     {
