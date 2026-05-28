@@ -343,6 +343,18 @@ def main() -> None:
                 ableton_label = patch_name if chain == "raw" else f"{patch_name}-{chain}"
                 wav_dest_paths = sorted((pack_dir / "audio/multisamples" / patch_name / chain).glob("*.wav"))
                 ableton_extras = ""
+                # Find seamless loop points on the copied WAVs (writes loops.json beside
+                # them) so the Ableton build inherits the locked loop recipe.
+                if wav_dest_paths:
+                    _loop_script = Path(__file__).resolve().parent / "bake-loops.py"
+                    if _loop_script.exists():
+                        try:
+                            subprocess.run(
+                                [sys.executable, str(_loop_script), "--dir",
+                                 str(pack_dir / "audio/multisamples" / patch_name / chain)],
+                                capture_output=True, text=True, timeout=120)
+                        except Exception as _le:
+                            print(f"  ⚠ loop-finder skipped for {patch_name}/{chain}: {_le}")
                 if _build_ableton_presets and wav_dest_paths:
                     try:
                         result = _build_ableton_presets(
