@@ -36,6 +36,68 @@ except Exception as _e:
 # We need sys for sys.executable in the sub-tool calls.
 
 
+def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw", ceiling_db: float = -1.0) -> dict:
+    """Per-patch makeup gain (dB) so every patch sits at the bank's MEDIAN loudness,
+    held under a true-peak ceiling so nothing clips. Peak-normalizing alone leaves a
+    dense saw far louder than a sub bass (raw spread can be 16+ dB); this evens them
+    so switching patches in Ableton feels consistent. Measured via match-loudness.py;
+    returns {} if audio libs are missing so the pack still builds."""
+    try:
+        import importlib.util
+        import numpy as np
+        ml_path = Path(__file__).resolve().parent / "match-loudness.py"
+        spec = importlib.util.spec_from_file_location("match_loudness", ml_path)
+        ml = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ml)
+    except Exception as e:
+        print(f"  ⚠ loudness match unavailable ({e}) — patches keep their raw levels")
+        return {}
+    measures = {}
+    for pd in sorted(patches_dir.iterdir()):
+        if not pd.is_dir() or pd.name.endswith("_original"):
+            continue
+        cd = pd / ref_chain
+        if not cd.is_dir():
+            cand = [c for c in sorted(pd.iterdir())
+                    if c.is_dir() and not c.name.endswith("_original") and list(c.glob("*.wav"))]
+            cd = cand[0] if cand else None
+        if cd is None:
+            continue
+        m = ml.measure_patch(cd)
+        if m:
+            measures[pd.name] = m
+    if not measures:
+        return {}
+    target = float(np.median([m["loud_db"] for m in measures.values()]))
+    gains = {}
+    for name, m in measures.items():
+        want = target - m["loud_db"]
+        headroom = ceiling_db - m["peak_db"]   # max up-gain before peak hits ceiling
+        gains[name] = min(want, headroom)
+    return gains
+
+
+def _apply_gain_copy(src: Path, dst: Path, gain_db: float) -> None:
+    """Copy a WAV applying a dB gain (peak-guarded). Falls back to a plain copy when
+    the gain is ~0 or audio libs are absent, so the pack always builds."""
+    if abs(gain_db) < 0.05:
+        shutil.copy2(src, dst)
+        return
+    try:
+        import numpy as np
+        import soundfile as sf
+        a, sr = sf.read(str(src))
+        subtype = sf.info(str(src)).subtype
+        a = a * (10.0 ** (gain_db / 20.0))
+        peak = float(np.max(np.abs(a))) if a.size else 0.0
+        if peak > 0.999:                       # never clip (gain is already peak-bounded)
+            a = a * (0.999 / peak)
+        sf.write(str(dst), a, sr, subtype=subtype)
+    except Exception as e:
+        print(f"  ⚠ gain apply failed for {src.name} ({e}) — copied flat")
+        shutil.copy2(src, dst)
+
+
 def find_bank_root() -> Path | None:
     p = Path.cwd().resolve()
     for c in [p, *p.parents]:
@@ -283,6 +345,15 @@ def main() -> None:
     dspreset_count = 0
     ableton_preset_count = 0
 
+    # Loudness pass: every patch → the bank's median loudness, peak-safe, so switching
+    # patches in Ableton feels even (raw spread is 16+ dB: sub bass vs a bell). Computed
+    # on the source masters; the gain is baked into the pack copies at copy time below.
+    loudness_gains = _compute_loudness_gains(patches_dir) if patches_dir.exists() else {}
+    if loudness_gains:
+        _lo, _hi = min(loudness_gains.values()), max(loudness_gains.values())
+        print(f"  loudness-match: {len(loudness_gains)} patches → bank median "
+              f"(gains {_lo:+.1f}..{_hi:+.1f} dB, peak-safe)")
+
     if patches_dir.exists():
         for patch_folder in sorted(patches_dir.iterdir()):
             if not patch_folder.is_dir():
@@ -324,8 +395,9 @@ def main() -> None:
                 # destination
                 dest = pack_dir / "audio/multisamples" / patch_name / chain
                 dest.mkdir(parents=True, exist_ok=True)
+                _pg = loudness_gains.get(patch_name, 0.0)   # per-patch loudness-match gain
                 for wav in wavs:
-                    shutil.copy2(wav, dest / wav.name)
+                    _apply_gain_copy(wav, dest / wav.name, _pg)
                     multisample_count += 1
 
                 # SFZ in instruments/sfz/
