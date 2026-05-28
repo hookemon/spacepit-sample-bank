@@ -36,14 +36,20 @@ except Exception as _e:
 # We need sys for sys.executable in the sub-tool calls.
 
 
-def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw", ceiling_db: float = -1.0) -> dict:
-    """Per-patch makeup gain (dB) so every patch sits at the bank's MEDIAN loudness,
-    held under a true-peak ceiling so nothing clips. Peak-normalizing alone leaves a
-    dense saw far louder than a sub bass (raw spread can be 16+ dB); this evens them
-    so switching patches in Ableton feels consistent. Measured via match-loudness.py;
-    returns {} if audio libs are missing so the pack still builds."""
+def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
+                            ceiling_db: float = -1.0, max_boost_db: float = 9.0) -> dict:
+    """Per-NOTE makeup gain (dB) so every note of every patch sits at the bank's
+    median loudness — the pro-library treatment. Two problems it fixes at once:
+      • across patches: a dense saw is ~16 dB louder than a sub bass to the ear,
+      • up each keyboard: raw multisamples roll off ~14 dB low->high (natural, but
+        makes basslines/melodies lurch).
+    Normalizing per note evens both, held under a true-peak ceiling so nothing clips
+    and with a boost cap so thin high notes aren't over-amplified into noise. Measured
+    via match-loudness.py. Returns {patch: {wav_name: gain_db}}; {} if audio libs are
+    missing so the pack still builds."""
     try:
         import importlib.util
+        import math
         import numpy as np
         ml_path = Path(__file__).resolve().parent / "match-loudness.py"
         spec = importlib.util.spec_from_file_location("match_loudness", ml_path)
@@ -52,7 +58,10 @@ def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw", ceiling_d
     except Exception as e:
         print(f"  ⚠ loudness match unavailable ({e}) — patches keep their raw levels")
         return {}
-    measures = {}
+    db = lambda x: 20 * math.log10(x + 1e-12)
+    # measure every note of every patch
+    patch_notes = {}            # patch -> [(wav_name, loud_db, peak_db)]
+    all_loud = []
     for pd in sorted(patches_dir.iterdir()):
         if not pd.is_dir() or pd.name.endswith("_original"):
             continue
@@ -63,18 +72,24 @@ def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw", ceiling_d
             cd = cand[0] if cand else None
         if cd is None:
             continue
-        m = ml.measure_patch(cd)
-        if m:
-            measures[pd.name] = m
-    if not measures:
+        notes = []
+        for w in sorted(cd.glob("*.wav")):
+            rms, peak = ml.note_loudness(w)
+            notes.append((w.name, db(rms), db(peak)))
+            all_loud.append(db(rms))
+        if notes:
+            patch_notes[pd.name] = notes
+    if not all_loud:
         return {}
-    target = float(np.median([m["loud_db"] for m in measures.values()]))
-    gains = {}
-    for name, m in measures.items():
-        want = target - m["loud_db"]
-        headroom = ceiling_db - m["peak_db"]   # max up-gain before peak hits ceiling
-        gains[name] = min(want, headroom)
-    return gains
+    target = float(np.median(all_loud))      # one loudness target for every note in the bank
+    out = {}
+    for patch, notes in patch_notes.items():
+        gmap = {}
+        for name, ld, pk in notes:
+            want = min(target - ld, max_boost_db)      # never boost more than the cap
+            gmap[name] = min(want, ceiling_db - pk)    # never clip
+        out[patch] = gmap
+    return out
 
 
 def _apply_gain_copy(src: Path, dst: Path, gain_db: float) -> None:
@@ -350,9 +365,9 @@ def main() -> None:
     # on the source masters; the gain is baked into the pack copies at copy time below.
     loudness_gains = _compute_loudness_gains(patches_dir) if patches_dir.exists() else {}
     if loudness_gains:
-        _lo, _hi = min(loudness_gains.values()), max(loudness_gains.values())
-        print(f"  loudness-match: {len(loudness_gains)} patches → bank median "
-              f"(gains {_lo:+.1f}..{_hi:+.1f} dB, peak-safe)")
+        _all = [g for m in loudness_gains.values() for g in m.values()]
+        print(f"  loudness-match: {len(loudness_gains)} patches, {len(_all)} notes → bank median "
+              f"(per-note gains {min(_all):+.1f}..{max(_all):+.1f} dB, peak-safe)")
 
     if patches_dir.exists():
         for patch_folder in sorted(patches_dir.iterdir()):
@@ -395,9 +410,9 @@ def main() -> None:
                 # destination
                 dest = pack_dir / "audio/multisamples" / patch_name / chain
                 dest.mkdir(parents=True, exist_ok=True)
-                _pg = loudness_gains.get(patch_name, 0.0)   # per-patch loudness-match gain
+                _pgmap = loudness_gains.get(patch_name, {})   # per-note loudness-match gains
                 for wav in wavs:
-                    _apply_gain_copy(wav, dest / wav.name, _pg)
+                    _apply_gain_copy(wav, dest / wav.name, _pgmap.get(wav.name, 0.0))
                     multisample_count += 1
 
                 # SFZ in instruments/sfz/
