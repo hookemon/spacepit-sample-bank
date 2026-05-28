@@ -513,6 +513,8 @@
   // Peak history buffer for scrolling-history mode
   let livePeakHistory = [];   // {t, peakP, peakN}
   let livePeakHistoryStartT = 0;
+  // Spectrogram scroll timing
+  let liveWaveLastFrameMs = 0;
 
   async function startLiveWave() {
     const settings = getAudioSettings();
@@ -592,6 +594,8 @@
       const dMid = new Float32Array(anMid.fftSize);
       const dHigh = new Float32Array(anHigh.fftSize);
       const dFull = new Float32Array(anFull.fftSize);
+      // Frequency-domain data for spectrogram (history mode). Byte form is faster + sufficient.
+      const dFreq = new Uint8Array(anFull.frequencyBinCount);  // 4096 bins at fftSize 8192
 
       const canvas = document.getElementById('ms-live-wave-canvas');
       const cctx = canvas.getContext('2d');
@@ -689,59 +693,79 @@
           drawBand(dMid, colorMid, 0.85);
           drawBand(dHigh, colorHigh, 0.65);
         } else {
-          // ===== HISTORY MODE (scrolling peak envelope — see 7-sec sustains beautifully) =====
-          const windowMs = timeWindowSec * 1000;
-          const sliceStart = now - windowMs;
-          // Find slice of history within the window
-          const slice = livePeakHistory.filter(e => e.t >= sliceStart);
+          // ===== SPECTROGRAM WATERFALL MODE =====
+          // Scrolling frequency-vs-time. Y = log frequency (sub at bottom, brilliance at top).
+          // Color = magnitude. Psychedelic palette: magenta sub → cyan mid → yellow high.
+          // Each frame: shift canvas left by N pixels, paint new column at right edge.
+          anFull.getByteFrequencyData(dFreq);
 
-          // Clear (no trail in history mode — every frame is a fresh window)
+          // How many pixels to shift per frame based on time window:
+          //   short window (e.g. 1s) = wave moves fast (4-8 px/frame)
+          //   long window (e.g. 30s) = wave moves slow (1 px/frame)
+          const targetMsPerPx = (timeWindowSec * 1000) / W;
+          const msSinceLast = liveWaveLastFrameMs ? (now - liveWaveLastFrameMs) : 16.67;
+          liveWaveLastFrameMs = now;
+          const shiftPx = Math.max(1, Math.round(msSinceLast / targetMsPerPx));
+
+          // Shift existing pixels left
           cctx.globalCompositeOperation = 'source-over';
           cctx.globalAlpha = 1;
+          const imgData = cctx.getImageData(shiftPx, 0, W - shiftPx, H);
+          cctx.putImageData(imgData, 0, 0);
+          // Clear the new column area
           cctx.fillStyle = '#050505';
-          cctx.fillRect(0, 0, W, H);
+          cctx.fillRect(W - shiftPx, 0, shiftPx, H);
 
-          // Center line
-          cctx.strokeStyle = 'rgba(60, 40, 80, 0.4)';
-          cctx.lineWidth = 1;
-          cctx.beginPath(); cctx.moveTo(0, H/2); cctx.lineTo(W, H/2); cctx.stroke();
+          // Paint new column(s) at right edge. Log-frequency Y axis so each octave is even.
+          // 20Hz at bottom, 20kHz at top. Frequency bin → frequency: i × (sampleRate / fftSize).
+          const sr = liveWaveCtx.sampleRate;
+          const binToFreq = i => (i * sr) / anFull.fftSize;
+          const minF = 30, maxF = 18000;
+          const logMin = Math.log2(minF), logMax = Math.log2(maxF);
 
-          // Build path: x = position in window, y = peak amplitude
-          if (slice.length > 1) {
-            cctx.shadowBlur = 8; cctx.shadowColor = colorMain;
-            cctx.fillStyle = colorMain;
-            const pathTop = new Path2D();
-            const pathBot = new Path2D();
-            pathTop.moveTo(0, H/2);
-            pathBot.moveTo(0, H/2);
-            for (const e of slice) {
-              const tFrac = (e.t - sliceStart) / windowMs;
-              const x = Math.max(0, Math.min(W, tFrac * W));
-              const yTop = H/2 - e.p * (H/2) * liveWaveHeadroom;
-              const yBot = H/2 - e.n * (H/2) * liveWaveHeadroom;
-              pathTop.lineTo(x, yTop);
-              pathBot.lineTo(x, yBot);
+          for (let y = 0; y < H; y++) {
+            // y=0 is top of canvas = highest frequency. Invert for "low at bottom."
+            const freqLog = logMax - (y / H) * (logMax - logMin);
+            const freq = Math.pow(2, freqLog);
+            const bin = Math.round((freq * anFull.fftSize) / sr);
+            if (bin < 0 || bin >= dFreq.length) continue;
+            const mag = dFreq[bin] / 255;  // 0-1
+            if (mag < 0.05) continue;  // skip near-silence pixels
+
+            // Color by frequency band (psychedelic)
+            let r, g, b;
+            if (freq < 250) {
+              // sub/low: magenta
+              r = 255; g = 45 + Math.floor(mag * 80); b = 190;
+            } else if (freq < 2000) {
+              // mid: cyan to teal
+              r = 0; g = 230; b = 232;
+            } else if (freq < 6000) {
+              // hi-mid: green
+              r = 110; g = 240; b = 110;
+            } else {
+              // high/air: yellow → white
+              r = 255; g = 214 + Math.floor(mag * 40); b = 51 + Math.floor(mag * 100);
             }
-            pathTop.lineTo(W, H/2); pathTop.closePath();
-            pathBot.lineTo(W, H/2); pathBot.closePath();
-            cctx.fill(pathTop);
-            cctx.fill(pathBot);
-            // Mirror (very subtle) underneath
-            cctx.globalAlpha = 0.25;
-            cctx.save();
-            cctx.translate(0, H);
-            cctx.scale(1, -1);
-            cctx.fill(pathTop);
-            cctx.fill(pathBot);
-            cctx.restore();
-            cctx.globalAlpha = 1;
-            cctx.shadowBlur = 0;
+            // Magnitude → alpha
+            const alpha = Math.min(1, mag * 1.5);
+            // Clipping = red overlay
+            if (liveWavePeakHold > 0.92) { r = 255; g = 80; b = 80; }
+            cctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+            cctx.fillRect(W - shiftPx, y, shiftPx, 1);
           }
 
           // Time-window label in bottom-left
-          cctx.fillStyle = 'rgba(255, 215, 5, 0.6)';
+          cctx.fillStyle = 'rgba(255, 215, 5, 0.7)';
           cctx.font = '10px monospace';
-          cctx.fillText(`${timeWindowSec.toFixed(timeWindowSec < 1 ? 2 : 0)}s window`, 6, H - 6);
+          cctx.fillText(`${timeWindowSec.toFixed(timeWindowSec < 1 ? 2 : 0)}s · spectrogram (low ↓ high ↑)`, 6, H - 6);
+          // Octave grid markers on left edge (subtle)
+          cctx.fillStyle = 'rgba(160, 100, 200, 0.3)';
+          cctx.font = '8px monospace';
+          for (const label of [{f: 100, t: '100'}, {f: 1000, t: '1k'}, {f: 10000, t: '10k'}]) {
+            const yMark = H - ((Math.log2(label.f) - logMin) / (logMax - logMin)) * H;
+            cctx.fillText(label.t, 2, yMark);
+          }
         }
 
         cctx.shadowBlur = 0;
