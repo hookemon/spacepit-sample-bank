@@ -725,6 +725,55 @@ def build_landing_html(manifest: dict, ms_count: int, loop_count: int) -> str:
 '''
 
 
+def _normalize_chains(manifest: dict) -> list[dict]:
+    """Return chains_captured as a list of dicts, even if manifest still has legacy string list.
+    Backward-compat shim so this function works whether the manifest has been migrated yet."""
+    chains = manifest.get("chains_captured", ["raw"])
+    if not chains:
+        return []
+    if isinstance(chains[0], dict):
+        return chains
+    # Legacy string-list form — promote to minimal objects
+    return [{"name": c, "signal_chain": None, "description": None, "credit_line": None} for c in chains]
+
+
+def _render_chains_section(manifest: dict) -> str:
+    """Render the 'Signal chains' Markdown section for the README.
+    Every shipped sample carries its provenance — this is the moat in writing."""
+    chains = _normalize_chains(manifest)
+    if not chains:
+        return ""
+    lines = ["## Signal chains", "", "Every sample in this pack carries its provenance. Where it came from, exactly:", ""]
+    for ch in chains:
+        cname = ch.get("name", "raw")
+        signal_chain = ch.get("signal_chain")
+        desc = ch.get("description")
+        credit = ch.get("credit_line")
+        studio = ch.get("studio")
+        lines.append(f"### `{cname}` chain")
+        lines.append("")
+        if desc:
+            lines.append(f"*{desc}*")
+            lines.append("")
+        if signal_chain:
+            lines.append("**Path:**")
+            lines.append("")
+            lines.append(f"```")
+            lines.append(signal_chain)
+            lines.append(f"```")
+            lines.append("")
+        if studio:
+            lines.append(f"**Captured at:** {studio}")
+            lines.append("")
+        if credit:
+            lines.append(f"**Credit line** (use this when crediting samples in your work):")
+            lines.append("")
+            lines.append(f"> {credit}")
+            lines.append("")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def build_readme(manifest: dict, ms_count: int, loop_count: int, photo_count: int,
                  sfz_count: int, dspreset_count: int, vol: int) -> str:
     name = manifest.get("name", "Unknown")
@@ -735,9 +784,13 @@ def build_readme(manifest: dict, ms_count: int, loop_count: int, photo_count: in
         f"- **{p['name']}** — {p.get('notes', '')}" for p in patches
     )
 
+    chains_section = _render_chains_section(manifest)
+    chains_summary = ", ".join(f"`{c['name']}`" for c in _normalize_chains(manifest))
+
     return f"""# spacepit — {name} (Vol {vol})
 
-> A definitive sample pack of the Moog Grandmother. Multisamples, loops, chord progressions, hi-hat suites, and DAW-ready presets. Captured by Nick Hook at thespacepit studio.
+> A definitive sample pack of the {name}. Multisamples, loops, chord progressions, hi-hat suites, and DAW-ready presets. Captured by Nick Hook at the spacepit.
+> {f"Chains included: {chains_summary}" if chains_summary else ""}
 
 ## What's in the box
 
@@ -747,6 +800,8 @@ def build_readme(manifest: dict, ms_count: int, loop_count: int, photo_count: in
 - **{dspreset_count} Decent Sampler `.dspreset` presets** — free + popular indie sampler
 - **{photo_count} hero photos** of the actual gear, color-graded in the spacepit visual language
 - **patch notes documentation** — every patch's panel positions + vibe
+
+{chains_section}
 
 ## How to load
 
@@ -760,8 +815,8 @@ def build_readme(manifest: dict, ms_count: int, loop_count: int, photo_count: in
 2. Open `instruments/sfz/<patch>.sfz` in your sampler
 3. Play
 
-### Ableton, Logic Native, Move, EP-133
-Coming in a follow-up pack update — see CHANGELOG. The raw WAVs in `audio/multisamples/` can be loaded directly into any sampler.
+### Ableton Live (Sampler + Instrument Rack)
+Open any `.adg` file in `instruments/ableton/` — drops directly into Ableton as an Instrument Rack with multisamples mapped + envelopes set.
 
 ## Patches included
 
@@ -787,13 +842,13 @@ Tempos span 60-174 BPM. All loops are tempo-tagged in the filename for drag-and-
 
 ## License
 
-Royalty-free for use in your music productions. Do not resell or redistribute the raw samples. Crediting "samples from thespacepit" is appreciated but not required.
+Royalty-free for use in your music productions. Do not resell or redistribute the raw samples. When crediting, use the credit line listed under the chain you used (see "Signal chains" above) — appreciated but not required.
 
 ## Credits
 
-Captured + designed by Nick Hook at thespacepit studio.
+Captured + designed by **Nick Hook** at the spacepit, NYC. Built with [the bench](https://github.com/hookemon/spacepit-sample-bank) — open-source capture pipeline by the spacepit.
 
-[thespacepit.com](https://thespacepit.com)
+[thespacepit.com](https://thespacepit.com) · [@nickhook](https://instagram.com/nickhook) · [@thespacepit](https://instagram.com/thespacepit)
 """
 
 
