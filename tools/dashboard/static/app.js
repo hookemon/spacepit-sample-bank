@@ -1345,9 +1345,10 @@
     const summaryEl = document.getElementById('iconic-summary');
     if (!listEl) return;
     try {
+      const _bust = Date.now();
       const [pr, fr] = await Promise.all([
-        fetch(`/api/instruments/${slug}/patches`),
-        fetch(`/api/instruments/${slug}/factory-presets`),
+        fetch(`/api/instruments/${slug}/patches?t=${_bust}`),
+        fetch(`/api/instruments/${slug}/factory-presets?t=${_bust}`),
       ]);
       if (!pr.ok) {
         listEl.innerHTML = '<div style="color: var(--fg-faint);">(no patches scaffolded yet)</div>';
@@ -1560,6 +1561,11 @@
         setStatus(`Capture failed: ${data.error || 'see console'}`, 'error');
         return;
       }
+
+      // Refresh status for ANY successful capture — a multisample may not return a
+      // single wav_url, but the checklist must still flip the row ○ → ✓.
+      loadInstrument(params.instrument);
+      loadIconicPatches(params.instrument);
 
       if (data.wav_url) {
         lastCapture = { ...data, params };
