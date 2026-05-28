@@ -109,6 +109,7 @@ def build_sample_part(
     loop_start: Optional[int] = None,
     loop_end: Optional[int] = None,
     loop_crossfade: int = 0,
+    sample_start: int = 0,
 ) -> str:
     """Generate one <MultiSamplePart> XML block for a single WAV.
 
@@ -155,7 +156,7 @@ def build_sample_part(
 						<Panorama Value="0" />
 						<Volume Value="1" />
 						<Link Value="false" />
-						<SampleStart Value="0" />
+						<SampleStart Value="{sample_start}" />
 						<SampleEnd Value="{end_sample}" />
 						<SustainLoop>
 							<Start Value="{sus_start}" />

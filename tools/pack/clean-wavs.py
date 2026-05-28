@@ -47,7 +47,7 @@ def find_note_offset(audio: np.ndarray, sample_rate: int, threshold_db: float = 
     return len(audio)
 
 
-def clean_one(path: Path, lead_in_ms: float = 5.0, fade_out_ms: float = 50.0,
+def clean_one(path: Path, lead_in_ms: float = 0.0, fade_out_ms: float = 50.0,
               target_peak_db: float = -3.0, gain_db: float = 0.0) -> dict:
     """Trim + fade + normalize one WAV. Returns stats dict.
 
@@ -68,8 +68,14 @@ def clean_one(path: Path, lead_in_ms: float = 5.0, fade_out_ms: float = 50.0,
         # silent / weird file — skip
         return {"path": str(path), "skipped": "silent", "len_in": len(audio), "len_out": len(audio)}
 
-    # back off onset by lead-in
-    start = max(0, onset - int(lead_in_ms * sr / 1000))
+    # Start tight on the transient: snap to the zero crossing at/just before the
+    # onset so there's no dead air in front, but no click either.
+    target = max(0, onset - int(lead_in_ms * sr / 1000))
+    start = target
+    for j in range(target, max(0, target - int(0.006 * sr)), -1):
+        if j > 0 and ((mono[j - 1] <= 0.0 < mono[j]) or (mono[j - 1] >= 0.0 > mono[j])):
+            start = j
+            break
     end = min(len(audio), offset)
 
     # slice
@@ -123,7 +129,7 @@ def clean_one(path: Path, lead_in_ms: float = 5.0, fade_out_ms: float = 50.0,
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True, help="directory to clean (walks recursively)")
-    ap.add_argument("--lead-in-ms", type=float, default=5.0)
+    ap.add_argument("--lead-in-ms", type=float, default=0.0)
     ap.add_argument("--fade-out-ms", type=float, default=50.0)
     ap.add_argument("--target-peak-db", type=float, default=-3.0,
                     help="normalize each file to this peak. Set to 0 to skip normalize.")
