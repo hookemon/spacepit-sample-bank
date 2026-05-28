@@ -29,7 +29,22 @@ def _rising_zc(mono: np.ndarray) -> np.ndarray:
     return np.where((~pos[:-1]) & (pos[1:]))[0]
 
 
-def find_loop(audio: np.ndarray, sr: int):
+def _estimate_f0(mono: np.ndarray, sr: int) -> float:
+    """Rough fundamental (Hz) via autocorrelation on a steady chunk; 0 if unsure."""
+    a = int(0.6 * sr)
+    seg = mono[a:a + int(0.2 * sr)] if len(mono) > a + int(0.2 * sr) else mono
+    seg = seg - seg.mean()
+    if seg.size < 64 or np.sqrt(np.mean(seg * seg)) < 1e-5:
+        return 0.0
+    ac = np.correlate(seg, seg, mode="full")[seg.size - 1:]
+    lo, hi = int(sr / 1000), min(int(sr / 30), len(ac) - 1)   # search 30..1000 Hz
+    if hi <= lo:
+        return 0.0
+    lag = lo + int(np.argmax(ac[lo:hi]))
+    return sr / lag if lag > 0 else 0.0
+
+
+def _find_long_loop(audio: np.ndarray, sr: int):
     """Return (loop_start, loop_end) frames for a level+phase matched long loop,
     or None when the sample is too short or percussive (should ring out)."""
     mono = audio.mean(axis=1) if audio.ndim > 1 else audio
@@ -112,6 +127,50 @@ def find_loop(audio: np.ndarray, sr: int):
     if best_E is None:
         return None
     return S, best_E
+
+
+def _find_short_loop(audio: np.ndarray, sr: int):
+    """For sounds with no flat sustain (a sub that fades the whole way): lock a SHORT
+    loop of a few whole wave-cycles where the level barely moves -> a seamless cycle
+    that HOLDS. The natural fade plays in up to the loop start, then it sustains there."""
+    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+    n = len(mono)
+    f0 = _estimate_f0(mono, sr)
+    if f0 <= 0:
+        return None
+    P = sr / f0                                    # period in samples
+    rz = _rising_zc(mono)
+    attack = min(int(0.5 * sr), int(0.25 * n))
+    s_cand = rz[rz >= attack]
+    if len(s_cand) == 0:
+        return None
+    S = int(s_cand[0])
+    ncyc = max(4, int(round(0.08 * sr / P)))       # ~80ms worth of whole cycles
+    target_E = S + int(round(ncyc * P))
+    e_cand = rz[(rz > S + int(0.4 * ncyc * P)) & (rz < S + int(2.5 * ncyc * P))]
+    if len(e_cand) == 0:
+        return None
+    E = int(e_cand[int(np.argmin(np.abs(e_cand - target_E)))])
+    if E - S < int(0.02 * sr):                     # need at least ~20ms
+        return None
+    return S, E
+
+
+def find_loop(audio: np.ndarray, sr: int):
+    """Prefer a long, level-matched loop (rich/flat sounds — pads, saws). If the sound
+    fades or moves so a long loop can't level-match (a decaying sub), fall back to a
+    SHORT whole-cycle loop that holds cleanly. The long path is unchanged, so flat
+    sounds keep the exact loops they already had."""
+    lp = _find_long_loop(audio, sr)
+    if lp:
+        mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+        win = int(0.03 * sr)
+        S, E = lp
+        sdb = 20 * np.log10(np.sqrt(np.mean(mono[S:S + win] ** 2)) + 1e-9)
+        edb_ = 20 * np.log10(np.sqrt(np.mean(mono[max(0, E - win):E] ** 2)) + 1e-9)
+        if abs(sdb - edb_) <= 4.0:                 # clean long loop -> keep it
+            return lp
+    return _find_short_loop(audio, sr) or lp
 
 
 def bake_linear_xfade(audio: np.ndarray, S: int, E: int, X: int) -> np.ndarray:
