@@ -1541,45 +1541,61 @@ def list_captures():
 clock_stop_flag = threading.Event()
 clock_reset_flag = threading.Event()  # set this to send Stop→Start (Ableton-style "lock to 1")
 clock_thread: threading.Thread | None = None
-clock_state: dict = {"running": False, "bpm": 120, "port": ""}
+clock_state: dict = {"running": False, "bpm": 120, "port": "", "ports": []}
 
 
-def _clock_worker(midi_port_name: str, bpm: float):
-    """Persistent MIDI clock worker.
+def _clock_worker(port_names: list[str], bpm: float):
+    """Persistent MIDI clock worker — broadcasts to MULTIPLE ports at once.
 
-    Reads bpm from clock_state['bpm'] on every tick so the BPM can be changed
-    live (via /api/clock/bpm) without tearing down the thread — drag the slider
-    and the tempo updates in real time, no glitch.
+    Every active synth/drum machine gets the same 24-PPQN clock + Start/Stop, so
+    the Moog's arp, the KO's sequencer, and any tempo-synced FX all lock to ONE
+    master tempo + downbeat. This is what makes the whole studio play in sync.
+
+    Reads bpm from clock_state['bpm'] live so the slider changes tempo without
+    tearing down the thread.
     """
     import mido as _mido
     import time as _time
-    ports = _mido.get_output_names()
-    matches = [p for p in ports if midi_port_name.lower() in p.lower()]
-    if not matches:
+    available = _mido.get_output_names()
+    # Resolve each requested name to a real port + open it
+    opened = []   # list of (real_name, port)
+    for want in port_names:
+        match = next((p for p in available if want.lower() in p.lower()), None)
+        if match and match not in [n for n, _ in opened]:
+            try:
+                opened.append((match, _mido.open_output(match)))
+            except Exception as e:
+                print(f"clock: couldn't open {match}: {e}", file=sys.stderr)
+    if not opened:
         clock_state["running"] = False
         return
-    port = _mido.open_output(matches[0])
+    clock_state["ports"] = [n for n, _ in opened]
+
     clock_msg = _mido.Message('clock')
+    start_msg = _mido.Message('start')
+    stop_msg = _mido.Message('stop')
+
+    def broadcast(msg):
+        for _name, p in opened:
+            try: p.send(msg)
+            except Exception: pass
+
     try:
-        port.send(_mido.Message('start'))
+        broadcast(start_msg)
         t_last = _time.time()
         while not clock_stop_flag.is_set():
-            # Ableton-style transport reset: Stop → brief pause → Start
+            # Ableton-style transport reset: Stop → brief pause → Start on all ports
             if clock_reset_flag.is_set():
-                port.send(_mido.Message('stop'))
+                broadcast(stop_msg)
                 _time.sleep(0.03)
-                port.send(_mido.Message('start'))
+                broadcast(start_msg)
                 t_last = _time.time()
                 clock_reset_flag.clear()
                 continue
-            # Re-read BPM each iteration so live changes apply immediately
             current_bpm = clock_state.get("bpm", bpm)
             interval = 60.0 / current_bpm / 24.0
             t_next = t_last + interval
-            # Hybrid sleep+spin. macOS time.sleep oversleeps by up to 5ms on small
-            # intervals — pure sleep produces ~5ms peak jitter (audible on tight gear).
-            # Measured solution: sleep coarse leaving 3ms headroom, spin the final 5ms.
-            # Brings peak jitter under 1.5ms and stddev under 1ms (measured 2026-05-25).
+            # Hybrid sleep+spin for sub-ms jitter (measured on macOS — see git history)
             while True:
                 remaining = t_next - _time.time()
                 if remaining <= 0:
@@ -1587,38 +1603,50 @@ def _clock_worker(midi_port_name: str, bpm: float):
                 if clock_stop_flag.is_set() or clock_reset_flag.is_set():
                     break
                 if remaining > 0.005:
-                    _time.sleep(remaining - 0.003)  # leave 3ms for spin buffer
-                # else: tight spin for the last 5ms
+                    _time.sleep(remaining - 0.003)
             if clock_stop_flag.is_set():
                 break
             if clock_reset_flag.is_set():
                 continue
-            port.send(clock_msg)
+            broadcast(clock_msg)
             t_last = t_next
     finally:
-        try: port.send(_mido.Message('stop'))
+        try: broadcast(stop_msg)
         except Exception: pass
-        port.close()
+        for _name, p in opened:
+            try: p.close()
+            except Exception: pass
         clock_state["running"] = False
+        clock_state["ports"] = []
 
 
 @app.route("/api/clock/start", methods=["POST"])
 def clock_start():
     """Start or restart the persistent MIDI clock thread.
 
-    Idempotent: if already running with the same BPM + port, no-op.
-    If running with different params, restart cleanly so the dashboard's
-    'always-on clock' contract holds: green LED → synth is locked to OUR tempo.
+    Accepts EITHER:
+      - midi_port:  "Moog Grandmother"        (single — backward compat)
+      - midi_ports: ["mio","Moog Grandmother","EP-133"]  (broadcast to all)
+
+    Broadcasting to all active ports keeps the whole studio in sync.
     """
     global clock_thread
     params = request.get_json() or {}
     bpm = float(params.get("bpm", 120))
-    midi_port_name = params.get("midi_port", "Moog Grandmother")
+    # Build the port list — prefer explicit list, fall back to single
+    port_names = params.get("midi_ports")
+    if not port_names:
+        single = params.get("midi_port", "Moog Grandmother")
+        port_names = [single] if single else []
+    # de-dupe preserving order
+    seen = set(); port_names = [p for p in port_names if not (p in seen or seen.add(p))]
+
+    port_key = ",".join(sorted(port_names))
 
     # No-op if nothing changed
     if (clock_state["running"]
             and clock_state["bpm"] == bpm
-            and clock_state["port"] == midi_port_name):
+            and clock_state.get("port") == port_key):
         return jsonify({"ok": True, "already_running": True, **clock_state})
 
     # Tear down existing thread before starting a new one
@@ -1630,8 +1658,9 @@ def clock_start():
     clock_stop_flag.clear()
     clock_state["running"] = True
     clock_state["bpm"] = bpm
-    clock_state["port"] = midi_port_name
-    clock_thread = threading.Thread(target=_clock_worker, args=(midi_port_name, bpm), daemon=True)
+    clock_state["port"] = port_key
+    clock_state["ports"] = port_names
+    clock_thread = threading.Thread(target=_clock_worker, args=(port_names, bpm), daemon=True)
     clock_thread.start()
     return jsonify({"ok": True, **clock_state})
 
@@ -2247,6 +2276,30 @@ def audition_compose():
     audition_stop_flag.clear()
     audition_thread = threading.Thread(target=compose_worker, daemon=True)
     audition_thread.start()
+
+    # AUTO-SYNC — broadcast MIDI clock to every port in this audition so the Moog arp,
+    # the KO sequencer, and any tempo-synced FX all lock to the same master tempo.
+    # Without this, each device's internal sequencer drifts on its own clock.
+    ports_used = sorted(set(v for v in resolved_ports.values() if v))
+    clock_started = False
+    if params.get("sync_clock", True) and ports_used:
+        try:
+            global clock_thread
+            if clock_state["running"]:
+                clock_stop_flag.set()
+                if clock_thread and clock_thread.is_alive():
+                    clock_thread.join(timeout=0.5)
+            clock_stop_flag.clear()
+            clock_state["running"] = True
+            clock_state["bpm"] = bpm
+            clock_state["port"] = ",".join(sorted(ports_used))
+            clock_state["ports"] = ports_used
+            clock_thread = threading.Thread(target=_clock_worker, args=(ports_used, bpm), daemon=True)
+            clock_thread.start()
+            clock_started = True
+        except Exception as _e:
+            print(f"audition-compose: couldn't start sync clock: {_e}", file=sys.stderr)
+
     return jsonify({
         "ok": True,
         "tracks": [
@@ -2257,7 +2310,9 @@ def audition_compose():
         "bpm": bpm,
         "loop_sec": round(loop_sec, 2),
         "midi_port": default_port_name,
-        "ports_used": sorted(set(resolved_ports.values())),
+        "ports_used": ports_used,
+        "clock_broadcasting": clock_started,
+        "clock_ports": ports_used if clock_started else [],
     })
 
 
