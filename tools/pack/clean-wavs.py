@@ -48,7 +48,7 @@ def find_note_offset(audio: np.ndarray, sample_rate: int, threshold_db: float = 
 
 
 def clean_one(path: Path, lead_in_ms: float = 5.0, fade_out_ms: float = 50.0,
-              target_peak_db: float = -3.0) -> dict:
+              target_peak_db: float = -3.0, gain_db: float = 0.0) -> dict:
     """Trim + fade + normalize one WAV. Returns stats dict.
 
     - lead_in_ms: ms of silence to keep before note onset (avoids cutting transient)
@@ -95,6 +95,18 @@ def clean_one(path: Path, lead_in_ms: float = 5.0, fade_out_ms: float = 50.0,
             gain = target_peak_linear / peak
             trimmed *= gain
 
+    # uniform make-up gain on top — applied equally to every file so it stays
+    # hot ("rip right as you open it") WITHOUT flattening the natural dynamics.
+    # Clip-safe: never push a file's peak past -0.5 dBFS.
+    if gain_db:
+        g = 10 ** (gain_db / 20)
+        pk = float(np.max(np.abs(trimmed)))
+        if pk > 0:
+            ceiling = 10 ** (-0.5 / 20)
+            if pk * g > ceiling:
+                g = ceiling / pk
+            trimmed *= g
+
     # save back (24-bit)
     sf.write(str(path), trimmed, sr, subtype="PCM_24")
 
@@ -116,6 +128,8 @@ def main() -> None:
     ap.add_argument("--target-peak-db", type=float, default=-3.0,
                     help="normalize each file to this peak. Set to 0 to skip normalize.")
     ap.add_argument("--no-normalize", action="store_true")
+    ap.add_argument("--gain-db", type=float, default=0.0,
+                    help="uniform make-up gain after trim, clip-safe (e.g. 3 = +3 dB hotter so it opens hot)")
     ap.add_argument("--backup", action="store_true", help="back up to <dir>_original/ before cleaning")
     args = ap.parse_args()
 
@@ -139,7 +153,7 @@ def main() -> None:
     total_saved_sec = 0.0
     skipped = 0
     for i, wav in enumerate(wavs):
-        result = clean_one(wav, args.lead_in_ms, args.fade_out_ms, target_peak)
+        result = clean_one(wav, args.lead_in_ms, args.fade_out_ms, target_peak, args.gain_db)
         if result.get("skipped"):
             skipped += 1
             continue
