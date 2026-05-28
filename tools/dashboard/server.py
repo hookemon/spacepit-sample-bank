@@ -74,20 +74,29 @@ def compute_instrument_progress(slug: str) -> dict:
 
     manifest = get_instrument_manifest(slug) or {}
 
-    # patches: each has raw/spring chains
+    # patches: each has raw/spring chains.
+    # Wrapped in try/except — if patches/ is a symlink to an external drive the
+    # server can't read (launchd sandboxing), skip gracefully instead of 500-ing
+    # the whole instrument list.
     patches_dir = instr_dir / "patches"
     patches = []
     if patches_dir.exists():
-        for patch_dir in sorted(patches_dir.iterdir()):
-            if not patch_dir.is_dir():
-                continue
-            chains = {}
-            for chain_dir in patch_dir.iterdir():
-                if chain_dir.is_dir():
-                    n = count_files(chain_dir, "*.wav")
-                    if n > 0:
-                        chains[chain_dir.name] = n
-            patches.append({"name": patch_dir.name, "chains": chains})
+        try:
+            for patch_dir in sorted(patches_dir.iterdir()):
+                if not patch_dir.is_dir():
+                    continue
+                chains = {}
+                try:
+                    for chain_dir in patch_dir.iterdir():
+                        if chain_dir.is_dir():
+                            n = count_files(chain_dir, "*.wav")
+                            if n > 0:
+                                chains[chain_dir.name] = n
+                except (PermissionError, OSError):
+                    pass
+                patches.append({"name": patch_dir.name, "chains": chains})
+        except (PermissionError, OSError) as e:
+            print(f"  ⚠ can't read {patches_dir} ({e}) — external drive access? showing 0 captures", file=sys.stderr)
 
     # loops
     loops_raw = count_files(instr_dir / "loops" / "raw")
