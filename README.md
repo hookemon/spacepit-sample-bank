@@ -1,6 +1,6 @@
 # the spacepit sample bank
 
-> An archive of Nick Hook's studio. Every iconic patch on every piece of gear, captured through the spacepit's signal chain, documented in the act of being made. So when the gear leaves, the sound stays.
+> An archive of Nick Hook's studio. Every iconic patch on every piece of gear, captured through the spacepit chain, documented in the act of being made. So when the gear leaves, the sound stays.
 
 [**thespacepit.com**](https://thespacepit.com) · built by [**@nickhook**](https://instagram.com/nickhook) at [**@thespacepit**](https://instagram.com/thespacepit)
 
