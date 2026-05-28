@@ -345,14 +345,22 @@ def main() -> None:
                 ableton_extras = ""
                 # Find seamless loop points on the copied WAVs (writes loops.json beside
                 # them) so the Ableton build inherits the locked loop recipe.
+                # Loop-vs-one-shot is decided PER PATCH by the manifest "loop" flag
+                # (default True = sustained/looping). Percussive patches (plucks, bells)
+                # set "loop": false so they ring out as one-shots — no false loop seam.
                 if wav_dest_paths:
                     _loop_script = Path(__file__).resolve().parent / "bake-loops.py"
                     if _loop_script.exists():
+                        _loop_on = next(
+                            (p.get("loop", True) for p in manifest.get("patches", [])
+                             if p.get("name") == patch_name),
+                            True)
+                        _bake_cmd = [sys.executable, str(_loop_script), "--dir",
+                                     str(pack_dir / "audio/multisamples" / patch_name / chain)]
+                        if not _loop_on:
+                            _bake_cmd.append("--no-loop")
                         try:
-                            subprocess.run(
-                                [sys.executable, str(_loop_script), "--dir",
-                                 str(pack_dir / "audio/multisamples" / patch_name / chain)],
-                                capture_output=True, text=True, timeout=120)
+                            subprocess.run(_bake_cmd, capture_output=True, text=True, timeout=120)
                         except Exception as _le:
                             print(f"  ⚠ loop-finder skipped for {patch_name}/{chain}: {_le}")
                 if _build_ableton_presets and wav_dest_paths:

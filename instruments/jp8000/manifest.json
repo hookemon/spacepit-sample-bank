@@ -10,11 +10,12 @@
   "chains_captured": [
     {
       "name": "raw",
-      "signal_chain": "synth direct out \u2192 Radial J+4 \u2192 audio interface @ +4dBu \u2192 DAW",
-      "description": "Clean signal path \u2014 pure synth voice with the J+4 transformer warmth baked in. No FX.",
+      "signal_chain": "Roland JP-8000 stereo out \u2192 Radial J+4 (DI / stereo line driver, transformer-balanced) \u2192 Teenage Engineering TX-6 ch 1,2 \u2192 Mac mini USB \u2192 bench",
+      "description": "Clean DI chain \u2014 the JP-8000 voice through the Radial J+4's transformer for level + warmth, captured at the bench. The real spacepit signal path starts here.",
       "studio": "the spacepit",
-      "credit_line": "Captured at the spacepit through Radial J+4",
-      "captured_at": null
+      "credit_line": "Captured at the spacepit \u2014 JP-8000 \u2192 Radial J+4 \u2192 TX-6",
+      "captured_at": null,
+      "confirmed_by_nick": true
     }
   ],
   "patches": [
@@ -80,7 +81,8 @@
       "samples_dir": "patches/pluck-stab/raw",
       "gearbase_preset_id": "P:A42",
       "program_change": 25,
-      "target_mode": "single"
+      "target_mode": "single",
+      "loop": false
     },
     {
       "name": "rave-hoover",
@@ -104,7 +106,8 @@
       "samples_dir": "patches/fm-bell/raw",
       "gearbase_preset_id": "P:B58",
       "program_change": 103,
-      "target_mode": "single"
+      "target_mode": "single",
+      "loop": false
     },
     {
       "name": "sub-bass",

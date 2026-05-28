@@ -52,12 +52,10 @@ def find_loop(audio: np.ndarray, sr: int):
     if region_hi - attack < int(1.0 * sr):
         return None
 
-    # loopability: not decaying — compare first vs last ~1s of the sustain
-    f0, f1 = attack // win, min(nwin, (attack + int(1.0 * sr)) // win)
-    l0, l1 = max(0, (region_hi - int(1.0 * sr)) // win), max(1, region_hi // win)
-    if np.median(envdb[l0:l1]) < np.median(envdb[f0:f1]) - 10.0:
-        return None   # decays >10 dB -> one-shot
-
+    # NOTE: loop-vs-one-shot is decided per patch by the manifest "loop" flag
+    # (passed via --no-loop), NOT guessed here. The old heuristic compared the
+    # start of the note to its END — but the end is the release tail, which always
+    # decays, so it wrongly flagged sustained sounds (mega-saw, pads) as one-shots.
     rz = _rising_zc(mono)
     W = int(0.04 * sr)                       # 40ms correlation window
     # Start the loop well into the sustain (not at the attack) so the Ableton loop
@@ -149,6 +147,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True, help="patch chain dir of WAVs to loop")
     ap.add_argument("--xfade-ms", type=float, default=150.0, help="crossfade length at the seam")
+    ap.add_argument("--no-loop", action="store_true", help="force one-shot (no loop) — for percussive patches (plucks, bells)")
     ap.add_argument("--dry-run", action="store_true", help="report loop choice + metrics, don't write")
     args = ap.parse_args()
 
@@ -158,7 +157,7 @@ def main():
     looped = 0
     for w in wavs:
         audio, sr = sf.read(str(w))
-        lp = find_loop(audio, sr)
+        lp = None if args.no_loop else find_loop(audio, sr)
         if not lp:
             loops[w.name] = None
             print(f"  {w.name}: one-shot (ring out)")
