@@ -1,0 +1,17 @@
+{
+  "jp8000_supersaw-1_c3_v100_rr1.wav": {
+    "start": 55244,
+    "end": 166249,
+    "crossfade": 0
+  },
+  "jp8000_supersaw-1_a3_v100_rr1.wav": {
+    "start": 55275,
+    "end": 120854,
+    "crossfade": 0
+  },
+  "jp8000_supersaw-1_c4_v100_rr1.wav": {
+    "start": 55225,
+    "end": 141397,
+    "crossfade": 0
+  }
+}
