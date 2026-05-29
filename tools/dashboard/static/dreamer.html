@@ -19,19 +19,23 @@
   .sub{ text-align:center; font-size:8px; color:var(--faint); margin-bottom:24px; line-height:1.9; }
   .sub a{ color:var(--dim); text-decoration:none; } .sub a:hover{ color:var(--gold); }
 
-  /* the linked pyramids */
-  .pyramids{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:4px; margin-bottom:26px; }
-  .pyr{ width:184px; cursor:pointer; transition:transform .2s; padding:4px; }
-  .pyr.focus{ transform:scale(1.12); }
+  /* the linked pyramids — one per synth (bank) */
+  .pyramids{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:8px; margin-bottom:26px; }
+  .pyr{ width:210px; cursor:pointer; transition:transform .2s; padding:6px; }
+  .pyr.focus{ transform:scale(1.10); }
   .pyr.dim{ opacity:.4; }
-  .pyr.off{ filter:grayscale(1) brightness(.5); opacity:.5; }
+  .pyr.off{ filter:grayscale(.7) brightness(.7); opacity:.6; }
   .pyr svg{ display:block; width:100%; overflow:visible; }
   .hopper{ transition:transform var(--hopdur,300ms) cubic-bezier(.4,-0.4,.5,1.4); }
-  .plabel{ text-align:center; font-size:9px; margin-top:2px; }
-  .psub{ text-align:center; font-size:7px; color:var(--faint); margin-top:4px; line-height:1.7; }
-  .pyr select{ width:100%; margin-top:5px; font-family:inherit; font-size:7px; padding:4px 2px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
-  .pyr .chrow{ display:flex; align-items:center; justify-content:center; gap:5px; margin-top:4px; font-size:7px; color:var(--faint); }
-  .pyr .chrow input[type=number]{ width:28px; font-family:inherit; font-size:7px; padding:2px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .bank-name{ text-align:center; font-size:11px; color:var(--gold); margin:4px 0 2px; letter-spacing:1px; }
+  .bank-port{ width:100%; margin-top:5px; font-family:inherit; font-size:7px; padding:5px 3px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .bank-players{ display:flex; flex-direction:column; gap:3px; margin-top:6px; }
+  .prow{ display:flex; align-items:center; gap:5px; font-size:7px; color:var(--dim); }
+  .prow .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .prow .pname{ flex:1; text-transform:uppercase; }
+  .prow .psub{ color:var(--faint); font-size:6.5px; }
+  .prow input[type=number]{ width:26px; font-family:inherit; font-size:7px; padding:2px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .prow label{ display:flex; align-items:center; gap:3px; }
 
   .panel{ background:rgba(13,13,28,.7); border:3px solid #2a2a4a; padding:16px; margin-bottom:16px; }
   .lab{ font-size:8px; color:var(--gold); margin-bottom:12px; }
@@ -56,8 +60,8 @@
 <body>
   <div class="wrap">
     <h1>THE STUDIO DREAMER</h1>
-    <div class="sub">FIVE PLAYERS · FIVE PYRAMIDS · EACH HOPS TO ITS OWN RHYTHM<br>
-      <a href="/">&larr; BACK TO THE BENCH</a> &nbsp;·&nbsp; click a pyramid to focus it</div>
+    <div class="sub">PLAYERS GROUPED BY SYNTH · EACH HOPS TO ITS OWN RHYTHM<br>
+      <a href="/">&larr; BACK TO THE BENCH</a> &nbsp;·&nbsp; click a pyramid to focus the synth</div>
 
     <div class="pyramids" id="pyramids"></div>
 
@@ -92,7 +96,8 @@
   </div>
 
 <script>
-// each player: a pyramid + a Q*bert hopping at its note subdivision.
+// Each SYNTH (port) gets its own pyramid; multiple players on the same synth share it.
+// Each player hops in its own color at its own subdivision on the shared pyramid.
 const PLAYERS = [
   { role:'chords', name:'CHORDS', sub:'1/4 notes',  div:1,    color:'#FF7A18', dport:'mio',              dch:1,  on:true  },
   { role:'bass',   name:'BASS',   sub:'1/8 notes',  div:0.5,  color:'#8B3FFC', dport:'Moog Grandmother', dch:1,  on:true  },
@@ -102,13 +107,13 @@ const PLAYERS = [
 ];
 const ROWS=4, CW=44, CH=22, CS=18, ROWSTEP=28, HEAD=46;
 const VBW = ROWS*CW + CW, VBH = HEAD + (ROWS-1)*ROWSTEP + CH + CS + 20, OX=VBW/2, OY=HEAD;
+const BANK_CUBE = '#3a3a5a'; // neutral pyramid color — the synth is the stage, hoppers wear the player colors
 let ports=[], vibe='hiphop', playing=false, tempo=92;
 const timers={};
 
 function darken(hex,f){ const n=parseInt(hex.slice(1),16);
   return `rgb(${Math.round(((n>>16)&255)*(1-f))},${Math.round(((n>>8)&255)*(1-f))},${Math.round((n&255)*(1-f))})`; }
 function cubeXY(r,i){ return { x: OX + (i - r/2)*CW, y: OY + r*ROWSTEP }; }
-function cubeCells(){ const c=[]; for(let r=0;r<ROWS;r++) for(let i=0;i<=r;i++) c.push({r,i}); return c; }
 
 function cubeSVG(x,y,c){
   const top=c, L=darken(c,0.32), R=darken(c,0.54), hw=CW/2, hh=CH/2;
@@ -116,8 +121,9 @@ function cubeSVG(x,y,c){
     <polygon points="${x-hw},${y} ${x},${y+hh} ${x},${y+hh+CS} ${x-hw},${y+CS}" fill="${L}" stroke="#0a0a16" stroke-width="1"/>
     <polygon points="${x+hw},${y} ${x},${y+hh} ${x},${y+hh+CS} ${x+hw},${y+CS}" fill="${R}" stroke="#0a0a16" stroke-width="1"/>`;
 }
-function hopperSVG(c){ const d=darken(c,0.38);  // q*bert centered with feet at (0,0)
-  return `<g class="hopper">
+// Hopper carries data-player so placeHopper can find it across all pyramids.
+function hopperSVG(c, playerIdx){ const d=darken(c,0.38);
+  return `<g class="hopper" data-player="${playerIdx}">
     <ellipse cx="0" cy="-24" rx="13" ry="12" fill="${c}"/>
     <rect x="6" y="-26" width="13" height="7" rx="3" fill="${d}"/>
     <rect x="-7" y="-6" width="6" height="7" rx="2" fill="${d}"/><rect x="1" y="-6" width="6" height="7" rx="2" fill="${d}"/>
@@ -125,44 +131,91 @@ function hopperSVG(c){ const d=darken(c,0.38);  // q*bert centered with feet at 
     <circle cx="-3" cy="-28" r="1.8" fill="#111"/><circle cx="5" cy="-28" r="1.8" fill="#111"/>
   </g>`;
 }
-function pyramidSVG(c){
-  let cubes=''; for(let r=0;r<ROWS;r++) for(let i=0;i<=r;i++){ const p=cubeXY(r,i); cubes+=cubeSVG(p.x,p.y,c); }
-  return `<svg viewBox="0 0 ${VBW} ${VBH}">${cubes}${hopperSVG(c)}</svg>`;
+function pyramidSVG(cubeColor, hopperEntries){
+  // hopperEntries: [{ color, playerIdx }, ...] — one per active player on this bank
+  let cubes=''; for(let r=0;r<ROWS;r++) for(let i=0;i<=r;i++){ const p=cubeXY(r,i); cubes+=cubeSVG(p.x,p.y,cubeColor); }
+  const hoppers = hopperEntries.map(h => hopperSVG(h.color, h.playerIdx)).join('');
+  return `<svg viewBox="0 0 ${VBW} ${VBH}">${cubes}${hoppers}</svg>`;
+}
+
+// Group players by dport, preserving first-seen order.
+function banks(){
+  const seen={}, out=[];
+  PLAYERS.forEach((p,i)=>{ if(!seen[p.dport]){ seen[p.dport]={ dport:p.dport, members:[] }; out.push(seen[p.dport]); }
+    seen[p.dport].members.push({ p, i });
+  });
+  return out;
 }
 
 async function loadPorts(){ try{ ports=(await (await fetch('/api/devices')).json()).midi_ports||[]; }catch(e){ ports=[]; } render(); }
-function portOpts(sel){ return ports.map(p=>`<option ${p===sel?'selected':''}>${p}</option>`).join('')||'<option>(no ports)</option>'; }
+function portOpts(sel){
+  if(!ports.length) return `<option selected>${sel||'(no ports)'}</option>`;
+  const has = ports.includes(sel);
+  return ports.map(p=>`<option ${p===sel?'selected':''}>${p}</option>`).join('') +
+    (sel && !has ? `<option selected>${sel}</option>` : '');
+}
 
 function render(){
-  document.getElementById('pyramids').innerHTML = PLAYERS.map((p,i)=>`
-    <div class="pyr ${p.on?'':'off'}" data-i="${i}">
-      ${pyramidSVG(p.color)}
-      <div class="plabel" style="color:${p.on?p.color:''}">${p.name}</div>
-      <div class="psub">${p.sub}</div>
-      <select class="port" data-i="${i}">${portOpts(p.dport)}</select>
-      <div class="chrow"><label><input type="checkbox" class="en" data-i="${i}" ${p.on?'checked':''}> on</label>
-        ch<input type="number" class="chan" data-i="${i}" min="1" max="16" value="${p.dch}"></div>
-    </div>`).join('');
+  const html = banks().map(bank => {
+    const activeHoppers = bank.members.filter(({p}) => p.on).map(({p, i}) => ({ color:p.color, playerIdx:i }));
+    const anyOn = activeHoppers.length > 0;
+    const rows = bank.members.map(({p, i}) => `
+      <div class="prow">
+        <span class="dot" style="background:${p.color};opacity:${p.on?1:0.3}"></span>
+        <span class="pname" style="color:${p.on?p.color:'var(--faint)'}">${p.name}</span>
+        <span class="psub">${p.sub}</span>
+        <span>ch<input type="number" class="chan" data-i="${i}" min="1" max="16" value="${p.dch}"></span>
+        <label><input type="checkbox" class="en" data-i="${i}" ${p.on?'checked':''}>on</label>
+      </div>`).join('');
+    return `<div class="pyr ${anyOn?'':'off'}" data-bank="${bank.dport}">
+      ${pyramidSVG(BANK_CUBE, activeHoppers)}
+      <div class="bank-name">${bank.dport.toUpperCase()}</div>
+      <select class="bank-port" data-bank="${bank.dport}">${portOpts(bank.dport)}</select>
+      <div class="bank-players">${rows}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pyramids').innerHTML = html;
   PLAYERS.forEach((p,i)=>placeHopper(i,0));
   startHops();
-  document.querySelectorAll('.pyr').forEach(el=>{
-    el.querySelector('.en').addEventListener('change',e=>{
-      const i=+e.target.dataset.i; PLAYERS[i].on=e.target.checked;
-      el.classList.toggle('off',!e.target.checked);
-      el.querySelector('.plabel').style.color = e.target.checked?PLAYERS[i].color:'';
-      startHops();
+  // wire interactions per bank panel
+  document.querySelectorAll('.pyr').forEach(el => {
+    // per-player on/off
+    el.querySelectorAll('.en').forEach(cb => cb.addEventListener('change', e => {
+      const i = +e.target.dataset.i;
+      PLAYERS[i].on = e.target.checked;
+      render(); // re-render so the hopper appears/disappears on this bank
+    }));
+    // per-player channel
+    el.querySelectorAll('.chan').forEach(inp => inp.addEventListener('change', e => {
+      const i = +e.target.dataset.i;
+      const v = parseInt(e.target.value);
+      PLAYERS[i].dch = (v >= 1 && v <= 16) ? v : 1;
+    }));
+    // bank-level port — applies to ALL players on this bank
+    const portSel = el.querySelector('select.bank-port');
+    if (portSel) portSel.addEventListener('change', e => {
+      const bankName = e.target.dataset.bank;
+      const newPort = e.target.value;
+      PLAYERS.forEach(p => { if (p.dport === bankName) p.dport = newPort; });
+      render();
     });
-    el.addEventListener('click',e=>{ if(e.target.closest('select,input,label')) return;
-      const f=el.classList.contains('focus');
-      document.querySelectorAll('.pyr').forEach(x=>x.classList.remove('focus','dim'));
-      if(!f){ el.classList.add('focus'); document.querySelectorAll('.pyr').forEach(x=>{ if(x!==el)x.classList.add('dim'); }); }
+    // click anywhere on the panel (but not on controls) to focus the synth
+    el.addEventListener('click', e => {
+      if (e.target.closest('select,input,label')) return;
+      const f = el.classList.contains('focus');
+      document.querySelectorAll('.pyr').forEach(x => x.classList.remove('focus','dim'));
+      if (!f) {
+        el.classList.add('focus');
+        document.querySelectorAll('.pyr').forEach(x => { if (x !== el) x.classList.add('dim'); });
+      }
     });
   });
 }
-const cur={};  // current cell per player
+
+const cur={};  // current cell per player (keyed by player index, independent of pyramid grouping)
 function placeHopper(i,_init){
-  const svg=document.querySelectorAll('.pyr')[i]; if(!svg) return;
-  const hop=svg.querySelector('.hopper'); if(!hop) return;
+  const hop = document.querySelector(`.pyr .hopper[data-player="${i}"]`);
+  if(!hop) return;
   cur[i]=cur[i]||{r:0,idx:0};
   const {x,y}=cubeXY(cur[i].r,cur[i].idx);
   hop.style.setProperty('--hopdur', Math.min(260, noteMs(i)*0.6)+'ms');
@@ -171,7 +224,7 @@ function placeHopper(i,_init){
 function noteMs(i){ return Math.max(90, (60000/tempo)*PLAYERS[i].div); }
 function hopOnce(i){
   let {r,idx}=cur[i]||{r:0,idx:0};
-  if(r>=ROWS-1){ r=0; idx=0; }                 // reached bottom → leap back to apex
+  if(r>=ROWS-1){ r=0; idx=0; }                 // reached the bottom → leap back to apex
   else { r++; if(Math.random()<0.5){} else idx++; } // down-left or down-right
   cur[i]={r,idx:Math.min(idx,r)};
   placeHopper(i);
@@ -182,9 +235,11 @@ function startHops(){
 }
 function retempo(){ const t=parseFloat(document.getElementById('tempo').value); tempo=(t&&t>20)?t:92; startHops(); }
 
-function rolesPayload(){ const roles={};
-  document.querySelectorAll('.pyr').forEach((el,i)=>{ roles[PLAYERS[i].role]={ enabled:el.querySelector('.en').checked, port:el.querySelector('.port').value, channel:parseInt(el.querySelector('.chan').value)||1 }; });
-  return roles; }
+function rolesPayload(){
+  const roles={};
+  PLAYERS.forEach(p => { roles[p.role] = { enabled: !!p.on, port: p.dport, channel: p.dch }; });
+  return roles;
+}
 document.getElementById('vibes').addEventListener('click',e=>{ const v=e.target.closest('.vibe'); if(!v)return;
   vibe=v.dataset.vibe; document.getElementById('vibe-text').value='';
   document.querySelectorAll('.vibe').forEach(x=>x.classList.toggle('on',x===v)); });
