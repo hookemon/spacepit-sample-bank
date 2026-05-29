@@ -364,20 +364,23 @@ def build_presets_for_wavs(
             key_max = (root + roots[i + 1]) // 2
         ss = find_onset_sample(wav, sr)
         sc = _loops_sidecar.get(wav.name, "MISSING")
+        sc_xf = None
         if isinstance(sc, dict):
             ls, le = int(sc["start"]), int(sc["end"])
+            sc_xf = sc.get("crossfade")               # bake-loops decides: 0 = phase-locked
         elif sc is None:
             ls, le = None, None                                 # explicitly a one-shot
         else:
             lp = find_loop_points(wav, sr) if loop else None
             ls, le = (lp[0], lp[1]) if lp else (None, None)
-        # Pro recipe (from the factory presets): forward loop + crossfade ~7% of
-        # the loop length (Glidesynth 7.1%, PAD 7.4%), Ableton-handled on a
-        # pristine WAV, capped so it fits the pre-loop room.
+        # Crossfade comes from bake-loops (it knows whether the loop is phase-locked and
+        # needs none, or rich and needs ~7%). Only fall back to computing it here if the
+        # sidecar didn't specify (old sidecar / direct find_loop_points path).
         if ls is not None and le is not None and le > ls:
-            # keep the crossfade pre-roll inside the sustain (reserve ~0.45s for the
-            # attack) so Ableton's loop crossfade never blends in the onset transient
-            xf = min(int(0.07 * (le - ls)), max(0, ls - int(0.45 * sr)))
+            if sc_xf is not None:
+                xf = int(sc_xf)
+            else:
+                xf = min(int(0.07 * (le - ls)), max(0, ls - int(0.45 * sr)))
         else:
             xf = 0
         block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
