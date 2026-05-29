@@ -238,7 +238,7 @@ def _role(cfg, name):
     r = (cfg.get("roles") or {}).get(name) or {}
     if not r.get("enabled") or not r.get("port"):
         return None
-    return {"port": r["port"], "ch": int(r.get("channel", 1)) - 1}
+    return {"port": r["port"], "ch": int(r.get("channel", 1)) - 1, "oct_shift": int(r.get("oct_shift", 0))}
 
 
 def _send_on(role, note, vel):
@@ -289,13 +289,13 @@ def _run(cfg):
         if chords:
             for n in active_chord:
                 _send_off(chords, n)
-            active_chord = [ch_root + 12 * (v["chord_oct"] - 4) + iv for iv in CHORDS.get(qual, [0, 4, 7])]
+            active_chord = [ch_root + 12 * (v["chord_oct"] - 4 + chords["oct_shift"]) + iv for iv in CHORDS.get(qual, [0, 4, 7])]
             for n in active_chord:
                 _send_on(chords, n, vel)
         if bass and v["bass_feel"] == "hold":
             for n in active_bass:
                 _send_off(bass, n)
-            active_bass = [ch_root + 12 * (v["bass_oct"] - 4)]
+            active_bass = [ch_root + 12 * (v["bass_oct"] - 4 + bass["oct_shift"])]
             for n in active_bass:
                 _send_on(bass, n, vel + 6)
 
@@ -318,7 +318,7 @@ def _run(cfg):
             if bass and v["bass_feel"] == "root8" and on_8th:
                 for n in active_bass:
                     _send_off(bass, n)
-                active_bass = [ch_root + 12 * (v["bass_oct"] - 4)]
+                active_bass = [ch_root + 12 * (v["bass_oct"] - 4 + bass["oct_shift"])]
                 _send_on(bass, active_bass[0], vel + 8)
                 pending_off.append((now + step_dur * 1.6, bass, active_bass[0]))
 
@@ -353,7 +353,7 @@ def _run(cfg):
                     pending_off.append((now + 0.04, drums, dn))
 
             if step == lead_step and lead:
-                ln = root + random.choice(scale) + 12 * (v["lead_oct"] - 4)
+                ln = root + random.choice(scale) + 12 * (v["lead_oct"] - 4 + lead["oct_shift"])
                 for n in active_lead:
                     _send_off(lead, n)
                 active_lead = [ln]

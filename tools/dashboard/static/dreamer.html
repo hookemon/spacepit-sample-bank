@@ -55,6 +55,10 @@
   .status b{ color:var(--gold); }
   .sched-arc{ font-size:8px; color:var(--dim); line-height:2.2; } .sched-arc b{ color:var(--gold); }
   label.toggle{ display:flex; align-items:center; gap:9px; margin-top:12px; cursor:pointer; font-size:8px; }
+  /* per-bank octave shift picker */
+  .bank-oct{ display:flex; align-items:center; justify-content:center; gap:5px; font-family:'DM Mono',monospace; font-size:8px; color:var(--dim); margin-top:4px; letter-spacing:1px; text-transform:uppercase; }
+  .bank-oct select{ font-family:inherit; font-size:8px; padding:3px 6px; background:#0d0d1c; color:var(--gold); border:1.5px solid #2a2a4a; cursor:pointer; min-width:46px; text-align:center; }
+  .bank-oct select:focus{ border-color:var(--gold); outline:none; }
 </style>
 </head>
 <body>
@@ -146,6 +150,11 @@ const DRUM_PATTERNS = {
 };
 let masterStep = 0;
 let masterClock = null;
+// Per-bank octave shift — dials chord/bass/lead up or down per synth.
+// Persisted across sessions, sent through rolesPayload to dreamer.py.
+let bankOctShifts = {};
+try { const _s = localStorage.getItem('dreamer_bank_oct'); if (_s) bankOctShifts = JSON.parse(_s); } catch(e){}
+function saveBankOcts(){ try { localStorage.setItem('dreamer_bank_oct', JSON.stringify(bankOctShifts)); } catch(e){} }
 function masterTick(){
   const pat = DRUM_PATTERNS[vibe] || DRUM_PATTERNS.hiphop;
   PLAYERS.forEach((p,i) => {
@@ -217,9 +226,16 @@ function render(){
         <span>ch<input type="number" class="chan" data-i="${i}" min="1" max="16" value="${p.dch}"></span>
         <label><input type="checkbox" class="en" data-i="${i}" ${p.on?'checked':''}>on</label>
       </div>`).join('');
+    const shift = bankOctShifts[bank.dport] || 0;
+    const octOpt = (n, lbl) => `<option value="${n}" ${shift===n?'selected':''}>${lbl}</option>`;
     return `<div class="pyr ${anyOn?'':'off'}" data-bank="${bank.dport}">
       ${pyramidSVG(BANK_CUBE, activeHoppers)}
       <div class="bank-name">${bank.dport.toUpperCase()}</div>
+      <div class="bank-oct">OCT
+        <select class="bank-oct-sel" data-bank="${bank.dport}">
+          ${octOpt(-2,'−2')}${octOpt(-1,'−1')}${octOpt(0,'0')}${octOpt(1,'+1')}${octOpt(2,'+2')}${octOpt(3,'+3')}${octOpt(4,'+4')}
+        </select>
+      </div>
       <select class="bank-port" data-bank="${bank.dport}">${portOpts(bank.dport)}</select>
       <div class="bank-players">${rows}</div>
     </div>`;
@@ -247,7 +263,20 @@ function render(){
       const bankName = e.target.dataset.bank;
       const newPort = e.target.value;
       PLAYERS.forEach(p => { if (p.dport === bankName) p.dport = newPort; });
+      // carry the octave shift over to the new bank name so the dial keeps its setting
+      if (bankOctShifts[bankName] !== undefined) {
+        bankOctShifts[newPort] = bankOctShifts[bankName];
+        if (bankName !== newPort) delete bankOctShifts[bankName];
+        saveBankOcts();
+      }
       render();
+    });
+    // bank-level OCT shift — sent through rolesPayload to dreamer.py
+    const octSel = el.querySelector('select.bank-oct-sel');
+    if (octSel) octSel.addEventListener('change', e => {
+      const bankName = e.target.dataset.bank;
+      bankOctShifts[bankName] = +e.target.value;
+      saveBankOcts();
     });
     // click anywhere on the panel (but not on controls) to focus the synth
     el.addEventListener('click', e => {
@@ -299,14 +328,15 @@ function retempo(){ const t=parseFloat(document.getElementById('tempo').value); 
 
 function rolesPayload(){
   const roles={};
-  // backend expects a single `drums` role — collapse kick/snare/hat into it,
-  // enabled if any drum voice is on; port/channel inherit from the first drum.
+  // each role carries its bank's oct_shift; backend applies it to chord/bass/
+  // lead octaves and ignores it for drums (GM drum notes are fixed pitches).
   PLAYERS.forEach(p => {
+    const shift = bankOctShifts[p.dport] || 0;
     if (DRUM_ROLES.has(p.role)) {
-      if (!roles.drums) roles.drums = { enabled: false, port: p.dport, channel: p.dch };
+      if (!roles.drums) roles.drums = { enabled: false, port: p.dport, channel: p.dch, oct_shift: shift };
       if (p.on) roles.drums.enabled = true;
     } else {
-      roles[p.role] = { enabled: !!p.on, port: p.dport, channel: p.dch };
+      roles[p.role] = { enabled: !!p.on, port: p.dport, channel: p.dch, oct_shift: shift };
     }
   });
   return roles;
