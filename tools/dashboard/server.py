@@ -205,7 +205,15 @@ _load_log()
 
 @app.route("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    # Auto cache-bust the JS/CSS by their file mtime, so editing app.js always loads the
+    # new version on a normal refresh — no more "the bench still shows the old thing".
+    html = (Path(app.static_folder) / "index.html").read_text()
+    for asset in ("app.js", "style.css"):
+        f = Path(app.static_folder) / asset
+        if f.exists():
+            v = int(f.stat().st_mtime)
+            html = html.replace(f"/static/{asset}", f"/static/{asset}?v={v}")
+    return app.response_class(html, mimetype="text/html")
 
 
 @app.route("/api/devices")
