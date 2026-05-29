@@ -81,14 +81,24 @@ def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
             patch_notes[pd.name] = notes
     if not all_loud:
         return {}
-    target = float(np.median(all_loud))      # one loudness target for every note in the bank
+    target = float(np.median(all_loud))      # even every note to the bank's median loudness
+    # Pass 1: per-note gain toward the median (even), capped so thin notes aren't over-boosted.
+    pre = {}                                  # (patch, name) -> (gain_to_median, peak_db)
+    for patch, notes in patch_notes.items():
+        for name, ld, pk in notes:
+            pre[(patch, name)] = (min(target - ld, max_boost_db), pk)
+    # Pass 2: shove the WHOLE (now even) bank UP until the loudest note kisses the ceiling,
+    # so it opens HOT instead of even-but-quiet — DI captures come in low. Uniform push keeps
+    # it even; peak-guarded so nothing clips.
+    push = max(0.0, min(ceiling_db - (g + pk) for (g, pk) in pre.values()))
     out = {}
     for patch, notes in patch_notes.items():
         gmap = {}
         for name, ld, pk in notes:
-            want = min(target - ld, max_boost_db)      # never boost more than the cap
-            gmap[name] = min(want, ceiling_db - pk)    # never clip
+            gmap[name] = min(pre[(patch, name)][0] + push, ceiling_db - pk)   # never clip
         out[patch] = gmap
+    if push > 0.05:
+        print(f"  loudness: evened to median, then +{push:.1f} dB bank-wide to open hot (peak-safe)")
     return out
 
 
