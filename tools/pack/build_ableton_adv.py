@@ -378,14 +378,13 @@ def build_presets_for_wavs(
         else:
             lp = find_loop_points(wav, sr) if loop else None
             ls, le = (lp[0], lp[1]) if lp else (None, None)
-        # Crossfade comes from bake-loops (it knows whether the loop is phase-locked and
-        # needs none, or rich and needs ~7%). Only fall back to computing it here if the
-        # sidecar didn't specify (old sidecar / direct find_loop_points path).
+        # Crossfade 0 — the Samples From Mars recipe Nick confirmed by ear (snap off + zero
+        # crossfade beats the crossfade, which combs into a "vowel/whoa" on these sounds).
+        # The loop points are the best-match starting points; the few that click get nudged
+        # by ear in Ableton's Sampler (the moving sounds never repeat perfectly — that last
+        # bit is an ears job, not math). Honor an explicit sidecar crossfade if one's set.
         if ls is not None and le is not None and le > ls:
-            if sc_xf is not None:
-                xf = int(sc_xf)
-            else:
-                xf = min(int(0.07 * (le - ls)), max(0, ls - int(0.45 * sr)))
+            xf = int(sc_xf) if sc_xf is not None else 0
         else:
             xf = 0
         block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
