@@ -10,12 +10,6 @@
     styleForms: document.querySelectorAll('.style-form'),
     captureBtn: document.getElementById('capture-btn'),
     status: document.getElementById('status'),
-    playback: document.getElementById('playback'),
-    playbackName: document.getElementById('playback-name'),
-    audioPlayer: document.getElementById('audio-player'),
-    keepBtn: document.getElementById('keep-btn'),
-    retakeBtn: document.getElementById('retake-btn'),
-    discardBtn: document.getElementById('discard-btn'),
     consoleCard: document.getElementById('console-card'),
     consoleEl: document.getElementById('console'),
   };
@@ -1588,7 +1582,7 @@
     els.captureBtn.disabled = true;
     els.captureBtn.style.display = 'none';
     document.getElementById('capture-stop-btn').style.display = 'inline-block';
-    els.playback.classList.remove('visible');
+    els.playback?.classList.remove('visible');
 
     try {
       const r = await fetch('/api/capture', {
@@ -1612,12 +1606,6 @@
 
       if (data.wav_url) {
         lastCapture = { ...data, params };
-        const urlWithBust = data.wav_url + `?t=${Date.now()}`;
-        els.audioPlayer.src = urlWithBust;
-        els.audioPlayer.load();
-        els.playbackName.textContent = data.wav_path;
-        els.playback.classList.add('visible');
-        drawWaveform(urlWithBust);
         // Multisample captures write many files; show the count so the user sees it
         const msMsg = data.multisample_count
           ? `✓ Captured ${data.multisample_count} samples → ${data.multisample_dir || data.wav_path.split('/').slice(0,-1).join('/')}`
@@ -1659,50 +1647,8 @@
     }
   });
 
-  // ---------- keep / discard / retake ----------
-  els.keepBtn.addEventListener('click', async () => {
-    if (!lastCapture) return;
-    const notes = document.getElementById('keep-notes').value.trim();
-    const metadata = { keeper: true };
-    if (notes) metadata.notes = notes;
-    const r = await fetch('/api/keep', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wav_path: lastCapture.wav_path, metadata }),
-    });
-    const data = await r.json();
-    if (data.ok) {
-      setStatus(`✓ Kept${notes ? ' with notes' : ''}. Sidecar: ${data.sidecar}`, 'success');
-      els.playback.classList.remove('visible');
-      document.getElementById('keep-notes').value = '';
-      lastCapture = null;
-    } else {
-      setStatus(`Keep failed: ${data.error}`, 'error');
-    }
-  });
-
-  els.discardBtn.addEventListener('click', async () => {
-    if (!lastCapture) return;
-    if (!confirm('Delete this capture? This is permanent.')) return;
-    const r = await fetch('/api/discard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wav_path: lastCapture.wav_path }),
-    });
-    const data = await r.json();
-    if (data.ok) {
-      setStatus(`Discarded.`, '');
-      els.playback.classList.remove('visible');
-      lastCapture = null;
-      loadInstrument(els.instrumentSelect.value);
-    }
-  });
-
-  els.retakeBtn.addEventListener('click', () => {
-    // re-fire with same params (overwrites)
-    els.captureBtn.click();
-  });
-
+  // (Playback card removed — multisample captures land in the captures log + checklist;
+  // trim/gain/loudness are automatic at capture + build, so keep/discard/retake/trim are gone.)
 
   // ---------- saved progressions ----------
   let allProgressions = [];
@@ -3166,9 +3112,6 @@
   // Refresh captures log after every capture/keep/discard action
   const origCaptureClick = els.captureBtn.onclick;
   els.captureBtn.addEventListener('click', () => { setTimeout(loadCapturesLog, 1000); setTimeout(loadCapturesLog, 5000); });
-  els.keepBtn.addEventListener('click', () => setTimeout(loadCapturesLog, 500));
-  els.discardBtn.addEventListener('click', () => setTimeout(loadCapturesLog, 500));
-
   // After scan, also save the auto-detected channels to this instrument's manifest
   const origScanAfter = async () => {
     await saveInstrumentSettings();
