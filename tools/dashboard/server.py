@@ -402,6 +402,7 @@ def list_instrument_patches(slug):
         chains_with_wavs = []
         chains_empty = []
         wav_total = 0
+        captured_at = None       # newest WAV mtime — so the UI can flag stale/old takes
         for chain in chains:
             chain_dir = INSTRUMENTS_DIR / slug / "patches" / p["name"] / chain
             if chain_dir.exists() and chain_dir.is_dir():
@@ -409,6 +410,8 @@ def list_instrument_patches(slug):
                 if wavs:
                     chains_with_wavs.append(chain)
                     wav_total += len(wavs)
+                    newest = max(w.stat().st_mtime for w in wavs)
+                    captured_at = newest if captured_at is None else max(captured_at, newest)
                 else:
                     chains_empty.append(chain)
         if chains_with_wavs:
@@ -426,6 +429,7 @@ def list_instrument_patches(slug):
             "preset_position": p.get("preset_position"),
             "role": p.get("role"),
             "notes": p.get("notes", ""),
+            "captured_at": captured_at,   # epoch secs of newest WAV; null if not captured
             "samples_dir": p.get("samples_dir"),
             "status": status,
             "wav_count": wav_total,

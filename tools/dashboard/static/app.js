@@ -1369,13 +1369,28 @@
         if (cur && data.patches.some(p => p.name === cur)) msPatchSel.value = cur;
       }
       const s = data.summary;
-      summaryEl.innerHTML = `<b style="color: var(--green);">${s.captured}</b> captured · <b style="color: var(--amber);">${s.pending}</b> pending · <b>${s.todo}</b> todo · <b>${s.total}</b> total`;
+      const _allCaps = data.patches.map(p => p.captured_at).filter(Boolean);
+      const _fresh = _allCaps.length ? Math.max(..._allCaps) : 0;
+      const _staleN = data.patches.filter(p => p.captured_at && _fresh && (_fresh - p.captured_at) > 40 * 60).length;
+      const staleBit = _staleN ? ` · <b style="color: var(--amber);">${_staleN}</b> old take${_staleN > 1 ? 's' : ''} to recapture` : '';
+      summaryEl.innerHTML = `<b style="color: var(--green);">${s.captured}</b> captured · <b style="color: var(--amber);">${s.pending}</b> pending · <b>${s.todo}</b> todo · <b>${s.total}</b> total${staleBit}`;
 
       const roleColors = { lead: '#F2B705', bass: '#7AA2F7', pad: '#9D7CD8', keys: '#73DACA', synth: '#8A8FA3', drums: '#F7768E', arp: '#E0AF68' };
+      // Freshest capture across the set = the current pass. Patches captured well before
+      // it (>40 min gap) are leftover OLD takes from a previous session — flag them so a
+      // rebuild never silently blends old + new, and you can see re-capture progress.
+      const _caps = data.patches.map(p => p.captured_at).filter(Boolean);
+      const freshest = _caps.length ? Math.max(..._caps) : 0;
+      const ago = (secs) => {
+        const m = secs / 60;
+        return m < 90 ? `${Math.round(m)}m ago` : `${(m / 60).toFixed(1)}h ago`;
+      };
       const iconicHtml = data.patches.length ? data.patches.map(p => {
-        const icon = p.status === 'captured' ? '✓' : p.status === 'pending' ? '◐' : '○';
-        const color = p.status === 'captured' ? 'var(--green)' : p.status === 'pending' ? 'var(--amber)' : 'var(--fg-faint)';
-        const wavInfo = p.status === 'captured' ? ` <span style="color: var(--fg-faint); font-size: 10px;">(${p.wav_count} wav)</span>` : '';
+        const stale = p.captured_at && freshest && (freshest - p.captured_at) > 40 * 60;
+        const icon = p.status === 'captured' ? (stale ? '⟳' : '✓') : p.status === 'pending' ? '◐' : '○';
+        const color = stale ? 'var(--amber)' : p.status === 'captured' ? 'var(--green)' : p.status === 'pending' ? 'var(--amber)' : 'var(--fg-faint)';
+        const ageTxt = p.captured_at ? ` <span style="color:${stale ? 'var(--amber)' : 'var(--fg-faint)'}; font-size:9px;">· ${stale ? 'OLD take · ' : ''}${ago((Date.now()/1000) - p.captured_at)}</span>` : '';
+        const wavInfo = p.status === 'captured' ? ` <span style="color: var(--fg-faint); font-size: 10px;">(${p.wav_count} wav)${ageTxt}</span>` : '';
         const notesTrim = (p.notes || '').slice(0, 90) + ((p.notes || '').length > 90 ? '…' : '');
         const notesEscaped = (p.notes || '').replace(/"/g, '&quot;');
         // HERO = the real Roland name + bank slot (e.g. "A57 · Euro SAW") — matches what
