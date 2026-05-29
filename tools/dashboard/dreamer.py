@@ -329,15 +329,15 @@ def _run(cfg):
                         hits.append("kick")
                     if bar_step in (4, 12):
                         hits.append("snare")
-                    if step % 2 == 0:
-                        hits.append("hat")
+                    hits.append("hat")               # running 16th hats (swung by step timing)
                 elif v["drums"] == "four":
                     if beat_pos == 0:
                         hits.append("kick")
                     if bar_step in (4, 12):
                         hits.append("snare")
-                    if step % 2 == 1:
-                        hits.append("ohat" if bar_step % 4 == 2 else "hat")
+                    hits.append("hat")               # running 16th hats
+                    if bar_step % 4 == 2:
+                        hits.append("ohat")           # open-hat lift on the offbeat
                 elif v["drums"] == "trap":
                     if bar_step in (0, 7, 10):       # syncopated 808 kicks
                         hits.append("kick")
