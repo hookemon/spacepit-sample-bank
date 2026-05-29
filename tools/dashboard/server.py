@@ -216,6 +216,16 @@ def index():
     return app.response_class(html, mimetype="text/html")
 
 
+@app.route("/dreamer")
+def dreamer_page():
+    """the studio dreamer — generative band that plays your gear. Its own little side app."""
+    f = Path(app.static_folder) / "dreamer.html"
+    if not f.exists():
+        return "dreamer.html missing", 404
+    html = f.read_text()
+    return app.response_class(html, mimetype="text/html")
+
+
 @app.route("/api/devices")
 def list_devices():
     """Return MIDI output ports + audio input devices currently available on this machine.
@@ -456,6 +466,14 @@ def list_patch_wavs(slug, patch, chain):
     chain_dir = INSTRUMENTS_DIR / slug / "patches" / patch / chain
     if not chain_dir.exists():
         return jsonify({"wavs": []})
+    # manual loop points set in the loop editor (override auto-detection at build time)
+    manual = {}
+    mlf = chain_dir / "manual_loops.json"
+    if mlf.exists():
+        try:
+            manual = json.loads(mlf.read_text())
+        except Exception:
+            manual = {}
     wavs = sorted(chain_dir.glob("*.wav"), key=lambda p: p.stat().st_mtime)
     out = []
     for w in wavs:
@@ -469,8 +487,50 @@ def list_patch_wavs(slug, patch, chain):
             "url": f"/audio/{rel}",
             "size_kb": round(w.stat().st_size / 1024, 1),
             "note": note,
+            "loop": manual.get(w.name),     # {start,end,crossfade} if user locked one, else None
         })
     return jsonify({"wavs": out, "count": len(out)})
+
+
+@app.route("/api/patch/loop-points", methods=["POST"])
+def save_loop_points():
+    """Save a loop the user dialed in the bench loop editor. Writes to manual_loops.json in
+    the source patch/chain dir; the pack build reads it and bakes EXACTLY these points
+    (overriding auto-detection). This is the ear-in-the-loop path — Nick sets it, we bake it.
+    Pass crossfade<0 or loop:null semantics via clear=true to remove an override."""
+    p = request.get_json() or {}
+    instrument = (p.get("instrument") or "").strip()
+    patch = (p.get("patch") or "").strip()
+    chain = (p.get("chain") or "raw").strip()
+    filename = (p.get("filename") or "").strip()
+    for v in (instrument, patch, chain, filename):
+        if not v or "/" in v or "\\" in v or ".." in v:
+            return jsonify({"error": "bad/empty name"}), 400
+    chain_dir = (INSTRUMENTS_DIR / instrument / "patches" / patch / chain).resolve()
+    if not str(chain_dir).startswith(str(INSTRUMENTS_DIR.resolve())):
+        return jsonify({"error": "path outside instruments"}), 400
+    if not (chain_dir / filename).exists():
+        return jsonify({"error": f"no such wav: {filename}"}), 404
+    mlf = chain_dir / "manual_loops.json"
+    manual = {}
+    if mlf.exists():
+        try:
+            manual = json.loads(mlf.read_text())
+        except Exception:
+            manual = {}
+    if p.get("clear"):
+        manual.pop(filename, None)
+    else:
+        try:
+            start, end = int(p["start"]), int(p["end"])
+        except (KeyError, ValueError, TypeError):
+            return jsonify({"error": "start/end required (ints)"}), 400
+        if end <= start:
+            return jsonify({"error": "end must be > start"}), 400
+        manual[filename] = {"start": start, "end": end, "crossfade": int(p.get("crossfade", 0))}
+    mlf.write_text(json.dumps(manual, indent=2))
+    return jsonify({"ok": True, "filename": filename, "loop": manual.get(filename),
+                    "total_set": len(manual)})
 
 
 @app.route("/api/instruments/<slug>/factory-presets")
@@ -899,6 +959,8 @@ def capture():
                 "--bit-depth", "24",
                 "-y",
             ]
+            if params.get("take"):           # continuous take + slice (one unbroken WAV)
+                cmd.append("--take")
         elif style == "hihat":
             cmd += [
                 str(TOOLS_DIR / "capture" / "record-hihat-suite.py"),
@@ -1011,7 +1073,8 @@ def capture():
         # MULTISAMPLE captures (capture-synth.py) write N files to <instr>/patches/<patch>/<chain>/
         # rather than printing "saved <name>.wav". Parse the success line "✓ N captured"
         # and report the patch directory's worth of WAVs.
-        multi_match = re.search(r"✓\s+(\d+)\s+captured", result.stdout)
+        # per-note prints "✓ N captured"; continuous-take mode slices and prints "✓ N notes"
+        multi_match = re.search(r"✓\s+(\d+)\s+(?:captured|notes)", result.stdout)
         if style == "multisample" and multi_match:
             instr = params.get("instrument", "grandmother")
             patch = params.get("patch", "untitled")
@@ -1099,6 +1162,117 @@ def discard():
         sidecar.unlink()
     log_update(str(wav_path.relative_to(BANK_ROOT)) if wav_path else "", status="discarded", discarded_at=datetime.now().isoformat(timespec="seconds"))
     return jsonify({"ok": True, "deleted": str(wav_path.relative_to(BANK_ROOT)) if wav_path else None})
+
+
+@app.route("/api/patch/clear", methods=["POST"])
+def clear_patch():
+    """Wipe captured audio so you can re-record clean. Pass instrument+patch to clear ONE
+    patch, or instrument alone to clear ALL patches for it (the 'start fresh' button).
+    Strictly scoped to instruments/<instrument>/patches/ — refuses any path outside it.
+    Leaves the empty folder structure + manifest so the patch is ready to capture into."""
+    params = request.get_json() or {}
+    instrument = (params.get("instrument") or "").strip()
+    patch = (params.get("patch") or "").strip()
+    if not instrument:
+        return jsonify({"error": "instrument required"}), 400
+    for v in (instrument, patch):
+        if v and ("/" in v or "\\" in v or ".." in v):
+            return jsonify({"error": "invalid name"}), 400
+    patches_root = (BANK_ROOT / "instruments" / instrument / "patches").resolve()
+    if not str(patches_root).startswith(str((BANK_ROOT / "instruments").resolve())):
+        return jsonify({"error": "path outside instruments"}), 400
+    target = (patches_root / patch).resolve() if patch else patches_root
+    if not str(target).startswith(str(patches_root)):
+        return jsonify({"error": "path outside patches"}), 400
+    if not target.exists():
+        return jsonify({"ok": True, "deleted": 0, "patch": patch or "ALL"})
+    exts = (".wav", ".aif", ".aiff", ".flac", ".json")
+    deleted = 0
+    for f in target.rglob("*"):
+        if f.is_file() and f.suffix.lower() in exts:
+            f.unlink()
+            deleted += 1
+    return jsonify({"ok": True, "deleted": deleted, "instrument": instrument, "patch": patch or "ALL"})
+
+
+_bake_mod = None
+def _get_bake_loops():
+    """Lazy-load the bake-loops module (hyphenated filename) so the loop editor can show the
+    SAME loop the pack build would auto-pick — what you see is what ships."""
+    global _bake_mod
+    if _bake_mod is None:
+        import importlib.util
+        p = TOOLS_DIR / "pack" / "bake-loops.py"
+        spec = importlib.util.spec_from_file_location("bake_loops", p)
+        _bake_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_bake_mod)
+    return _bake_mod
+
+
+@app.route("/api/patch/auto-loop")
+def auto_loop():
+    """The loop the build would auto-detect for one note. The editor shows this when you open
+    a note with no manual loop set — so an untouched note already displays the real shipping
+    loop (no need to lock unless you change it)."""
+    instrument = (request.args.get("instrument") or "").strip()
+    patch = (request.args.get("patch") or "").strip()
+    chain = (request.args.get("chain") or "raw").strip()
+    filename = (request.args.get("filename") or "").strip()
+    for v in (instrument, patch, chain, filename):
+        if not v or "/" in v or "\\" in v or ".." in v:
+            return jsonify({"error": "bad name"}), 400
+    wav = (INSTRUMENTS_DIR / instrument / "patches" / patch / chain / filename).resolve()
+    if not str(wav).startswith(str(INSTRUMENTS_DIR.resolve())) or not wav.exists():
+        return jsonify({"error": "no such wav"}), 404
+    try:
+        import soundfile as sf
+        bake = _get_bake_loops()
+        audio, sr = sf.read(str(wav))
+        lp = bake.find_loop(audio, sr)
+        if not lp:
+            return jsonify({"loop": None})
+        s, e, xf, route = lp
+        return jsonify({"loop": {"start": int(s), "end": int(e), "crossfade": int(xf), "route": route}})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+_dreamer = None
+def _get_dreamer():
+    global _dreamer
+    if _dreamer is None:
+        import importlib.util
+        p = TOOLS_DIR / "dashboard" / "dreamer.py"
+        spec = importlib.util.spec_from_file_location("dreamer", p)
+        _dreamer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_dreamer)
+    return _dreamer
+
+
+@app.route("/api/dreamer/start", methods=["POST"])
+def dreamer_start():
+    """Start the generative band. body: {vibe, key, tempo?, roles:{chords|bass|lead|drums:{port,channel,enabled}}}"""
+    try:
+        return jsonify(_get_dreamer().start(request.get_json() or {}))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/dreamer/stop", methods=["POST"])
+def dreamer_stop():
+    try:
+        _get_dreamer().stop()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/dreamer/status")
+def dreamer_status():
+    try:
+        return jsonify(_get_dreamer().status())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/patterns/progressions")

@@ -1025,7 +1025,12 @@
   function showPatchDetail(patchData, presetId) {
     const card = document.getElementById('patch-detail-card');
     if (!card) return;
-    document.getElementById('patch-detail-name').textContent = patchData.name;
+    // Show the REAL preset name (e.g. "A33 · JP-303"), not the internal slug ("tb-echo").
+    // Applies to every patch via preset_name from the manifest.
+    const realName = patchData.preset_name
+      ? `${patchData.preset_position ? patchData.preset_position + ' · ' : ''}${patchData.preset_name}`
+      : patchData.name;
+    document.getElementById('patch-detail-name').textContent = realName;
     const instrSlug = document.getElementById('instrument-select')?.value || '';
     const instrName = document.getElementById('instrument-select')?.selectedOptions[0]?.textContent || instrSlug;
     document.getElementById('patch-detail-instrument').textContent = instrName;
@@ -1091,6 +1096,7 @@
   let wavstripTileWidth = 180;  // px per waveform tile — big enough for 7-sec sustains to breathe
   let wavstripTileHeight = 110;  // taller for amplitude detail
   const WAVSTRIP_MIN = 40, WAVSTRIP_MAX = 360;
+  let wavstripPatch = null;     // patch name currently shown in the strip (for the wipe button)
 
   async function renderPatchWavStrip(patchData) {
     const block = document.getElementById('patch-wavstrip-block');
@@ -1116,7 +1122,8 @@
       return;
     }
     block.style.display = 'block';
-    document.getElementById('patch-wavstrip-title').textContent = `Captured multisamples · ${patchData.name} / ${chain}`;
+    const _rn = patchData.preset_name || patchData.name;
+    document.getElementById('patch-wavstrip-title').textContent = `Captured multisamples · ${_rn} / ${chain}`;
     document.getElementById('patch-wavstrip-count').textContent = `${data.wavs.length} samples`;
 
     const strip = document.getElementById('patch-wavstrip');
@@ -1127,19 +1134,226 @@
       </div>
     `).join('');
 
-    // Decode + draw each tile
-    strip.querySelectorAll('.wav-tile').forEach(tile => {
+    // Decode + draw each tile. Click a tile → open the LOOP EDITOR for that note
+    // (set the loop by ear, snap to zero crossings, audition, lock).
+    strip.querySelectorAll('.wav-tile').forEach((tile, idx) => {
       const url = tile.dataset.wavUrl;
       const canvas = tile.querySelector('.wav-tile-canvas');
       drawWavTile(canvas, url);
-      tile.addEventListener('click', () => {
-        // Click → preview play via the existing audio player at top of compose card or just an Audio()
-        const a = new Audio(url);
-        a.volume = 0.8;
-        a.play().catch(() => {});
-      });
+      tile.addEventListener('click', () => openLoopEditor(slug, patchData.name, chain, data.wavs[idx]));
     });
   }
+
+  // ===================== LOOP EDITOR =====================
+  // The ear-in-the-loop fix. You see the waveform, drag green(start)/red(end) handles that
+  // snap to zero crossings, and hear the EXACT loop live (Web Audio loop = sample-accurate,
+  // identical to Ableton's Sampler). Lock saves the points; the pack bakes exactly them.
+  const LE = { buffer: null, ch0: null, sr: 0, zc: null, S: 0, E: 0,
+               slug: '', patch: '', chain: 'raw', filename: '', note: '',
+               source: null, playing: false, dragging: null, history: [],
+               view: { start: 0, end: 0 } };   // visible sample window (zoom)
+
+  function lePushHistory() {                  // call before a change so it can be undone
+    LE.history.push({ S: LE.S, E: LE.E });
+    if (LE.history.length > 100) LE.history.shift();
+  }
+  function leUndo() {
+    if (!LE.history.length) { document.getElementById('le-status').textContent = 'nothing to undo'; return; }
+    const prev = LE.history.pop();
+    LE.S = prev.S; LE.E = prev.E;
+    drawLoopEditor();
+    if (LE.source) { LE.source.loopStart = LE.S / LE.sr; LE.source.loopEnd = LE.E / LE.sr; }
+  }
+
+  function leZeroCrossings(d) {
+    const zc = [];
+    for (let i = 1; i < d.length; i++) if (d[i - 1] <= 0 && d[i] > 0) zc.push(i);
+    return Int32Array.from(zc);
+  }
+  function leSnap(idx) {
+    if (!document.getElementById('le-snap').checked || !LE.zc || !LE.zc.length) return idx;
+    let lo = 0, hi = LE.zc.length - 1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (LE.zc[m] < idx) lo = m + 1; else hi = m - 1; }
+    const a = LE.zc[Math.max(0, hi)], b = LE.zc[Math.min(LE.zc.length - 1, lo)];
+    return Math.abs(a - idx) <= Math.abs(b - idx) ? a : b;
+  }
+
+  async function openLoopEditor(slug, patch, chain, wav) {
+    if (!wav) return;
+    const panel = document.getElementById('loop-editor');
+    const wasOpen = panel.style.display === 'block';
+    const wasPlaying = LE.playing;          // carry the audition across note switches
+    leStop();
+    LE.history = [];                        // fresh undo history per note
+    LE.view = { start: 0, end: 0 };         // reset zoom to full (drawLoopEditor fills it in)
+    LE.slug = slug; LE.patch = patch; LE.chain = chain; LE.filename = wav.name; LE.note = wav.note || '';
+    document.getElementById('le-note').textContent = wav.note ? wav.note.toUpperCase() : wav.name;
+    document.getElementById('le-status').textContent = 'decoding…';
+    panel.style.display = 'block';
+    if (!wasOpen) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });  // only scroll on first open
+    // highlight the active tile in the strip
+    document.querySelectorAll('.wav-tile').forEach(t => t.style.outline = '');
+    const activeTile = [...document.querySelectorAll('.wav-tile')].find(t => t.dataset.wavUrl === wav.url);
+    if (activeTile) activeTile.style.outline = '2px solid var(--amber)';
+    try {
+      const ac = ensureAudioContext();
+      const ab = await (await fetch(wav.url)).arrayBuffer();
+      LE.buffer = await ac.decodeAudioData(ab);
+      LE.sr = LE.buffer.sampleRate;
+      LE.ch0 = LE.buffer.getChannelData(0);
+      LE.zc = leZeroCrossings(LE.ch0);
+      const n = LE.ch0.length;
+      // Show the REAL loop that would ship: locked (manual) if set, else the build's auto-detect.
+      // So an untouched note already displays what ships — no need to lock unless you change it.
+      let loop = (wav.loop && wav.loop.end > wav.loop.start) ? wav.loop : null;
+      let src = loop ? 'locked' : 'default';
+      if (!loop) {
+        try {
+          const r = await fetch(`/api/patch/auto-loop?instrument=${encodeURIComponent(slug)}&patch=${encodeURIComponent(patch)}&chain=${encodeURIComponent(chain)}&filename=${encodeURIComponent(wav.name)}`);
+          const d = await r.json();
+          if (d.loop && d.loop.end > d.loop.start) { loop = d.loop; src = 'auto'; }
+        } catch (e) {}
+      }
+      if (loop) { LE.S = loop.start; LE.E = loop.end; }
+      else { LE.S = leSnap(Math.floor(0.40 * n)); LE.E = leSnap(Math.floor(0.40 * n) + Math.floor(0.4 * LE.sr)); }
+      // ALWAYS hard loop (crossfade 0) — that's exactly what the audition plays, and what the
+      // build now bakes for manual loops. A crossfade here is what made "perfect in editor,
+      // bad in build": the editor hard-loops, the build was adding a crossfade that warbled.
+      const xf0 = 0;
+      document.getElementById('le-xfade').value = xf0;
+      document.getElementById('le-xfade-val').textContent = xf0;
+      drawLoopEditor();
+      const srcMsg = src === 'locked' ? 'showing your LOCKED loop' :
+                     src === 'auto'   ? "showing the AUTO loop — this is what ships if you don't change it" :
+                                        'showing a default — drag + lock to set';
+      document.getElementById('le-status').textContent =
+        `${(n / LE.sr).toFixed(2)}s · ${LE.zc.length} zero-crossings · ${srcMsg}`;
+      if (wasPlaying) lePlay();             // keep auditioning the new note immediately
+    } catch (e) {
+      document.getElementById('le-status').textContent = 'decode failed: ' + e.message;
+    }
+  }
+
+  function drawLoopEditor() {
+    const cv = document.getElementById('le-wave'); if (!cv || !LE.ch0) return;
+    const W = cv.width, H = cv.height, g = cv.getContext('2d'), d = LE.ch0, n = d.length, mid = H / 2;
+    if (LE.view.end <= LE.view.start) LE.view = { start: 0, end: n };   // default = full
+    const vs = LE.view.start, ve = LE.view.end, vn = ve - vs;
+    const xOf = (smp) => (smp - vs) / vn * W;                            // sample → canvas x (view-aware)
+    g.clearRect(0, 0, W, H);
+    g.strokeStyle = '#3a3a3a'; g.lineWidth = 1; g.beginPath();
+    for (let x = 0; x < W; x++) {
+      const i0 = vs + Math.floor(x / W * vn), i1 = Math.max(i0 + 1, vs + Math.floor((x + 1) / W * vn));
+      let mn = 1, mx = -1;
+      for (let i = i0; i < i1; i++) { if (d[i] < mn) mn = d[i]; if (d[i] > mx) mx = d[i]; }
+      g.moveTo(x, mid - mx * mid * 0.95); g.lineTo(x, mid - mn * mid * 0.95);
+    }
+    g.stroke();
+    const xS = xOf(LE.S), xE = xOf(LE.E);
+    g.fillStyle = 'rgba(242,183,5,0.10)'; g.fillRect(Math.max(0, xS), 0, Math.min(W, xE) - Math.max(0, xS), H);
+    g.lineWidth = 2;
+    if (xS >= 0 && xS <= W) { g.strokeStyle = '#3ad17a'; g.beginPath(); g.moveTo(xS, 0); g.lineTo(xS, H); g.stroke(); }
+    if (xE >= 0 && xE <= W) { g.strokeStyle = '#ff5a5a'; g.beginPath(); g.moveTo(xE, 0); g.lineTo(xE, H); g.stroke(); }
+    g.lineWidth = 1;
+    const zoomTag = vn < n ? `  ·  zoom ${(n / vn).toFixed(1)}× (dbl-click to reset)` : '';
+    document.getElementById('le-info').textContent =
+      `loop ${(LE.S / LE.sr).toFixed(3)}s → ${(LE.E / LE.sr).toFixed(3)}s  (${((LE.E - LE.S) / LE.sr * 1000).toFixed(0)}ms · ${LE.E - LE.S} smp)${zoomTag}`;
+    drawSeam();
+  }
+
+  function drawSeam() {
+    const cv = document.getElementById('le-seam'); if (!cv || !LE.ch0) return;
+    const W = cv.width, H = cv.height, g = cv.getContext('2d'), d = LE.ch0, mid = H / 2;
+    g.clearRect(0, 0, W, H);
+    const N = Math.min(300, LE.E - LE.S, LE.S);
+    g.strokeStyle = '#888'; g.lineWidth = 1; g.beginPath();
+    for (let k = 0; k < N; k++) { const x = k / (2 * N) * W, v = d[LE.E - N + k] || 0; if (k === 0) g.moveTo(x, mid - v * mid * 0.9); else g.lineTo(x, mid - v * mid * 0.9); }
+    for (let k = 0; k < N; k++) { const x = (N + k) / (2 * N) * W, v = d[LE.S + k] || 0; g.lineTo(x, mid - v * mid * 0.9); }
+    g.stroke();
+    g.strokeStyle = '#f2b705'; g.beginPath(); g.moveTo(W / 2, 0); g.lineTo(W / 2, H); g.stroke();
+    const jump = Math.abs((d[LE.S] || 0) - (d[LE.E - 1] || 0));
+    document.getElementById('le-seam-label').textContent = `seam Δ ${jump.toFixed(4)}`;
+  }
+
+  function lePlay() {
+    leStop();
+    const ac = ensureAudioContext();
+    const src = ac.createBufferSource();
+    src.buffer = LE.buffer; src.loop = true;
+    src.loopStart = LE.S / LE.sr; src.loopEnd = LE.E / LE.sr;
+    src.connect(ac.destination); src.start(0, 0);   // play attack, then loop S→E forever
+    LE.source = src; LE.playing = true;
+  }
+  function leStop() { if (LE.source) { try { LE.source.stop(); } catch (e) {} LE.source = null; } LE.playing = false; }
+
+  function leSetHandle(idx) {
+    idx = leSnap(idx);
+    if (LE.dragging === 'S') LE.S = Math.max(0, Math.min(idx, LE.E - 64));
+    else LE.E = Math.min(LE.ch0.length, Math.max(idx, LE.S + 64));
+    drawLoopEditor();
+    if (LE.source) { LE.source.loopStart = LE.S / LE.sr; LE.source.loopEnd = LE.E / LE.sr; }  // live update while looping
+  }
+
+  async function leLock() {
+    const xf = parseInt(document.getElementById('le-xfade').value) || 0;
+    try {
+      const r = await fetch('/api/patch/loop-points', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instrument: LE.slug, patch: LE.patch, chain: LE.chain,
+                               filename: LE.filename, start: LE.S, end: LE.E, crossfade: xf }),
+      });
+      const d = await r.json();
+      document.getElementById('le-status').textContent = d.ok
+        ? `🔒 locked ${LE.note.toUpperCase()} — ${d.total_set} note(s) set by ear. Run BUILD PACK to bake them in.`
+        : 'lock failed: ' + d.error;
+    } catch (e) { document.getElementById('le-status').textContent = 'lock error: ' + e.message; }
+  }
+
+  // wire editor controls once
+  (function wireLoopEditor() {
+    const wave = document.getElementById('le-wave'); if (!wave) return;
+    // view-aware: map cursor x → sample index within the current zoom window
+    const xToIdx = (clientX) => {
+      if (!LE.ch0) return 0;
+      const r = wave.getBoundingClientRect(); const x = (clientX - r.left) / r.width;
+      const vs = LE.view.start, vn = (LE.view.end - LE.view.start) || LE.ch0.length;
+      return Math.max(0, Math.min(LE.ch0.length - 1, Math.round(vs + x * vn)));
+    };
+    // ⌘+scroll / trackpad pinch → zoom around the cursor; double-click → reset to full
+    wave.addEventListener('wheel', e => {
+      if (!LE.ch0) return;
+      if (!(e.ctrlKey || e.metaKey)) return;          // only zoom with cmd held (or pinch = ctrl)
+      e.preventDefault();
+      const r = wave.getBoundingClientRect(); const mx = (e.clientX - r.left) / r.width;
+      const vs = LE.view.start, vn = (LE.view.end - LE.view.start) || LE.ch0.length;
+      const cursor = vs + mx * vn;
+      const mult = Math.min(2, Math.max(0.5, Math.exp(e.deltaY * 0.0025)));   // up = zoom in
+      let nvn = Math.max(256, Math.min(LE.ch0.length, vn * mult));
+      let nvs = Math.round(cursor - mx * nvn);
+      nvs = Math.max(0, Math.min(LE.ch0.length - Math.round(nvn), nvs));
+      LE.view = { start: nvs, end: Math.round(nvs + nvn) };
+      drawLoopEditor();
+    }, { passive: false });
+    wave.addEventListener('dblclick', e => { e.preventDefault(); LE.view = { start: 0, end: LE.ch0 ? LE.ch0.length : 0 }; drawLoopEditor(); });
+    wave.addEventListener('mousedown', e => { if (!LE.ch0) return; lePushHistory(); const idx = xToIdx(e.clientX); LE.dragging = Math.abs(idx - LE.S) <= Math.abs(idx - LE.E) ? 'S' : 'E'; leSetHandle(idx); });
+    window.addEventListener('mousemove', e => { if (LE.dragging) leSetHandle(xToIdx(e.clientX)); });
+    window.addEventListener('mouseup', () => { LE.dragging = null; });
+    document.getElementById('le-play').addEventListener('click', lePlay);
+    document.getElementById('le-stop').addEventListener('click', leStop);
+    document.getElementById('le-undo').addEventListener('click', leUndo);
+    document.getElementById('le-lock').addEventListener('click', leLock);
+    document.getElementById('le-close').addEventListener('click', () => { leStop(); document.getElementById('loop-editor').style.display = 'none'; });
+    document.getElementById('le-snap').addEventListener('change', () => { lePushHistory(); LE.S = leSnap(LE.S); LE.E = leSnap(LE.E); drawLoopEditor(); });
+    const xf = document.getElementById('le-xfade');
+    xf.addEventListener('input', () => { document.getElementById('le-xfade-val').textContent = xf.value; });
+    // ⌘Z / Ctrl+Z undoes the last loop move (only while the editor is open)
+    window.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' &&
+          document.getElementById('loop-editor').style.display === 'block') {
+        e.preventDefault(); leUndo();
+      }
+    });
+  })();
 
   async function drawWavTile(canvas, url) {
     const cctx = canvas.getContext('2d');
@@ -1545,6 +1759,7 @@
         velocities: document.getElementById('ms-vel').value,
         sustain_sec: parseFloat(document.getElementById('ms-sustain').value) || 4,
         tail_sec: 2.5,
+        take: document.getElementById('ms-take')?.checked || false,   // continuous take + slice
       };
     }
     if (currentStyle === 'hihat') {

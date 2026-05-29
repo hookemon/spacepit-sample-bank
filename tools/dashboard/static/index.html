@@ -309,11 +309,46 @@
         <span style="font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; color: var(--amber); text-transform: uppercase;" id="patch-wavstrip-title">Captured multisamples</span>
         <span id="patch-wavstrip-count" style="font-family: var(--mono); font-size: 10px; color: var(--fg-dim);">—</span>
         <div style="margin-left: auto; display: flex; gap: 4px;">
+          <button class="red" id="patch-wavstrip-wipe" title="Delete every sample in this patch — wipe it clean to re-record" style="padding: 4px 10px; font-size: 11px; margin: 0; line-height: 1;">✗ wipe patch</button>
           <button class="secondary" id="patch-wavstrip-zoom-out" title="Zoom out — see more wavs from afar" style="padding: 4px 10px; font-size: 13px; margin: 0; line-height: 1;">−</button>
           <button class="secondary" id="patch-wavstrip-zoom-in" title="Zoom in — bigger wavs" style="padding: 4px 10px; font-size: 13px; margin: 0; line-height: 1;">+</button>
         </div>
       </div>
       <div id="patch-wavstrip" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;"></div>
+      <div style="font-family: var(--mono); font-size: 10px; color: var(--fg-faint); margin-top: 6px;">click a note to set its loop by ear →</div>
+    </div>
+
+    <!-- LOOP EDITOR — opens when you click a note tile. Set the loop by ear: drag the green
+         (start) and red (end) handles, they snap to zero crossings, hit Play to hear the EXACT
+         loop (Web Audio loop = sample-accurate, same as Ableton's Sampler), Lock to bake it.
+         This is the ear-in-the-loop fix: Nick sets it, the pack bakes exactly that. -->
+    <div id="loop-editor" style="display: none; margin-top: 18px; padding: 16px; background: #070707; border: 1px solid var(--amber); border-radius: 4px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="font-family: var(--display); font-size: 13px; letter-spacing: 0.1em; color: var(--amber); text-transform: uppercase;">Loop editor</span>
+        <span id="le-note" style="font-family: var(--mono); font-size: 13px; color: var(--fg);"></span>
+        <span id="le-info" style="font-family: var(--mono); font-size: 10px; color: var(--fg-dim);"></span>
+        <button class="secondary" id="le-close" style="margin-left: auto; padding: 4px 10px; font-size: 11px; margin: 0;">✕ close</button>
+      </div>
+      <canvas id="le-wave" width="1600" height="220" style="width: 100%; height: 220px; display: block; background: #0a0a0a; border: 1px solid var(--border); border-radius: 2px; cursor: ew-resize;"></canvas>
+      <div style="display: flex; gap: 14px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+        <button class="secondary" id="le-play" style="padding: 6px 16px; margin: 0;">▶ play loop</button>
+        <button class="secondary" id="le-stop" style="padding: 6px 14px; margin: 0;">■ stop</button>
+        <button class="secondary" id="le-undo" title="Undo last move (⌘Z)" style="padding: 6px 12px; margin: 0;">↶ undo</button>
+        <label style="font-family: var(--mono); font-size: 11px; color: var(--fg-dim); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+          <input type="checkbox" id="le-snap" checked> snap to zero-crossing
+        </label>
+        <label style="display: none; font-family: var(--mono); font-size: 11px; color: var(--fg-dim); align-items: center; gap: 6px;">
+          crossfade <input type="range" id="le-xfade" min="0" max="3000" value="0" style="width: 110px;"> <span id="le-xfade-val" style="min-width: 34px;">0</span>
+        </label>
+        <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+          <span style="display: flex; flex-direction: column; align-items: center;">
+            <canvas id="le-seam" width="240" height="56" style="width: 120px; height: 28px; background: #0a0a0a; border: 1px solid var(--border);"></canvas>
+            <span id="le-seam-label" style="font-family: var(--mono); font-size: 9px; color: var(--fg-faint);">seam</span>
+          </span>
+          <button id="le-lock" style="padding: 7px 18px; margin: 0; background: var(--amber); color: #000; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">🔒 lock loop</button>
+        </div>
+      </div>
+      <div id="le-status" style="font-family: var(--mono); font-size: 11px; color: var(--fg-dim); margin-top: 8px;"></div>
     </div>
 
     <!-- LISTEN/BIND overlay — appears below the buttons when 🎯 Bind from synth is clicked.
@@ -501,6 +536,11 @@
         <div><label>Velocity</label><input type="number" id="ms-vel" value="100" min="1" max="127" /></div>
         <div><label>Sustain sec</label><input type="number" id="ms-sustain" value="4" step="0.5" /></div>
       </div>
+      <label style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--mono); font-size: 12px; color: var(--fg-dim); cursor: pointer;">
+        <input type="checkbox" id="ms-take" checked>
+        🎙 record as ONE continuous take, then auto-slice
+        <span style="color: var(--fg-faint); font-size: 11px;">(one unbroken pass — no per-note start/stop dropouts)</span>
+      </label>
     </div>
 
     <!-- hihat -->
