@@ -18,6 +18,7 @@ region with the crossfade already in the audio.
 """
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -181,21 +182,148 @@ def _find_short_loop(audio: np.ndarray, sr: int):
     return S, E
 
 
-def find_loop(audio: np.ndarray, sr: int):
-    """Prefer a long, level-matched loop (rich/flat sounds — pads, saws). If the sound
-    fades or moves so a long loop can't level-match (a decaying sub), fall back to a
-    SHORT whole-cycle loop that holds cleanly. The long path is unchanged, so flat
-    sounds keep the exact loops they already had."""
-    lp = _find_long_loop(audio, sr)
-    if lp:
-        mono = audio.mean(axis=1) if audio.ndim > 1 else audio
-        win = int(0.03 * sr)
-        S, E = lp
+def accurate_period(mono: np.ndarray, sr: int, at: int) -> float:
+    """Sub-sample fundamental period via parabolic interpolation of the autocorrelation peak.
+    Accuracy matters: over a long loop the period error multiplies, so a rough integer-lag
+    estimate drifts off a whole cycle. Parabolic refine gets it to a fraction of a sample."""
+    seg = mono[at:at + int(0.3 * sr)].astype(np.float64)
+    seg = seg - seg.mean()
+    if seg.size < 128 or np.sqrt(np.mean(seg * seg)) < 1e-5:
+        return 0.0
+    ac = np.correlate(seg, seg, "full")[seg.size - 1:]
+    lo, hi = int(sr / 400), min(int(sr / 30), len(ac) - 2)
+    if hi <= lo:
+        return 0.0
+    k = lo + int(np.argmax(ac[lo:hi]))
+    y0, y1, y2 = ac[k - 1], ac[k], ac[k + 1]
+    d = (y0 - 2 * y1 + y2)
+    return k + (0.5 * (y0 - y2) / d if d != 0 else 0.0)
+
+
+def _repeat_at_loop(mono: np.ndarray, sr: int):
+    """How well the waveform matches itself ~one loop (~0.7s) later. High (>=0.80) = the sound
+    REPEATS over a loop length (sub, 303, simple bass) -> an integer-cycle loop with NO
+    crossfade is seamless. Low = detuned/beating (supersaw, pads, leads) that never line up
+    -> needs a crossfade to mask the seam. This is what routes each patch automatically."""
+    n = len(mono); S = int(0.40 * n); P = accurate_period(mono, sr, S)
+    if P <= 0:
+        return 0.0, 0.0
+    for secs in (0.7, 0.5, 0.4):
+        N = int(round(secs * sr / P)); E = S + int(round(N * P)); W = int(max(0.05 * sr, 8 * P))
+        if E + W < n:
+            a1 = mono[S:S + W] - np.mean(mono[S:S + W]); a2 = mono[E:E + W] - np.mean(mono[E:E + W])
+            return float(np.sum(a1 * a2) / ((np.sqrt(np.sum(a1 * a1)) * np.sqrt(np.sum(a2 * a2))) + 1e-12)), P
+    return 0.0, P
+
+
+def _integer_cycle_loop(audio: np.ndarray, sr: int, P: float):
+    """Loop end = EXACT integer number of cycles from start: E = S + round(N*P), with a
+    sub-sample-accurate period P. No zero-crossing snap on E — snapping pushes E off the
+    whole-cycle alignment and THAT is the click. Because E is a whole number of periods
+    after S, it lands at the same phase as S automatically (S is at a rising zero crossing,
+    so E is too). Among the phase-locked candidates, pick the one whose level best matches S
+    — a short loop on a decaying sub barely drifts, so no flattening is needed."""
+    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+    n = len(mono); sr = int(sr)
+    rz = _rising_zc(mono)
+    s_cand = rz[rz >= int(0.40 * n)]
+    if len(s_cand) == 0 or P <= 0:
+        return None
+    S = int(s_cand[0])
+    best = None
+    win = int(0.03 * sr)
+    rms_s_db = 20 * np.log10(float(np.sqrt(np.mean(mono[S:S + win] ** 2)) + 1e-9))
+    for N in range(max(4, int(0.08 * sr / P)), int(1.4 * sr / P)):
+        E = S + int(round(N * P))               # exact whole cycles — no snap
+        if E + win >= n - int(0.1 * sr):
+            break
+        residual = abs(round(N * P) - N * P)              # sub-sample phase error, 0..0.5
+        rms_e_db = 20 * np.log10(float(np.sqrt(np.mean(mono[E - win:E] ** 2)) + 1e-9))
+        level_db = abs(rms_s_db - rms_e_db)
+        # phase alignment dominates (a click is worse than a tiny level step); among
+        # well-aligned candidates, prefer the best level match.
+        score = residual * 2.0 + max(0.0, level_db - 1.5) * 0.10
+        if best is None or score < best[0]:
+            best = (score, E)
+    return (S, best[1]) if best else None
+
+
+def _single_cycle_loop(audio, sr):
+    """Loop exactly ONE period, rising-ZC to rising-ZC. The classic hardware-sampler way to
+    sustain a tone: one cycle repeated = a steady pitch, no beating accumulates, no crossfade
+    needed (both ends sit at a rising zero crossing one period apart). Best for a clean but
+    slightly-detuned sub where longer loops click/warble."""
+    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+    n = len(mono)
+    P = accurate_period(mono, sr, int(0.40 * n))
+    if P <= 0:
+        return None
+    rz = _rising_zc(mono)
+    s_cand = rz[rz >= int(0.45 * n)]              # steady region, past attack
+    if len(s_cand) == 0:
+        return None
+    S = int(s_cand[0])
+    target = S + P
+    cand = rz[rz > S]
+    if len(cand) == 0:
+        return None
+    E = int(cand[np.argmin(np.abs(cand - target))])   # rising ZC closest to one period later
+    if E <= S:
+        return None
+    return S, E, 0, 'integer'
+
+
+def _integer_with_xfade(audio, sr, P):
+    """Integer-cycle loop + short (~12ms) in-phase crossfade. On a flat periodic tone the
+    crossfade blends identical samples (no change); on a decaying tone (the JP sub decays
+    the whole note) it smooths the level step that would otherwise click. Integer-cycle
+    keeps it in phase, so it never combs into a 'vowel'. Measured: 0xf=42x seam, 12ms=3x."""
+    ic = _integer_cycle_loop(audio, sr, P)
+    if not ic:
+        return None
+    S, E = ic
+    xf = max(0, min(int(0.012 * sr), (E - S) // 2, S))
+    return S, E, xf, 'integer'
+
+
+def find_loop(audio: np.ndarray, sr: int, force=None):
+    """Return (loop_start, loop_end, crossfade_samples, route). route is 'integer' or
+    'crossfade' so the majority-vote in main() can re-route outliers reliably (the
+    crossfade value alone is ambiguous — fallbacks also use 0). force overrides the
+    discriminator."""
+    if os.environ.get("BAKE_SINGLE_CYCLE"):
+        sc = _single_cycle_loop(audio, sr)
+        if sc:
+            return sc
+    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
+    rep, P = _repeat_at_loop(mono, sr)
+    use_integer = (rep >= 0.80 and P > 0) if force is None else (force == 'integer')
+    if use_integer and P > 0:
+        r = _integer_with_xfade(audio, sr, P)
+        if r:
+            return r
+    # rich/detuned -> long level-matched loop WITH crossfade (keeps Euro SAW + pads clean)
+    ll = _find_long_loop(audio, sr)
+    if ll:
+        win = int(0.03 * sr); S, E = ll
         sdb = 20 * np.log10(np.sqrt(np.mean(mono[S:S + win] ** 2)) + 1e-9)
         edb_ = 20 * np.log10(np.sqrt(np.mean(mono[max(0, E - win):E] ** 2)) + 1e-9)
-        if abs(sdb - edb_) <= 4.0:                 # clean long loop -> keep it
-            return lp
-    return _find_short_loop(audio, sr) or lp
+        if abs(sdb - edb_) <= 4.0:
+            xf = min(int(0.07 * (E - S)), max(0, S - int(0.45 * sr)))
+            return S, E, xf, 'crossfade'
+    # forced integer but the long path was requested? fall back to integer anyway so a
+    # majority-integer patch stays consistent.
+    if force == 'integer' and P > 0:
+        r = _integer_with_xfade(audio, sr, P)
+        if r:
+            return r
+    sl = _find_short_loop(audio, sr)
+    if sl:
+        return sl[0], sl[1], 0, 'crossfade'
+    if ll:
+        xf = min(int(0.07 * (ll[1] - ll[0])), max(0, ll[0] - int(0.45 * sr)))
+        return ll[0], ll[1], xf, 'crossfade'
+    return None
 
 
 def bake_linear_xfade(audio: np.ndarray, S: int, E: int, X: int) -> np.ndarray:
@@ -239,21 +367,68 @@ def main():
     wavs = sorted(d.glob("*.wav"))
     loops = {}
     looped = 0
+
+    # Manual loops from the bench loop editor — Nick set these by ear, they WIN over any
+    # auto-detection. {filename: {start,end,crossfade}}.
+    manual = {}
+    mlf = d / "manual_loops.json"
+    if mlf.exists():
+        try:
+            manual = json.loads(mlf.read_text())
+            if manual:
+                print(f"  [manual loops: {len(manual)} note(s) set by ear — overriding auto]")
+        except Exception:
+            manual = {}
+
+    # Pass 1 — compute routing for every note independently (manual notes skip auto entirely)
+    pass1 = []
     for w in wavs:
         audio, sr = sf.read(str(w))
-        lp = None if args.no_loop else find_loop(audio, sr)
+        if w.name in manual and not args.no_loop:
+            mm = manual[w.name]
+            # Force crossfade 0 — the loop editor auditions a HARD loop (Web Audio), so the
+            # build must hard-loop too or it won't match what Nick heard. Ableton Crossfade=0
+            # = the same end→start jump. This is the editor-vs-build fix.
+            lp = (int(mm["start"]), int(mm["end"]), 0, 'manual')
+        else:
+            lp = None if args.no_loop else find_loop(audio, sr)
+        pass1.append((w, audio, sr, lp))
+
+    # Majority vote — if ≥60% of notes agree on a route, force the outliers to match.
+    # Keeps every note in a patch consistent (no mix of xfade/no-xfade within the same
+    # patch, which Nick can hear and has to manually fix). Routes by the explicit 'route'
+    # tag, not the crossfade value (fallbacks also use 0, which fooled the old check).
+    if not args.no_loop:
+        n_integer = sum(1 for _, _, _, lp in pass1 if lp and lp[3] == 'integer')
+        n_xfade   = sum(1 for _, _, _, lp in pass1 if lp and lp[3] == 'crossfade')
+        total_looped = n_integer + n_xfade
+        if total_looped > 0:
+            if n_integer / total_looped >= 0.60 and n_xfade > 0:
+                majority = 'integer'
+            elif n_xfade / total_looped >= 0.60 and n_integer > 0:
+                majority = 'crossfade'
+            else:
+                majority = None
+            if majority:
+                print(f"  [majority-vote: {majority} ({n_integer}i/{n_xfade}x) — re-routing outliers]")
+                pass1 = [
+                    (w, audio, sr, find_loop(audio, sr, force=majority)
+                     if (lp and lp[3] not in ('manual', majority)) else lp)
+                    for w, audio, sr, lp in pass1
+                ]
+
+    for w, audio, sr, lp in pass1:
         if not lp:
             loops[w.name] = None
             print(f"  {w.name}: one-shot (ring out)")
             continue
-        S, E = lp
+        S, E, xf, route = lp
         m = loop_metrics(audio, sr, S, E)
-        # Points only — no audio baking. Ableton plays a back-and-forth (ping-pong)
-        # loop, which is seamless by reversal, so the WAV stays pristine.
-        loops[w.name] = {"start": int(S), "end": int(E)}
+        tag = f"{route}/{xf}smp-xf" if xf else f"{route}/0xf"
+        loops[w.name] = {"start": int(S), "end": int(E), "crossfade": int(xf)}
         looped += 1
-        print(f"  {w.name}: loop {S/sr:.2f}->{E/sr:.2f}s ({m['len_s']:.1f}s)  "
-              f"level-match {m['level_match_db']:.2f}dB  (ping-pong, WAV untouched)")
+        print(f"  {w.name}: [{tag}] loop {S/sr:.2f}->{E/sr:.2f}s ({m['len_s']:.1f}s)  "
+              f"level-match {m['level_match_db']:.2f}dB")
 
     if not args.dry_run:
         (d / "loops.json").write_text(json.dumps(loops, indent=2))

@@ -149,7 +149,8 @@
       "samples_dir": "patches/sub-bass/raw",
       "gearbase_preset_id": "P:A14",
       "program_change": 3,
-      "target_mode": "single"
+      "target_mode": "single",
+      "loop": true
     }
   ],
   "one_shots_dir": null,

@@ -250,7 +250,10 @@ def _set_amp_release(xml: str, release_ms: float) -> str:
     cuts pads off abruptly. Targets the amp env by its SustainLevel=1 signature (the
     filter env is Sustain=0), so we can never touch the filter or pitch envelope. Bails
     safely (no change) if the template structure isn't what we expect."""
-    rel = max(1.0, min(60000.0, float(release_ms)))
+    # Floor at 5ms — a hard cut on key-up clicks (chops the waveform mid-cycle), same as a
+    # bad loop seam. A few ms of release fades it to zero cleanly, even on the lowest sub.
+    # Never let release drop below this, whatever role/value is requested.
+    rel = max(5.0, min(60000.0, float(release_ms)))
     parts = xml.split("<Envelope>")
     sustain_full = re.compile(r'<SustainLevel>\s*<LomId Value="0" />\s*<Manual Value="1"')
     for i in range(1, len(parts)):

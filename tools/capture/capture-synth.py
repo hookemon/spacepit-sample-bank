@@ -178,6 +178,7 @@ def run_meter(audio_device: int, channels: list[int], sample_rate: int, duration
     rec = sd.rec(
         n, samplerate=sample_rate, channels=len(channels), device=audio_device,
         mapping=channels, dtype="float32", blocking=True,
+        blocksize=4096, latency="high",
     )
     peak = float(np.max(np.abs(rec)))
     if peak == 0:
@@ -208,13 +209,16 @@ def capture_one(
     sustain: float,
     tail: float,
     pre_roll: float = 0.05,
+    blocksize: int = 4096,
 ):
     total_dur = pre_roll + sustain + tail
     n = int(total_dur * sample_rate)
-    rec = sd.rec(
-        n, samplerate=sample_rate, channels=len(channels), device=audio_device,
-        mapping=channels, dtype="float32", blocking=False,
+    rec_kw = dict(
+        samplerate=sample_rate, channels=len(channels), device=audio_device,
+        mapping=channels, dtype="float32", blocking=False, latency="high",
+        blocksize=max(512, int(blocksize)),     # floor 512 — Nick's call
     )
+    rec = sd.rec(n, **rec_kw)
     time.sleep(pre_roll)
     midi_port.send(mido.Message("note_on", note=note, velocity=velocity, channel=midi_channel - 1))
     time.sleep(sustain)
@@ -279,6 +283,13 @@ def main() -> None:
     ap.add_argument("--input-channels", default="1,2", help="1-based input channels e.g. '1,2' or '5,6'")
     ap.add_argument("--sample-rate", type=int, default=48000)
     ap.add_argument("--bit-depth", type=int, choices=[16, 24, 32], default=24)
+    ap.add_argument("--blocksize", type=int, default=512,
+                    help="audio buffer in samples (min 512). Big enough to avoid dropout "
+                         "clicks, small enough to keep note-on timing tight. Clamped to >=512.")
+    ap.add_argument("--take", action="store_true",
+                    help="CONTINUOUS take mode: record ONE unbroken WAV while firing all notes, "
+                         "then slice it into per-note files (like recording in Ableton + slicing). "
+                         "Avoids the per-note start/stop that can drop notes.")
     # modes
     ap.add_argument("--dry-run", action="store_true", help="print plan, don't capture")
     ap.add_argument("--resume", action="store_true", help="skip files that already exist")
@@ -485,6 +496,60 @@ def main() -> None:
         consecutive_silent = 0
         silent_skipped = 0
 
+        # ---------- CONTINUOUS TAKE MODE ----------
+        # Record ONE unbroken WAV while firing every note in sequence, then slice it into
+        # per-note files (slice-take.py). Same as recording in Ableton + slicing — avoids the
+        # per-note start/stop that was dropping notes. One clean stream, no silence-abort loop.
+        if args.take:
+            sustain = cfg["sustain"]
+            gap = max(2.0, cfg["tail"])           # ≥2s silence between notes so the slicer can split
+            lead = 0.5
+            total_dur = lead + len(notes) * (sustain + gap)
+            n = int(total_dur * args.sample_rate)
+            print(f"\n🎙 continuous take — {len(notes)} notes · {sustain:.0f}s hold + {gap:.0f}s gap · {total_dur:.0f}s total")
+            rec = sd.rec(n, samplerate=args.sample_rate, channels=len(input_channels),
+                         device=audio_dev, mapping=input_channels, dtype="float32",
+                         blocking=False, latency="high", blocksize=max(512, args.blocksize))
+            time.sleep(lead)
+            v = cfg["velocities"][0]
+            for i, note in enumerate(notes):
+                ns = midi_to_note_name(note, args.octave_offset)
+                print(f"  [{i+1:>2}/{len(notes)}] {ns}")
+                midi_port.send(mido.Message("note_on", note=note, velocity=v, channel=args.midi_channel - 1))
+                time.sleep(sustain)
+                midi_port.send(mido.Message("note_off", note=note, velocity=0, channel=args.midi_channel - 1))
+                time.sleep(gap)
+            sd.wait()
+            all_notes_off(midi_port, args.midi_channel)
+            peak = float(np.max(np.abs(rec))) if rec.size else 0.0
+            peak_db = 20 * np.log10(max(1e-10, peak))
+            if peak < SILENT_PEAK_THRESHOLD:
+                print(f"\n✗ TAKE SILENT ({peak_db:+.1f} dBFS) — no signal reached the recorder.")
+                print(f"  This is a true signal problem (not per-note timing). Check synth → TX-6 ch {args.input_channels},")
+                print(f"  the live meter, and that nothing else holds the device. (Or bounce from Ableton instead.)")
+                raise SystemExit(2)
+            patch_dir.mkdir(parents=True, exist_ok=True)
+            take_path = patch_dir / f"_take_{args.patch}.wav"
+            sf.write(str(take_path), rec, args.sample_rate, subtype=subtype)
+            print(f"  ✓ take recorded — peak {peak_db:+.1f} dBFS → {take_path.name}")
+            # slice it into per-note files
+            import subprocess
+            slicer = Path(__file__).resolve().parent.parent / "pack" / "slice-take.py"
+            lo = midi_to_note_name(notes[0], args.octave_offset).upper()
+            hi = midi_to_note_name(notes[-1], args.octave_offset).upper()
+            step = (notes[1] - notes[0]) if len(notes) > 1 else 1
+            cmd = [sys.executable, str(slicer), "--wav", str(take_path),
+                   "--instrument", args.instrument, "--patch", args.patch, "--chain", args.chain,
+                   "--start-note", lo, "--end-note", hi, "--step", str(step), "--velocity", str(v)]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            print(r.stdout)
+            if r.returncode != 0:
+                print(r.stderr)
+                print("  ⚠ slicing didn't land all notes — the raw take is saved; adjust --gate-db and re-slice.")
+            else:
+                take_path.unlink(missing_ok=True)   # slices written; drop the big continuous take
+            return
+
         for cc_num, cc_value in cc_states:
             # Apply this CC state (if any) then run the inner multisample loop
             if cc_num is not None and cc_value is not None:
@@ -522,6 +587,7 @@ def main() -> None:
                                 velocity=vel,
                                 sustain=cfg["sustain"],
                                 tail=cfg["tail"],
+                                blocksize=args.blocksize,
                             )
                             peak = float(np.max(np.abs(rec)))
                             peak_db = 20 * np.log10(max(1e-10, peak))

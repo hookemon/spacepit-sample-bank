@@ -167,11 +167,11 @@ def _get_find_loop():
     return _FIND_LOOP
 
 
-def _apply_gain_copy(src: Path, dst: Path, gain_db: float, flatten: bool = True) -> None:
-    """Copy a WAV: flatten ONLY if the note would otherwise get a short, fluttery loop
-    (decayers like the sub/Reso — short loop repeats ~12 Hz = the 'rolling tongue'); then
-    apply the loudness make-up gain (peak-guarded). Patches that already loop long+clean
-    (Euro SAW, Phantom) are left untouched. Plain copy if libs absent / nothing to do."""
+def _apply_gain_copy(src: Path, dst: Path, gain_db: float, flatten: bool = False) -> None:
+    """Copy a WAV and apply the loudness make-up gain (peak-guarded). Flattening the decay
+    is OFF: Nick heard it ("not good"), and the loop engine now picks short, level-matched
+    integer-cycle loops, so a decaying sub barely drifts over one loop — no flattening needed.
+    Plain copy if libs absent / nothing to do."""
     try:
         import numpy as np
         import soundfile as sf
@@ -500,6 +500,10 @@ def main() -> None:
                 for wav in wavs:
                     _apply_gain_copy(wav, dest / wav.name, _pgmap.get(wav.name, 0.0))
                     multisample_count += 1
+                # carry the loop-editor's manual loops into the pack so bake-loops uses them
+                _src_manual = chain_folder / "manual_loops.json"
+                if _src_manual.exists():
+                    shutil.copy2(_src_manual, dest / "manual_loops.json")
 
                 # SFZ in instruments/sfz/
                 sfz_name = f"{patch_name}-{chain}.sfz" if chain != "raw" else f"{patch_name}.sfz"
