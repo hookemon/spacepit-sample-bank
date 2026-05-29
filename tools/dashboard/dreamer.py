@@ -220,6 +220,33 @@ def stop(disable_schedule=True):
         _sched_stop.set()
 
 
+def send_pc(cfg):
+    """Send a Program Change (with optional bank select MSB) through a port.
+    cfg = {port: str, channel: int (1-16), program: int (1-128, user-facing),
+           bank_msb?: int (0-127)}"""
+    if mido is None:
+        return {"error": "mido not available"}
+    port = (cfg or {}).get("port", "")
+    if not port:
+        return {"error": "no port"}
+    ch = (int((cfg or {}).get("channel", 1)) - 1) & 0x0f
+    program_1to128 = int((cfg or {}).get("program", 0))
+    if program_1to128 < 1 or program_1to128 > 128:
+        return {"error": "program must be 1..128"}
+    program = (program_1to128 - 1) & 0x7f  # wire value 0-127
+    msb = (cfg or {}).get("bank_msb")
+    try:
+        p = _get_port(port)
+        if not p:
+            return {"error": "port not open"}
+        if msb is not None:
+            p.send(mido.Message("control_change", control=0, value=int(msb) & 0x7f, channel=ch))
+        p.send(mido.Message("program_change", program=program, channel=ch))
+        return {"ok": True, "program": program_1to128, "bank_msb": msb}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def test_notes(cfg):
     """Fire C2..C6 chromatically through a port for calibration.
     cfg = {port: str, channel: int (1-16, default 1)}.
@@ -265,7 +292,8 @@ def _role(cfg, name):
     r = (cfg.get("roles") or {}).get(name) or {}
     if not r.get("enabled") or not r.get("port"):
         return None
-    return {"port": r["port"], "ch": int(r.get("channel", 1)) - 1, "oct_shift": int(r.get("oct_shift", 0))}
+    return {"port": r["port"], "ch": int(r.get("channel", 1)) - 1, "oct_shift": int(r.get("oct_shift", 0)),
+            "program": r.get("program"), "bank_msb": r.get("bank_msb")}
 
 
 def _send_on(role, note, vel):
@@ -298,6 +326,21 @@ def _run(cfg):
     bass = _role(cfg, "bass")
     lead = _role(cfg, "lead")
     drums = _role(cfg, "drums")
+
+    # Auto-recall patches: send program change (+ optional bank select MSB) for
+    # any role with a configured patch, so each synth lands on the right preset
+    # before the first note plays.
+    for role in (chords, bass, lead, drums):
+        if role and role.get("program"):
+            try:
+                p = _get_port(role["port"])
+                if p:
+                    if role.get("bank_msb") is not None:
+                        p.send(mido.Message("control_change", control=0, value=int(role["bank_msb"]) & 0x7f, channel=role["ch"]))
+                    p.send(mido.Message("program_change", program=(int(role["program"]) - 1) & 0x7f, channel=role["ch"]))
+            except Exception:
+                pass
+    time.sleep(0.05)  # let synths process the PC before the first note
 
     def deg_root(deg):
         return root + scale[deg % 7] + 12 * (1 + (deg // 7))

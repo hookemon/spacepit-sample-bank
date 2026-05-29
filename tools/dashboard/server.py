@@ -2104,13 +2104,10 @@ def _monitor_worker(input_device_name: str, channels_str: str):
             if status:
                 # Don't crash on overruns; just log to state
                 monitor_state["last_error"] = str(status)
-            # Mute output if a capture is in progress
-            if current_capture_proc is not None:
-                monitor_state["muted_by_capture"] = True
-                outdata.fill(0)
-                return
-            else:
-                monitor_state["muted_by_capture"] = False
+            # NO mute during capture — you monitor while you record, like always. The monitor
+            # plays the synth to your SPEAKERS; the capture records the synth off the USB INPUT.
+            # Separate paths, no bleed. Muting your ears during the take was pointless.
+            monitor_state["muted_by_capture"] = False
             # Map input channels → stereo output
             if n_input == 1:
                 outdata[:, 0] = indata[:, 0]

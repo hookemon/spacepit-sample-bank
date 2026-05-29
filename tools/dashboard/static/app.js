@@ -1853,12 +1853,18 @@
       });
       const data = await r.json();
       if (data.ok) {
-        setStatus(`✓ Capture killed${data.killed_process ? ' (process terminated)' : ''} + MIDI panic sent.`, 'success');
+        setStatus(`✓ Capture stopped${data.killed_process ? ' (process terminated)' : ' (nothing was running)'} + MIDI panic sent.`, 'success');
       } else {
         setStatus(`Stop failed: ${data.error}`, 'error');
       }
     } catch (e) {
       setStatus(`Stop error: ${e.message}`, 'error');
+    } finally {
+      // ALWAYS restore the UI — this was the bug: Stop sent the request but left the
+      // button stuck on "capturing" forever. Now Stop truly resets to idle.
+      els.captureBtn.disabled = false;
+      els.captureBtn.style.display = 'inline-block';
+      document.getElementById('capture-stop-btn').style.display = 'none';
     }
   });
 
