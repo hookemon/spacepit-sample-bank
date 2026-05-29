@@ -73,8 +73,15 @@
       <div class="vibes" id="vibes">
         <div class="vibe" data-vibe="meditation"><div class="nm">Meditation</div><div class="ds">slow lush pads · sparse melody</div></div>
         <div class="vibe on" data-vibe="hiphop"><div class="nm">Hip-Hop</div><div class="ds">5-chord boom-bap · fat bass · dusty drums</div></div>
-        <div class="vibe" data-vibe="party"><div class="nm">Party</div><div class="ds">four-on-floor · driving · rave</div></div>
+        <div class="vibe" data-vibe="lofi"><div class="nm">Lo-Fi</div><div class="ds">dusty study beat · swung · soft</div></div>
+        <div class="vibe" data-vibe="ambient"><div class="nm">Ambient</div><div class="ds">weightless · no drums · spacious</div></div>
+        <div class="vibe" data-vibe="house"><div class="nm">House</div><div class="ds">deep groove · four-on-floor</div></div>
+        <div class="vibe" data-vibe="party"><div class="nm">Party</div><div class="ds">driving · rave · euphoric</div></div>
+        <div class="vibe" data-vibe="trap"><div class="nm">Trap</div><div class="ds">dark · 808 · rolling hats</div></div>
       </div>
+      <input type="text" id="vibe-text" placeholder="…or just type how it should feel:  rainy study   ·   euphoric   ·   dark night   ·   floating"
+             style="width:100%; margin-top:12px; background:#0c0c0e; color:var(--fg); border:1px solid var(--border); border-radius:4px; padding:10px 12px; font-family:var(--mono); font-size:13px;" />
+      <div style="font-size:10px; color:var(--faint); margin-top:6px;">type a feeling and the dreamer picks the closest mood — leave blank to use a button above</div>
     </div>
 
     <button class="play" id="play">▶ &nbsp; PLAY THE ROOM</button>
@@ -125,7 +132,12 @@ function rolesPayload() {
 document.getElementById('vibes').addEventListener('click', e => {
   const v = e.target.closest('.vibe'); if(!v) return;
   vibe = v.dataset.vibe;
+  document.getElementById('vibe-text').value = '';   // a button overrides typed text
   document.querySelectorAll('.vibe').forEach(x => x.classList.toggle('on', x===v));
+});
+document.getElementById('vibe-text').addEventListener('input', e => {
+  // typing takes over — clear the button highlight so it's clear what'll play
+  if (e.target.value.trim()) document.querySelectorAll('.vibe').forEach(x => x.classList.remove('on'));
 });
 const playBtn = document.getElementById('play');
 playBtn.addEventListener('click', async () => {
@@ -134,7 +146,8 @@ playBtn.addEventListener('click', async () => {
     playing = false; setPlay();
     return;
   }
-  const body = { vibe, key: document.getElementById('key').value,
+  const typed = document.getElementById('vibe-text').value.trim();
+  const body = { vibe: typed || vibe, key: document.getElementById('key').value,
                  tempo: parseFloat(document.getElementById('tempo').value) || null,
                  roles: rolesPayload() };
   const r = await fetch('/api/dreamer/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});

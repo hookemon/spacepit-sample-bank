@@ -45,8 +45,58 @@ VIBES = {
         "chord_oct": 4, "bass_oct": 2, "bass_feel": "root8",
         "lead_density": 0.0, "lead_oct": 5, "drums": "four", "swing": 0.0,
     },
+    "lofi": {     # dusty study beat — slower, softer cousin of hiphop
+        "tempo": 72, "scale": "dorian", "chord_beats": 4, "vel": 68,
+        "prog": [(0, "m9"), (3, "maj7"), (5, "m7"), (1, "7")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "root8",
+        "lead_density": 0.1, "lead_oct": 5, "drums": "boombap", "swing": 0.2,
+    },
+    "ambient": {  # weightless — even more spacious than meditation
+        "tempo": 48, "scale": "major", "chord_beats": 8, "vel": 52,
+        "prog": [(0, "maj9"), (3, "maj9"), (5, "m9"), (0, "maj9")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "hold",
+        "lead_density": 0.35, "lead_oct": 5, "drums": None, "swing": 0.0,
+    },
+    "house": {    # deep house groove
+        "tempo": 122, "scale": "minor", "chord_beats": 2, "vel": 86,
+        "prog": [(0, "m7"), (5, "maj7"), (3, "maj7"), (4, "7")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "root8",
+        "lead_density": 0.0, "lead_oct": 5, "drums": "four", "swing": 0.0,
+    },
+    "trap": {     # dark, half-time feel, 808 bass, rolling hats
+        "tempo": 140, "scale": "minor", "chord_beats": 4, "vel": 90,
+        "prog": [(0, "min"), (0, "min"), (5, "maj"), (3, "maj")],
+        "chord_oct": 3, "bass_oct": 1, "bass_feel": "root8",
+        "lead_density": 0.05, "lead_oct": 5, "drums": "trap", "swing": 0.0,
+    },
 }
 DRUM = {"kick": 36, "snare": 38, "hat": 42, "ohat": 46}
+
+# free-text vibe → vibe key. Type a word, the dreamer figures out the mood.
+VIBE_WORDS = {
+    "meditation": ["meditation", "meditate", "calm", "zen", "peace", "peaceful", "sleep", "relax", "spa", "breathe", "still"],
+    "ambient": ["ambient", "drift", "space", "spacey", "float", "floating", "dream", "dreamy", "cinematic", "pad", "weightless", "wash"],
+    "lofi": ["lofi", "lo-fi", "study", "chill", "chilled", "dusty", "jazzy", "sleepy", "cozy", "rainy", "mellow"],
+    "hiphop": ["hiphop", "hip-hop", "hip hop", "boombap", "boom-bap", "boom bap", "rap", "beat", "head-nod", "headnod", "90s", "soulful"],
+    "house": ["house", "deep house", "disco", "groove", "groovy", "dance", "garage", "soulful house"],
+    "party": ["party", "rave", "banger", "hype", "energy", "festival", "club", "euphoric", "anthem", "go off"],
+    "trap": ["trap", "808", "drill", "dark", "hard", "modern", "menace", "moody", "night"],
+}
+
+
+def resolve_vibe(text):
+    """Map free text to a vibe key. Exact key wins; else score by keyword hits; else hiphop."""
+    if not text:
+        return "hiphop"
+    t = str(text).strip().lower()
+    if t in VIBES:
+        return t
+    best, best_score = None, 0
+    for vibe, words in VIBE_WORDS.items():
+        score = sum(1 for w in words if w in t)
+        if score > best_score:
+            best, best_score = vibe, score
+    return best or "hiphop"
 
 _thread = None
 _stop = threading.Event()
@@ -128,7 +178,9 @@ def _send_off(role, note):
 
 
 def _run(cfg):
-    v = VIBES.get(cfg.get("vibe"), VIBES["meditation"])
+    vibe_key = resolve_vibe(cfg.get("vibe"))
+    _state["vibe"] = vibe_key
+    v = VIBES[vibe_key]
     tempo = float(cfg.get("tempo") or v["tempo"])
     scale = SCALES[v["scale"]]
     root = NOTE_IDX.get(str(cfg.get("key", "C")).upper(), 0)
@@ -209,6 +261,14 @@ def _run(cfg):
                         hits.append("snare")
                     if step % 2 == 1:
                         hits.append("ohat" if bar_step % 4 == 2 else "hat")
+                elif v["drums"] == "trap":
+                    if bar_step in (0, 7, 10):       # syncopated 808 kicks
+                        hits.append("kick")
+                    if bar_step == 8:                # half-time backbeat (beat 3)
+                        hits.append("snare")
+                    hits.append("hat")               # 16th hats
+                    if random.random() < 0.12:       # occasional roll
+                        hits.append("hat")
                 for h in hits:
                     dn = DRUM[h]
                     _send_on(drums, dn, vel + (10 if h == "kick" else 0))
