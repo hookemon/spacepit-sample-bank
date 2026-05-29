@@ -181,106 +181,21 @@ def _find_short_loop(audio: np.ndarray, sr: int):
     return S, E
 
 
-def _f0_near(mono: np.ndarray, sr: int, at: int) -> float:
-    """Fundamental (Hz) estimated right at the loop-start region via autocorrelation."""
-    seg = mono[at:at + int(0.2 * sr)].astype(np.float64)
-    seg = seg - seg.mean()
-    if seg.size < 64 or np.sqrt(np.mean(seg * seg)) < 1e-5:
-        return 0.0
-    ac = np.correlate(seg, seg, "full")[seg.size - 1:]
-    lo, hi = int(sr / 800), min(int(sr / 30), len(ac) - 1)
-    return sr / (lo + int(np.argmax(ac[lo:hi]))) if hi > lo else 0.0
-
-
-def _seam_jump(audio: np.ndarray, S: int, E: int):
-    """Crossfade-0 forward-loop seam: the sample jump from E-1 back to S, vs a natural
-    one-sample step at S. If the seam is no bigger than a natural step, the loop is
-    seamless WITHOUT any crossfade (the Samples From Mars approach)."""
-    a = audio
-    s1 = min(len(a) - 1, S + 1)
-    if a.ndim > 1:
-        return float(np.max(np.abs(a[S] - a[E - 1]))), float(np.max(np.abs(a[s1] - a[S])))
-    return abs(a[S] - a[E - 1]), abs(a[s1] - a[S])
-
-
-def _phase_locked_loop(audio: np.ndarray, sr: int):
-    """SFM recipe: a forward loop of a whole number of fundamental cycles between two
-    rising zero-crossings, deep in the sustain, level-matched. Seamless with NO crossfade
-    when the waveform repeats cleanly (subs, 303, sine, simple bass).
-
-    Scans several loop lengths (long for a flat sound, shorter for one that still drifts)
-    and returns the (S, E, level_match_dB) with the best combined seam + level. A short
-    phase-locked loop avoids the PUMP a long loop would get on a sound that isn't dead flat."""
-    mono = audio.mean(axis=1) if audio.ndim > 1 else audio
-    n = len(mono); sr = int(sr)
-    rz = _rising_zc(mono)
-    atk = attack_end_sample(mono, sr)
-    s_cand = rz[rz >= max(atk + int(0.10 * sr), int(0.30 * n))]
-    if len(s_cand) == 0:
-        return None
-    S = int(s_cand[0])
-    f0 = _f0_near(mono, sr, S)
-    if f0 <= 0:
-        return None
-    P = sr / f0
-    win = int(0.03 * sr)
-    edb = lambda i: 20 * np.log10(np.sqrt(np.mean(mono[i:i + win] ** 2)) + 1e-9)
-    sdb = edb(S)
-    best = None
-    for secs in (1.0, 0.7, 0.5, 0.35, 0.2):                  # prefer long, shrink if it drifts
-        ncyc = max(8, round(secs * sr / P))
-        target_E = S + int(round(ncyc * P))
-        if target_E >= n - int(0.2 * sr):
-            continue
-        cand = rz[(rz >= target_E - int(2 * P)) & (rz <= target_E + int(2 * P)) & (rz < n - int(0.2 * sr))]
-        for E in cand:
-            E = int(E)
-            cyc = (E - S) / P
-            lvl = abs(edb(E) - sdb)
-            seam = float(np.max(np.abs(audio[S] - audio[E - 1]))) if audio.ndim > 1 else abs(mono[S] - mono[E - 1])
-            score = seam + lvl * 0.5 + abs(cyc - round(cyc)) * 0.2    # click + pump + phase
-            if best is None or score < best[0]:
-                best = (score, S, E, lvl)
-    if best is None:
-        return None
-    return best[1], best[2], best[3]
-
-
 def find_loop(audio: np.ndarray, sr: int):
-    """Returns (loop_start, loop_end, crossfade_samples) or None.
-
-    Hybrid, self-selecting (reverse-engineered from Samples From Mars):
-      1. Try a phase-locked forward loop with NO crossfade — if the raw seam is as clean
-         as a natural sample step, use it (subs, 303, simple bass). This is the real fix:
-         crossfading was a band-aid for imperfect points; here the points are perfect.
-      2. Else a long level+phase matched loop WITH a 7% crossfade to hide the residual
-         seam (rich/detuned saws and pads — these already sounded good that way).
-      3. Else a short whole-cycle loop, no crossfade (fading sounds that won't level-match).
-    """
-    pl = _phase_locked_loop(audio, sr)
-    if pl:
-        S, E, lvl = pl
-        seam, nat = _seam_jump(audio, S, E)
-        # accept only if BOTH clean: no click (seam) AND no pump (level within ~1.5 dB)
-        if seam <= max(nat * 2.5, nat + 1e-4) and lvl <= 1.5:
-            return S, E, 0                          # clean -> forward, NO crossfade
-    ll = _find_long_loop(audio, sr)
-    if ll:
+    """Prefer a long, level-matched loop (rich/flat sounds — pads, saws). If the sound
+    fades or moves so a long loop can't level-match (a decaying sub), fall back to a
+    SHORT whole-cycle loop that holds cleanly. The long path is unchanged, so flat
+    sounds keep the exact loops they already had."""
+    lp = _find_long_loop(audio, sr)
+    if lp:
         mono = audio.mean(axis=1) if audio.ndim > 1 else audio
         win = int(0.03 * sr)
-        S, E = ll
+        S, E = lp
         sdb = 20 * np.log10(np.sqrt(np.mean(mono[S:S + win] ** 2)) + 1e-9)
         edb_ = 20 * np.log10(np.sqrt(np.mean(mono[max(0, E - win):E] ** 2)) + 1e-9)
-        if abs(sdb - edb_) <= 4.0:
-            xf = min(int(0.07 * (E - S)), max(0, S - int(0.45 * sr)))
-            return S, E, xf
-    sl = _find_short_loop(audio, sr)
-    if sl:
-        return sl[0], sl[1], 0
-    if ll:
-        xf = min(int(0.07 * (ll[1] - ll[0])), max(0, ll[0] - int(0.45 * sr)))
-        return ll[0], ll[1], xf
-    return None
+        if abs(sdb - edb_) <= 4.0:                 # clean long loop -> keep it
+            return lp
+    return _find_short_loop(audio, sr) or lp
 
 
 def bake_linear_xfade(audio: np.ndarray, S: int, E: int, X: int) -> np.ndarray:
@@ -331,15 +246,14 @@ def main():
             loops[w.name] = None
             print(f"  {w.name}: one-shot (ring out)")
             continue
-        S, E, xf = lp
+        S, E = lp
         m = loop_metrics(audio, sr, S, E)
-        # Points + the recommended crossfade (0 = phase-locked, seamless on its own; the
-        # SFM way). Ableton handles the crossfade on the pristine WAV — nothing baked in.
-        loops[w.name] = {"start": int(S), "end": int(E), "crossfade": int(xf)}
+        # Points only — no audio baking. Ableton plays a back-and-forth (ping-pong)
+        # loop, which is seamless by reversal, so the WAV stays pristine.
+        loops[w.name] = {"start": int(S), "end": int(E)}
         looped += 1
-        kind = "forward, NO crossfade (phase-locked)" if xf == 0 else f"forward + {xf/sr*1000:.0f}ms crossfade"
         print(f"  {w.name}: loop {S/sr:.2f}->{E/sr:.2f}s ({m['len_s']:.1f}s)  "
-              f"level-match {m['level_match_db']:.2f}dB  · {kind}")
+              f"level-match {m['level_match_db']:.2f}dB  (ping-pong, WAV untouched)")
 
     if not args.dry_run:
         (d / "loops.json").write_text(json.dumps(loops, indent=2))

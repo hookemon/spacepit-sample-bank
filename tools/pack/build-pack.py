@@ -53,8 +53,8 @@ def _pick_root_wav(wavs):
 
 
 def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
-                            ceiling_db: float = -1.0, max_boost_db: float = 15.0,
-                            target_loudness_db: float = -12.0) -> dict:
+                            ceiling_db: float = -3.0, max_boost_db: float = 15.0,
+                            target_loudness_db: float = -14.0) -> dict:
     """Per-NOTE makeup gain (dB) so every note of every patch lands at a FIXED hot target
     loudness (~-12 dB short-term RMS = ~-12 on the Ableton meter) — the pro-library
     treatment. Fixes two things at once:
