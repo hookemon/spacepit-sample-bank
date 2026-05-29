@@ -119,24 +119,83 @@ def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
     return out
 
 
-def _apply_gain_copy(src: Path, dst: Path, gain_db: float) -> None:
-    """Copy a WAV applying a dB gain (peak-guarded). Falls back to a plain copy when
-    the gain is ~0 or audio libs are absent, so the pack always builds."""
-    if abs(gain_db) < 0.05:
-        shutil.copy2(src, dst)
-        return
+def _flatten_decay(a, sr, max_boost_db: float = 15.0, drift_threshold_db: float = 4.0):
+    """Hold a DECAYING sustain flat. A sub/Reso captured fading (sustain knob not up)
+    decays through the note, so the loop finder can only grab a tiny loop — which repeats
+    at ~12 Hz = the 'rolling tongue' flutter. This measures the post-attack decay and
+    applies the inverse gain so the body holds level, giving the finder a LONG level-matched
+    loop (repeats <1x/sec = no flutter). Held sounds (Euro SAW) have ~no decay -> untouched.
+    Returns (audio, flattened_bool). Tail boost capped so a fade-to-near-silence isn't
+    amplified into hiss; the attack transient (pre-settle) is left at unity."""
+    import numpy as np
+    mono = a.mean(axis=1) if a.ndim > 1 else a
+    n = len(mono); sr = int(sr)
+    win = int(0.02 * sr); hop = int(0.005 * sr)
+    if n < win * 4:
+        return a, False
+    idx = np.arange(0, n - win, hop)
+    envdb = 20 * np.log10(np.array([np.sqrt(np.mean(mono[i:i + win] ** 2)) for i in idx]) + 1e-9)
+    pk = float(envdb.max())
+    atk = next((k for k in range(len(envdb)) if envdb[k] >= pk - 1.5), 0)   # attack settled
+    body = envdb[atk:max(atk + 1, int(len(envdb) * 0.9))]
+    if len(body) == 0 or (float(body.max()) - float(body.min())) < drift_threshold_db:
+        return a, False                                                     # not a decayer
+    ref = float(envdb[atk])                                                 # flatten toward this
+    gain_db = np.zeros(len(envdb))
+    for k in range(atk, len(envdb)):
+        gain_db[k] = min(max(ref - float(envdb[k]), 0.0), max_boost_db)     # boost up, capped
+    samp_gain = np.interp(np.arange(n), idx + win // 2, gain_db, left=0.0, right=gain_db[-1])
+    lin = 10.0 ** (samp_gain / 20.0)
+    out = a * (lin[:, None] if a.ndim > 1 else lin)
+    return out, True
+
+
+_FIND_LOOP = None
+def _get_find_loop():
+    """Lazy-load bake-loops.find_loop so we can tell if a note would get a fluttery short
+    loop (and thus needs flattening) vs already loops long+clean (leave it alone)."""
+    global _FIND_LOOP
+    if _FIND_LOOP is None:
+        try:
+            import importlib.util
+            p = Path(__file__).resolve().parent / "bake-loops.py"
+            spec = importlib.util.spec_from_file_location("bake_loops", p)
+            mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+            _FIND_LOOP = mod.find_loop
+        except Exception:
+            _FIND_LOOP = False
+    return _FIND_LOOP
+
+
+def _apply_gain_copy(src: Path, dst: Path, gain_db: float, flatten: bool = True) -> None:
+    """Copy a WAV: flatten ONLY if the note would otherwise get a short, fluttery loop
+    (decayers like the sub/Reso — short loop repeats ~12 Hz = the 'rolling tongue'); then
+    apply the loudness make-up gain (peak-guarded). Patches that already loop long+clean
+    (Euro SAW, Phantom) are left untouched. Plain copy if libs absent / nothing to do."""
     try:
         import numpy as np
         import soundfile as sf
         a, sr = sf.read(str(src))
         subtype = sf.info(str(src)).subtype
-        a = a * (10.0 ** (gain_db / 20.0))
+        did_flatten = False
+        if flatten:
+            fl = _get_find_loop()
+            lp = fl(a, sr) if fl else None
+            # only flatten when the natural loop is short (< 0.5s -> repeats >2x/sec = flutter)
+            short = (lp is None) or ((lp[1] - lp[0]) / sr < 0.5)
+            if short:
+                a, did_flatten = _flatten_decay(a, sr)
+        if abs(gain_db) >= 0.05:
+            a = a * (10.0 ** (gain_db / 20.0))
+        if not did_flatten and abs(gain_db) < 0.05:
+            shutil.copy2(src, dst)             # nothing changed -> exact copy
+            return
         peak = float(np.max(np.abs(a))) if a.size else 0.0
-        if peak > 0.999:                       # never clip (gain is already peak-bounded)
+        if peak > 0.999:                       # never clip
             a = a * (0.999 / peak)
         sf.write(str(dst), a, sr, subtype=subtype)
     except Exception as e:
-        print(f"  ⚠ gain apply failed for {src.name} ({e}) — copied flat")
+        print(f"  ⚠ flatten/gain failed for {src.name} ({e}) — copied flat")
         shutil.copy2(src, dst)
 
 
