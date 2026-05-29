@@ -1151,7 +1151,8 @@
   const LE = { buffer: null, ch0: null, sr: 0, zc: null, S: 0, E: 0,
                slug: '', patch: '', chain: 'raw', filename: '', note: '',
                source: null, playing: false, dragging: null, history: [],
-               view: { start: 0, end: 0 } };   // visible sample window (zoom)
+               view: { start: 0, end: 0 },   // visible sample window (time zoom)
+               amp: 1 };                      // amplitude (vertical) zoom — blow up quiet detail
 
   function lePushHistory() {                  // call before a change so it can be undone
     LE.history.push({ S: LE.S, E: LE.E });
@@ -1241,12 +1242,14 @@
     const vs = LE.view.start, ve = LE.view.end, vn = ve - vs;
     const xOf = (smp) => (smp - vs) / vn * W;                            // sample → canvas x (view-aware)
     g.clearRect(0, 0, W, H);
-    g.strokeStyle = '#3a3a3a'; g.lineWidth = 1; g.beginPath();
+    const amp = LE.amp || 1;
+    const clampY = (y) => y < 0 ? 0 : (y > H ? H : y);   // zoomed-in peaks clip at the canvas edge
+    g.strokeStyle = '#e2e8f2'; g.lineWidth = 1; g.beginPath();   // bright trace — easy to see on black
     for (let x = 0; x < W; x++) {
       const i0 = vs + Math.floor(x / W * vn), i1 = Math.max(i0 + 1, vs + Math.floor((x + 1) / W * vn));
       let mn = 1, mx = -1;
       for (let i = i0; i < i1; i++) { if (d[i] < mn) mn = d[i]; if (d[i] > mx) mx = d[i]; }
-      g.moveTo(x, mid - mx * mid * 0.95); g.lineTo(x, mid - mn * mid * 0.95);
+      g.moveTo(x, clampY(mid - mx * mid * 0.95 * amp)); g.lineTo(x, clampY(mid - mn * mid * 0.95 * amp));
     }
     g.stroke();
     const xS = xOf(LE.S), xE = xOf(LE.E);
@@ -1258,6 +1261,7 @@
     const zoomTag = vn < n ? `  ·  zoom ${(n / vn).toFixed(1)}× (dbl-click to reset)` : '';
     document.getElementById('le-info').textContent =
       `loop ${(LE.S / LE.sr).toFixed(3)}s → ${(LE.E / LE.sr).toFixed(3)}s  (${((LE.E - LE.S) / LE.sr * 1000).toFixed(0)}ms · ${LE.E - LE.S} smp)${zoomTag}`;
+    const ampEl = document.getElementById('le-amp-val'); if (ampEl) ampEl.textContent = `${(LE.amp || 1) % 1 ? (LE.amp).toFixed(1) : (LE.amp || 1)}×`;
     drawSeam();
   }
 
@@ -1266,9 +1270,11 @@
     const W = cv.width, H = cv.height, g = cv.getContext('2d'), d = LE.ch0, mid = H / 2;
     g.clearRect(0, 0, W, H);
     const N = Math.min(300, LE.E - LE.S, LE.S);
-    g.strokeStyle = '#888'; g.lineWidth = 1; g.beginPath();
-    for (let k = 0; k < N; k++) { const x = k / (2 * N) * W, v = d[LE.E - N + k] || 0; if (k === 0) g.moveTo(x, mid - v * mid * 0.9); else g.lineTo(x, mid - v * mid * 0.9); }
-    for (let k = 0; k < N; k++) { const x = (N + k) / (2 * N) * W, v = d[LE.S + k] || 0; g.lineTo(x, mid - v * mid * 0.9); }
+    const amp = LE.amp || 1;
+    const yOf = (v) => { const y = mid - v * mid * 0.9 * amp; return y < 0 ? 0 : (y > H ? H : y); };
+    g.strokeStyle = '#e2e8f2'; g.lineWidth = 1.5; g.beginPath();   // bright seam trace
+    for (let k = 0; k < N; k++) { const x = k / (2 * N) * W, v = d[LE.E - N + k] || 0; if (k === 0) g.moveTo(x, yOf(v)); else g.lineTo(x, yOf(v)); }
+    for (let k = 0; k < N; k++) { const x = (N + k) / (2 * N) * W, v = d[LE.S + k] || 0; g.lineTo(x, yOf(v)); }
     g.stroke();
     g.strokeStyle = '#f2b705'; g.beginPath(); g.moveTo(W / 2, 0); g.lineTo(W / 2, H); g.stroke();
     const jump = Math.abs((d[LE.S] || 0) - (d[LE.E - 1] || 0));
@@ -1322,7 +1328,13 @@
     // ⌘+scroll / trackpad pinch → zoom around the cursor; double-click → reset to full
     wave.addEventListener('wheel', e => {
       if (!LE.ch0) return;
-      if (!(e.ctrlKey || e.metaKey)) return;          // only zoom with cmd held (or pinch = ctrl)
+      if (e.shiftKey && !(e.ctrlKey || e.metaKey)) {  // shift+scroll = amplitude (vertical) zoom — get in on quiet detail
+        e.preventDefault();
+        LE.amp = Math.max(1, Math.min(64, (LE.amp || 1) * (e.deltaY < 0 ? 1.25 : 0.8)));
+        drawLoopEditor();
+        return;
+      }
+      if (!(e.ctrlKey || e.metaKey)) return;          // else cmd+scroll / pinch = time zoom
       e.preventDefault();
       const r = wave.getBoundingClientRect(); const mx = (e.clientX - r.left) / r.width;
       const vs = LE.view.start, vn = (LE.view.end - LE.view.start) || LE.ch0.length;
@@ -1341,6 +1353,9 @@
     document.getElementById('le-play').addEventListener('click', lePlay);
     document.getElementById('le-stop').addEventListener('click', leStop);
     document.getElementById('le-undo').addEventListener('click', leUndo);
+    const leAmpSet = (v) => { LE.amp = Math.max(1, Math.min(64, v)); drawLoopEditor(); };
+    document.getElementById('le-amp-in').addEventListener('click', () => leAmpSet((LE.amp || 1) * 2));
+    document.getElementById('le-amp-out').addEventListener('click', () => leAmpSet((LE.amp || 1) / 2));
     document.getElementById('le-lock').addEventListener('click', leLock);
     document.getElementById('le-close').addEventListener('click', () => { leStop(); document.getElementById('loop-editor').style.display = 'none'; });
     document.getElementById('le-snap').addEventListener('change', () => { lePushHistory(); LE.S = leSnap(LE.S); LE.E = leSnap(LE.E); drawLoopEditor(); });
@@ -1737,13 +1752,21 @@
   }
 
   // ---------- capture ----------
+  // Auto-name a capture from the patch you've got loaded (the Patch dropdown) when you
+  // haven't typed a real name — so a take is never anonymous "untitled-X". A name you type wins.
+  function autoName(fieldId, untitledDefault) {
+    const typed = (document.getElementById(fieldId)?.value || '').trim();
+    if (typed && typed !== untitledDefault) return typed;
+    const patch = (document.getElementById('ms-patch')?.value || '').trim();
+    return patch || untitledDefault;
+  }
   function gatherParams() {
     const instrument = els.instrumentSelect.value;
     const settings = getAudioSettings();
     const base = { style: currentStyle, instrument, ...settings };
     if (currentStyle === 'progression') {
       return { ...base,
-        name: document.getElementById('prog-name').value.trim() || 'untitled-prog',
+        name: autoName('prog-name', 'untitled-prog'),
         progression: document.getElementById('prog-chords').value.trim() || 'Cm Ab Eb Bb',
         bpm: parseFloat(document.getElementById('prog-bpm').value) || 120,
         bars_per_chord: parseFloat(document.getElementById('prog-bpc').value) || 2,
@@ -1770,7 +1793,7 @@
     }
     if (currentStyle === 'sweep') {
       return { ...base,
-        name: document.getElementById('sweep-name').value.trim() || 'untitled-sweep',
+        name: autoName('sweep-name', 'untitled-sweep'),
         duration: parseFloat(document.getElementById('sweep-dur').value) || 8,
       };
     }

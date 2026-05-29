@@ -334,6 +334,12 @@
         <button class="secondary" id="le-play" style="padding: 6px 16px; margin: 0;">▶ play loop</button>
         <button class="secondary" id="le-stop" style="padding: 6px 14px; margin: 0;">■ stop</button>
         <button class="secondary" id="le-undo" title="Undo last move (⌘Z)" style="padding: 6px 12px; margin: 0;">↶ undo</button>
+        <span style="display: flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--fg-faint);">
+          AMP
+          <button class="secondary" id="le-amp-out" title="Amplitude zoom out" style="padding: 4px 10px; font-size: 14px; margin: 0; line-height: 1;">−</button>
+          <button class="secondary" id="le-amp-in" title="Amplitude zoom in — blow the waveform up vertically to set loop points on quiet detail (or Shift+scroll)" style="padding: 4px 10px; font-size: 14px; margin: 0; line-height: 1;">+</button>
+          <span id="le-amp-val" style="min-width: 28px; color: var(--fg-dim);">1×</span>
+        </span>
         <label style="font-family: var(--mono); font-size: 11px; color: var(--fg-dim); display: flex; align-items: center; gap: 5px; cursor: pointer;">
           <input type="checkbox" id="le-snap" checked> snap to zero-crossing
         </label>
@@ -470,7 +476,7 @@
         <input type="checkbox" id="preview-loop" checked style="display: none;" />
       </div>
       <div class="row">
-        <div><label>Pattern name</label><input type="text" id="prog-name" value="untitled-prog" /></div>
+        <div><label>Pattern name</label><input type="text" id="prog-name" value="" placeholder="auto — names from your loaded patch" /></div>
         <div><label>BPM</label><input type="number" id="prog-bpm" value="120" min="40" max="220" /></div>
       </div>
       <label>Chord progression (space-separated)</label>
@@ -555,7 +561,7 @@
     <!-- sweep -->
     <div class="style-form" data-form="sweep">
       <div class="row">
-        <div><label>Name</label><input type="text" id="sweep-name" value="untitled-sweep" /></div>
+        <div><label>Name</label><input type="text" id="sweep-name" value="" placeholder="auto — names from your loaded patch" /></div>
         <div><label>Duration (sec)</label><input type="number" id="sweep-dur" value="8" min="2" max="60" /></div>
       </div>
       <div class="small">Arp off. Hold a note (or use latch), perform a filter sweep / swell / knob ride during the recording window.</div>

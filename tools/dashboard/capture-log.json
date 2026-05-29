@@ -1,1 +1,91 @@
-[]
+[
+  {
+    "wav_path": "instruments/jp8000/patches/supersaw-1/raw/jp8000_supersaw-1_fs3_v100_rr1.wav",
+    "wav_url": "/audio/instruments/jp8000/patches/supersaw-1/raw/jp8000_supersaw-1_fs3_v100_rr1.wav",
+    "instrument": "jp8000",
+    "style": "multisample",
+    "name": "supersaw-1",
+    "captured_at": "2026-05-29T19:07:06",
+    "status": "pending",
+    "params": {
+      "style": "multisample",
+      "instrument": "jp8000",
+      "audio_device": "TX-6",
+      "input_channels": "1,2",
+      "midi_port": "mio",
+      "patch": "supersaw-1",
+      "chain": "raw",
+      "note_range": "C2-C5",
+      "step": 3,
+      "velocities": "100",
+      "sustain_sec": 4,
+      "tail_sec": 2.5,
+      "take": true
+    },
+    "multisample_count": 13
+  },
+  {
+    "wav_path": "instruments/jp8000/loops/raw/untitled-prog_120bpm_4bars.wav",
+    "wav_url": "/audio/instruments/jp8000/loops/raw/untitled-prog_120bpm_4bars.wav",
+    "instrument": "jp8000",
+    "style": "progression",
+    "name": "untitled-prog",
+    "captured_at": "2026-05-29T19:04:40",
+    "status": "discarded",
+    "params": {
+      "style": "progression",
+      "instrument": "jp8000",
+      "audio_device": "TX-6",
+      "input_channels": "1,2",
+      "midi_port": "mio",
+      "name": "untitled-prog",
+      "progression": "Cm Ab Eb Bb",
+      "bpm": 120,
+      "bars_per_chord": 1,
+      "send_mode": "chord"
+    },
+    "discarded_at": "2026-05-29T19:48:27"
+  },
+  {
+    "wav_path": "instruments/jp8000/loops/raw/untitled-prog_120bpm_4bars.wav",
+    "wav_url": "/audio/instruments/jp8000/loops/raw/untitled-prog_120bpm_4bars.wav",
+    "instrument": "jp8000",
+    "style": "progression",
+    "name": "untitled-prog",
+    "captured_at": "2026-05-29T18:55:59",
+    "status": "pending",
+    "params": {
+      "style": "progression",
+      "instrument": "jp8000",
+      "audio_device": "TX-6",
+      "input_channels": "1,2",
+      "midi_port": "mio",
+      "name": "untitled-prog",
+      "progression": "Cm Ab Eb Bb",
+      "bpm": 120,
+      "bars_per_chord": 1,
+      "send_mode": "chord"
+    }
+  },
+  {
+    "wav_path": "instruments/jp8000/loops/raw/untitled-prog_120bpm_8bars.wav",
+    "wav_url": "/audio/instruments/jp8000/loops/raw/untitled-prog_120bpm_8bars.wav",
+    "instrument": "jp8000",
+    "style": "progression",
+    "name": "untitled-prog",
+    "captured_at": "2026-05-29T18:51:32",
+    "status": "pending",
+    "params": {
+      "style": "progression",
+      "instrument": "jp8000",
+      "audio_device": "TX-6",
+      "input_channels": "1,2",
+      "midi_port": "mio",
+      "name": "untitled-prog",
+      "progression": "Cm Ab Eb Bb",
+      "bpm": 120,
+      "bars_per_chord": 2,
+      "send_mode": "chord"
+    }
+  }
+]
