@@ -1357,6 +1357,17 @@
       }
       const data = await pr.json();
       const factory = fr.ok ? await fr.json() : { presets: [] };
+      // Populate the capture "Patch" dropdown from the manifest — so a capture can never
+      // land as "untitled" again (free-text default was the footgun). Preserves selection.
+      const msPatchSel = document.getElementById('ms-patch');
+      if (msPatchSel && msPatchSel.tagName === 'SELECT' && data.patches.length) {
+        const cur = msPatchSel.value;
+        msPatchSel.innerHTML = data.patches.map(p => {
+          const label = p.preset_name ? `${p.preset_position ? p.preset_position + ' · ' : ''}${p.preset_name}` : p.name;
+          return `<option value="${p.name}">${label}</option>`;
+        }).join('');
+        if (cur && data.patches.some(p => p.name === cur)) msPatchSel.value = cur;
+      }
       const s = data.summary;
       summaryEl.innerHTML = `<b style="color: var(--green);">${s.captured}</b> captured · <b style="color: var(--amber);">${s.pending}</b> pending · <b>${s.todo}</b> todo · <b>${s.total}</b> total`;
 
