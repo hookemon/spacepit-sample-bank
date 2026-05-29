@@ -229,7 +229,8 @@ def start(cfg):
     global _thread
     _thread = threading.Thread(target=_run, args=(cfg,), daemon=True)
     _thread.start()
-    _state.update(playing=True, vibe=cfg.get("vibe"), key=cfg.get("key"))
+    # show the resolved realm (so typed text like "dark night 808" reads as "trap")
+    _state.update(playing=True, vibe=resolve_vibe(cfg.get("vibe")), key=cfg.get("key"))
     return {"ok": True}
 
 
