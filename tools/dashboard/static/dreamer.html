@@ -101,10 +101,17 @@
 const PLAYERS = [
   { role:'chords', name:'CHORDS', sub:'1/4 notes',  div:1,    color:'#FF7A18', dport:'mio',              dch:1,  on:true  },
   { role:'bass',   name:'BASS',   sub:'1/8 notes',  div:0.5,  color:'#8B3FFC', dport:'Moog Grandmother', dch:1,  on:true  },
-  { role:'drums',  name:'DRUMS',  sub:'1/16 hats',  div:0.25, color:'#FF3DA6', dport:'EP-133',           dch:10, on:true  },
+  // drums split into kick/snare/hat — three Q*berts share the EP-133 pyramid.
+  // v0: hopper rates show subdivisions only (no phase yet); the backend still
+  // plays drums as a single named pattern. rolesPayload collapses these back
+  // into a single `drums` role so dreamer.py keeps working untouched.
+  { role:'kick',   name:'KICK',   sub:'1/4 notes',  div:1,    color:'#FF3DA6', dport:'EP-133',           dch:10, on:true  },
+  { role:'snare',  name:'SNARE',  sub:'1/4 (backbeat)', div:1,    color:'#FFD93D', dport:'EP-133',       dch:10, on:true  },
+  { role:'hat',    name:'HAT',    sub:'1/8 notes',  div:0.5,  color:'#6BCB77', dport:'EP-133',           dch:10, on:true  },
   { role:'lead',   name:'LEAD',   sub:'1/8 notes',  div:0.5,  color:'#20D5E8', dport:'mio',              dch:1,  on:false },
   { role:'keys',   name:'KEYS',   sub:'1/16 notes', div:0.25, color:'#57E32C', dport:'mio',              dch:1,  on:false },
 ];
+const DRUM_ROLES = new Set(['kick','snare','hat']);
 const ROWS=4, CW=44, CH=22, CS=18, ROWSTEP=28, HEAD=46;
 const VBW = ROWS*CW + CW, VBH = HEAD + (ROWS-1)*ROWSTEP + CH + CS + 20, OX=VBW/2, OY=HEAD;
 const BANK_CUBE = '#3a3a5a'; // neutral pyramid color — the synth is the stage, hoppers wear the player colors
@@ -237,7 +244,16 @@ function retempo(){ const t=parseFloat(document.getElementById('tempo').value); 
 
 function rolesPayload(){
   const roles={};
-  PLAYERS.forEach(p => { roles[p.role] = { enabled: !!p.on, port: p.dport, channel: p.dch }; });
+  // backend expects a single `drums` role — collapse kick/snare/hat into it,
+  // enabled if any drum voice is on; port/channel inherit from the first drum.
+  PLAYERS.forEach(p => {
+    if (DRUM_ROLES.has(p.role)) {
+      if (!roles.drums) roles.drums = { enabled: false, port: p.dport, channel: p.dch };
+      if (p.on) roles.drums.enabled = true;
+    } else {
+      roles[p.role] = { enabled: !!p.on, port: p.dport, channel: p.dch };
+    }
+  });
   return roles;
 }
 document.getElementById('vibes').addEventListener('click',e=>{ const v=e.target.closest('.vibe'); if(!v)return;
