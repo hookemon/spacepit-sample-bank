@@ -1,0 +1,233 @@
+"""the studio dreamer — generative band that plays your physical studio over MIDI.
+
+You assign each PLAYER (character) to a synth + MIDI channel:
+  chords → JP-8000 ch1, bass → Moog ch1, drums → EP-133 ch10, lead → ...
+then pick a VIBE (meditation / hiphop / party) and hit play. The dreamer generates
+endless music in key and fires it to the gear. Probabilistic, so it never repeats exactly.
+
+This is the v0 of the north star ("when you go to bed type shit"). Next: free-text vibes,
+time-of-day scheduling (morning meditation → daytime → party), more characters.
+"""
+import random
+import threading
+import time
+
+try:
+    import mido
+except Exception:
+    mido = None
+
+NOTE_IDX = {"C": 0, "C#": 1, "DB": 1, "D": 2, "D#": 3, "EB": 3, "E": 4, "F": 5,
+            "F#": 6, "GB": 6, "G": 7, "G#": 8, "AB": 8, "A": 9, "A#": 10, "BB": 10, "B": 11}
+SCALES = {"major": [0, 2, 4, 5, 7, 9, 11], "minor": [0, 2, 3, 5, 7, 8, 10],
+          "dorian": [0, 2, 3, 5, 7, 9, 10]}
+CHORDS = {"maj": [0, 4, 7], "min": [0, 3, 7], "maj7": [0, 4, 7, 11], "m7": [0, 3, 7, 10],
+          "m9": [0, 3, 7, 10, 14], "maj9": [0, 4, 7, 11, 14], "7": [0, 4, 7, 10],
+          "m7b5": [0, 3, 6, 10], "add9": [0, 4, 7, 14], "sus4": [0, 5, 7]}
+
+# Each VIBE = the band's mode. prog entries are (scale-degree 0-6, chord quality).
+VIBES = {
+    "meditation": {
+        "tempo": 56, "scale": "major", "chord_beats": 8, "vel": 60,
+        "prog": [(0, "maj9"), (5, "m9"), (3, "maj9"), (4, "sus4")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "hold",
+        "lead_density": 0.5, "lead_oct": 5, "drums": None, "swing": 0.0,
+    },
+    "hiphop": {   # boom-bap — lazy 5-chord jazzy loop, fat bass, dusty drums
+        "tempo": 86, "scale": "dorian", "chord_beats": 4, "vel": 80,
+        "prog": [(0, "m9"), (3, "m7"), (5, "maj7"), (1, "m7b5"), (4, "7")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "root8",
+        "lead_density": 0.15, "lead_oct": 5, "drums": "boombap", "swing": 0.16,
+    },
+    "party": {    # four-on-the-floor rave
+        "tempo": 128, "scale": "minor", "chord_beats": 2, "vel": 92,
+        "prog": [(0, "min"), (5, "maj"), (3, "maj"), (4, "maj")],
+        "chord_oct": 4, "bass_oct": 2, "bass_feel": "root8",
+        "lead_density": 0.0, "lead_oct": 5, "drums": "four", "swing": 0.0,
+    },
+}
+DRUM = {"kick": 36, "snare": 38, "hat": 42, "ohat": 46}
+
+_thread = None
+_stop = threading.Event()
+_ports = {}
+_state = {"playing": False, "vibe": None, "key": None, "chord": None}
+
+
+def _get_port(name):
+    if name not in _ports:
+        _ports[name] = mido.open_output(name)
+    return _ports[name]
+
+
+def _all_off():
+    for p in _ports.values():
+        try:
+            for ch in range(16):
+                p.send(mido.Message("control_change", control=123, value=0, channel=ch))
+        except Exception:
+            pass
+
+
+def _close_ports():
+    _all_off()
+    for p in list(_ports.values()):
+        try:
+            p.close()
+        except Exception:
+            pass
+    _ports.clear()
+
+
+def status():
+    return dict(_state)
+
+
+def stop():
+    _stop.set()
+    global _thread
+    if _thread:
+        _thread.join(timeout=2)
+        _thread = None
+    _close_ports()
+    _state.update(playing=False, chord=None)
+
+
+def start(cfg):
+    """cfg = {vibe, key, tempo?, roles:{chords|bass|lead|drums: {port, channel, enabled}}}"""
+    if mido is None:
+        return {"error": "mido not available"}
+    stop()
+    _stop.clear()
+    global _thread
+    _thread = threading.Thread(target=_run, args=(cfg,), daemon=True)
+    _thread.start()
+    _state.update(playing=True, vibe=cfg.get("vibe"), key=cfg.get("key"))
+    return {"ok": True}
+
+
+def _role(cfg, name):
+    r = (cfg.get("roles") or {}).get(name) or {}
+    if not r.get("enabled") or not r.get("port"):
+        return None
+    return {"port": r["port"], "ch": int(r.get("channel", 1)) - 1}
+
+
+def _send_on(role, note, vel):
+    try:
+        _get_port(role["port"]).send(mido.Message("note_on", note=int(note), velocity=int(vel), channel=role["ch"]))
+    except Exception:
+        pass
+
+
+def _send_off(role, note):
+    try:
+        _get_port(role["port"]).send(mido.Message("note_off", note=int(note), velocity=0, channel=role["ch"]))
+    except Exception:
+        pass
+
+
+def _run(cfg):
+    v = VIBES.get(cfg.get("vibe"), VIBES["meditation"])
+    tempo = float(cfg.get("tempo") or v["tempo"])
+    scale = SCALES[v["scale"]]
+    root = NOTE_IDX.get(str(cfg.get("key", "C")).upper(), 0)
+    vel = v["vel"]
+    beat = 60.0 / tempo
+    step_dur = beat / 4.0                      # 16th grid
+    spc = v["chord_beats"] * 4                 # steps per chord
+
+    chords = _role(cfg, "chords")
+    bass = _role(cfg, "bass")
+    lead = _role(cfg, "lead")
+    drums = _role(cfg, "drums")
+
+    def deg_root(deg):
+        return root + scale[deg % 7] + 12 * (1 + (deg // 7))
+
+    active_chord, active_bass, active_lead = [], [], []
+    pending_off = []   # (off_time, role, note)
+
+    pi = 0
+    while not _stop.is_set():
+        deg, qual = v["prog"][pi % len(v["prog"])]
+        pi += 1
+        ch_root = deg_root(deg)
+        _state["chord"] = f"{cfg.get('key','C')} {v['scale']} · deg {deg+1} {qual}"
+
+        # new chord — swap held notes
+        if chords:
+            for n in active_chord:
+                _send_off(chords, n)
+            active_chord = [ch_root + 12 * (v["chord_oct"] - 4) + iv for iv in CHORDS.get(qual, [0, 4, 7])]
+            for n in active_chord:
+                _send_on(chords, n, vel)
+        if bass and v["bass_feel"] == "hold":
+            for n in active_bass:
+                _send_off(bass, n)
+            active_bass = [ch_root + 12 * (v["bass_oct"] - 4)]
+            for n in active_bass:
+                _send_on(bass, n, vel + 6)
+
+        # one sparse lead phrase per chord (probabilistic)
+        lead_step = random.randint(0, spc - 1) if (lead and random.random() < v["lead_density"]) else -1
+
+        for step in range(spc):
+            if _stop.is_set():
+                break
+            now = time.time()
+            # process scheduled note-offs
+            for off in [p for p in pending_off if p[0] <= now]:
+                _send_off(off[1], off[2])
+            pending_off = [p for p in pending_off if p[0] > now]
+
+            beat_pos = step % 4
+            on_beat = (beat_pos == 0)
+            on_8th = (step % 2 == 0)
+
+            if bass and v["bass_feel"] == "root8" and on_8th:
+                for n in active_bass:
+                    _send_off(bass, n)
+                active_bass = [ch_root + 12 * (v["bass_oct"] - 4)]
+                _send_on(bass, active_bass[0], vel + 8)
+                pending_off.append((now + step_dur * 1.6, bass, active_bass[0]))
+
+            if drums and v["drums"]:
+                hits = []
+                bar_step = step % 16
+                if v["drums"] == "boombap":
+                    if bar_step in (0, 10):
+                        hits.append("kick")
+                    if bar_step in (4, 12):
+                        hits.append("snare")
+                    if step % 2 == 0:
+                        hits.append("hat")
+                elif v["drums"] == "four":
+                    if beat_pos == 0:
+                        hits.append("kick")
+                    if bar_step in (4, 12):
+                        hits.append("snare")
+                    if step % 2 == 1:
+                        hits.append("ohat" if bar_step % 4 == 2 else "hat")
+                for h in hits:
+                    dn = DRUM[h]
+                    _send_on(drums, dn, vel + (10 if h == "kick" else 0))
+                    pending_off.append((now + 0.04, drums, dn))
+
+            if step == lead_step and lead:
+                ln = root + random.choice(scale) + 12 * (v["lead_oct"] - 4)
+                for n in active_lead:
+                    _send_off(lead, n)
+                active_lead = [ln]
+                _send_on(lead, ln, vel - 6)
+                pending_off.append((now + beat * 2, lead, ln))
+
+            # swing the offbeat 16ths
+            sw = step_dur * (1 + v["swing"]) if step % 2 == 1 else step_dur * (1 - v["swing"])
+            time.sleep(max(0.0, sw))
+
+    # cleanup held notes
+    for role, notes in ((chords, active_chord), (bass, active_bass), (lead, active_lead)):
+        if role:
+            for n in notes:
+                _send_off(role, n)

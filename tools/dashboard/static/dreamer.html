@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>the studio dreamer</title>
+<style>
+  :root { --bg:#0a0a0b; --panel:#111113; --border:#26262a; --fg:#e8e6e0; --dim:#8a8780;
+          --faint:#56544e; --amber:#F2B705; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--mono);
+         min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:32px 18px 60px; }
+  h1 { font-size:13px; letter-spacing:.35em; text-transform:uppercase; color:var(--amber);
+       font-weight:700; margin:0 0 4px; }
+  .sub { color:var(--faint); font-size:11px; letter-spacing:.05em; margin-bottom:28px; }
+  .wrap { width:100%; max-width:680px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:20px; margin-bottom:18px; }
+  .label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); margin-bottom:12px; }
+  .row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #1a1a1d; }
+  .row:last-child { border-bottom:none; }
+  .who { width:78px; font-size:13px; color:var(--fg); font-weight:600; }
+  .who small { display:block; color:var(--faint); font-size:9px; font-weight:400; letter-spacing:0; }
+  select, input[type=number], input[type=text] { background:#0c0c0e; color:var(--fg); border:1px solid var(--border);
+         border-radius:3px; padding:6px 8px; font-family:var(--mono); font-size:12px; }
+  select { flex:1; min-width:0; }
+  input[type=number] { width:54px; }
+  .ch-lbl { font-size:10px; color:var(--faint); }
+  input[type=checkbox] { accent-color:var(--amber); width:16px; height:16px; }
+  .vibes { display:flex; gap:10px; flex-wrap:wrap; }
+  .vibe { flex:1; min-width:120px; background:#0c0c0e; border:1px solid var(--border); border-radius:5px;
+          padding:16px 12px; cursor:pointer; text-align:center; transition:all .12s; }
+  .vibe:hover { border-color:#444; }
+  .vibe.on { border-color:var(--amber); background:rgba(242,183,5,0.08); }
+  .vibe .nm { font-size:14px; font-weight:700; color:var(--fg); }
+  .vibe .ds { font-size:10px; color:var(--faint); margin-top:4px; }
+  .vibe.on .nm { color:var(--amber); }
+  .toprow { display:flex; gap:14px; align-items:flex-end; margin-bottom:18px; flex-wrap:wrap; }
+  .field { display:flex; flex-direction:column; gap:5px; }
+  .field .label { margin-bottom:0; }
+  .play { width:100%; padding:18px; font-family:var(--mono); font-size:16px; font-weight:700; letter-spacing:.1em;
+          border:none; border-radius:6px; cursor:pointer; background:var(--amber); color:#000; }
+  .play.stopit { background:#c4453a; color:#fff; }
+  .status { text-align:center; color:var(--dim); font-size:12px; margin-top:14px; min-height:18px; }
+  .status b { color:var(--amber); }
+  a.back { color:var(--faint); font-size:11px; text-decoration:none; }
+  a.back:hover { color:var(--amber); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>the studio dreamer</h1>
+    <div class="sub">assign the players · pick a vibe · the room plays itself &nbsp;·&nbsp; <a class="back" href="/">← the bench</a></div>
+
+    <div class="card">
+      <div class="label">the band — assign each player to a synth</div>
+      <div id="players"></div>
+    </div>
+
+    <div class="card">
+      <div class="toprow">
+        <div class="field"><span class="label">Key</span>
+          <select id="key">
+            <option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option>
+            <option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option>
+            <option>A#</option><option>B</option>
+          </select>
+        </div>
+        <div class="field"><span class="label">Tempo (blank = vibe default)</span>
+          <input type="number" id="tempo" placeholder="auto" style="width:72px;" />
+        </div>
+      </div>
+      <div class="label">the vibe</div>
+      <div class="vibes" id="vibes">
+        <div class="vibe" data-vibe="meditation"><div class="nm">Meditation</div><div class="ds">slow lush pads · sparse melody</div></div>
+        <div class="vibe on" data-vibe="hiphop"><div class="nm">Hip-Hop</div><div class="ds">5-chord boom-bap · fat bass · dusty drums</div></div>
+        <div class="vibe" data-vibe="party"><div class="nm">Party</div><div class="ds">four-on-floor · driving · rave</div></div>
+      </div>
+    </div>
+
+    <button class="play" id="play">▶ &nbsp; PLAY THE ROOM</button>
+    <div class="status" id="status">idle</div>
+  </div>
+
+<script>
+const PLAYERS = [
+  { role:'chords', name:'Chords', hint:'pad / keys', dport:'mio',             dch:1,  on:true  },
+  { role:'bass',   name:'Bass',   hint:'low end',    dport:'Moog Grandmother',dch:1,  on:true  },
+  { role:'drums',  name:'Drums',  hint:'kit',        dport:'EP-133',          dch:10, on:true  },
+  { role:'lead',   name:'Lead',   hint:'melody',     dport:'mio',             dch:1,  on:false },
+];
+let ports = [];
+let vibe = 'hiphop';
+let playing = false;
+
+async function loadPorts() {
+  try { const d = await (await fetch('/api/devices')).json(); ports = d.midi_ports || []; }
+  catch(e) { ports = []; }
+  renderPlayers();
+}
+function portOptions(sel) {
+  return ports.map(p => `<option ${p===sel?'selected':''}>${p}</option>`).join('') ||
+         '<option>(no MIDI ports)</option>';
+}
+function renderPlayers() {
+  document.getElementById('players').innerHTML = PLAYERS.map((p,i) => `
+    <div class="row">
+      <input type="checkbox" data-i="${i}" class="en" ${p.on?'checked':''}>
+      <div class="who">${p.name}<small>${p.hint}</small></div>
+      <select data-i="${i}" class="port">${portOptions(p.dport)}</select>
+      <span class="ch-lbl">ch</span>
+      <input type="number" data-i="${i}" class="chan" min="1" max="16" value="${p.dch}">
+    </div>`).join('');
+}
+function rolesPayload() {
+  const roles = {};
+  document.querySelectorAll('#players .row').forEach((row,i) => {
+    roles[PLAYERS[i].role] = {
+      enabled: row.querySelector('.en').checked,
+      port: row.querySelector('.port').value,
+      channel: parseInt(row.querySelector('.chan').value) || 1,
+    };
+  });
+  return roles;
+}
+document.getElementById('vibes').addEventListener('click', e => {
+  const v = e.target.closest('.vibe'); if(!v) return;
+  vibe = v.dataset.vibe;
+  document.querySelectorAll('.vibe').forEach(x => x.classList.toggle('on', x===v));
+});
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', async () => {
+  if (playing) {
+    await fetch('/api/dreamer/stop', {method:'POST'});
+    playing = false; setPlay();
+    return;
+  }
+  const body = { vibe, key: document.getElementById('key').value,
+                 tempo: parseFloat(document.getElementById('tempo').value) || null,
+                 roles: rolesPayload() };
+  const r = await fetch('/api/dreamer/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if (d.ok) { playing = true; setPlay(); }
+  else { document.getElementById('status').textContent = 'error: ' + (d.error||'?'); }
+});
+function setPlay() {
+  playBtn.textContent = playing ? '■  STOP' : '▶   PLAY THE ROOM';
+  playBtn.classList.toggle('stopit', playing);
+}
+async function poll() {
+  try {
+    const s = await (await fetch('/api/dreamer/status')).json();
+    playing = !!s.playing; setPlay();
+    document.getElementById('status').textContent = s.playing
+      ? `▶ ${s.vibe} in ${s.key} — ${s.chord || '…'}` : 'idle';
+  } catch(e) {}
+}
+loadPorts(); poll(); setInterval(poll, 1500);
+</script>
+</body>
+</html>
