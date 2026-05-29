@@ -105,8 +105,7 @@
       "samples_dir": "patches/pluck-stab/raw",
       "gearbase_preset_id": "P:A42",
       "program_change": 25,
-      "target_mode": "single",
-      "loop": false
+      "target_mode": "single"
     },
     {
       "name": "rave-hoover",
@@ -139,8 +138,7 @@
       "samples_dir": "patches/fm-bell/raw",
       "gearbase_preset_id": "P:B58",
       "program_change": 103,
-      "target_mode": "single",
-      "loop": false
+      "target_mode": "single"
     },
     {
       "name": "sub-bass",
