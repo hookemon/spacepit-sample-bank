@@ -154,3 +154,25 @@ All defined in `~/.zshrc`. Available from any Terminal tab.
 | `gmpanic` | Send MIDI panic to clear stuck notes on the Grandmother |
 | `gmjitter [bpm] [dur] [send]` | Measure MIDI clock jitter |
 | `bank` | `cd` into the sample-bank repo |
+
+## the studio dreamer  (`/dreamer`)
+
+Generative band that plays your physical studio over MIDI. Assign players
+(chords / bass / drums / lead) to synth ports + channels, pick a vibe, hit
+**PLAY THE ROOM**. `localhost:8001/dreamer`.
+
+**Shipped (v0):**
+- 7 vibes — meditation, ambient, lofi, hiphop (5-chord boom-bap), house, party, trap
+- free-text vibe box — type a feeling ("rainy study", "dark night 808") → closest mood
+- per-player synth/channel assignment; generative 16th-step engine (swing + probabilities)
+- time-of-day auto-schedule scaffold (6am meditation → 9am lofi → 1pm hiphop → 6pm house → 10pm party → ambient overnight). OFF by default.
+
+**Next:**
+- per-player density / energy knobs (busier or sparser, on the fly)
+- pull chord voicings + patterns from the captured patch bank + pattern library
+- richer drum routing per machine (KO/EP-133 pad maps, not just GM notes)
+- editable schedule UI + sunrise/sunset triggers
+- record the dreamer's output back to audio
+- whole-studio: every synth firing at once
+
+**API:** `POST /api/dreamer/start {vibe,key,tempo,roles}` · `POST /api/dreamer/stop` · `GET /api/dreamer/status` · `GET|POST /api/dreamer/schedule`
