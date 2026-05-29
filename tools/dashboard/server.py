@@ -123,7 +123,9 @@ def compute_instrument_progress(slug: str) -> dict:
         "category": manifest.get("category", "?"),
         "tier": tier,
         "patches": patches,
-        "patch_count": len(patches),
+        # total = how many patches the instrument HAS (from the manifest), not how many
+        # folders exist on disk yet — so the progress reads "1/12" not "1/1" mid-capture.
+        "patch_count": len(manifest.get("patches", [])) or len(patches),
         "loops_count": loops_raw,
         "sweeps_count": sweeps_raw,
         "photos_count": photos,
