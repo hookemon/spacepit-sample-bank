@@ -86,6 +86,15 @@
 
     <button class="play" id="play">▶ &nbsp; PLAY THE ROOM</button>
     <div class="status" id="status">idle</div>
+
+    <div class="card" style="margin-top:22px;">
+      <div class="label">auto-schedule — let the room run the day on its own</div>
+      <div id="sched-arc" style="font-size:12px; color:var(--dim); line-height:1.95;">…</div>
+      <label style="display:flex; align-items:center; gap:9px; margin-top:12px; cursor:pointer; font-size:13px;">
+        <input type="checkbox" id="sched-on"> 🌅 run the day arc automatically
+      </label>
+      <div style="font-size:10px; color:var(--faint); margin-top:6px;">uses the players assigned above · switches vibe by time of day · off by default</div>
+    </div>
   </div>
 
 <script>
@@ -167,7 +176,23 @@ async function poll() {
       ? `▶ ${s.vibe} in ${s.key} — ${s.chord || '…'}` : 'idle';
   } catch(e) {}
 }
-loadPorts(); poll(); setInterval(poll, 1500);
+async function loadSchedule() {
+  try {
+    const s = await (await fetch('/api/dreamer/schedule')).json();
+    const arc = (s.blocks||[]).slice().sort((a,b)=>a.hour-b.hour).map(b => {
+      const h = b.hour % 12 || 12, ap = b.hour < 12 ? 'am' : 'pm';
+      return `${h}${ap} <b style="color:var(--amber)">${b.vibe}</b>`;
+    }).join(' &nbsp;→&nbsp; ');
+    document.getElementById('sched-arc').innerHTML = arc || '(no schedule)';
+    document.getElementById('sched-on').checked = !!s.enabled;
+  } catch(e) {}
+}
+document.getElementById('sched-on').addEventListener('change', async e => {
+  await fetch('/api/dreamer/schedule', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ enabled: e.target.checked, roles: rolesPayload(),
+                           key: document.getElementById('key').value }) });
+});
+loadPorts(); poll(); loadSchedule(); setInterval(poll, 1500);
 </script>
 </body>
 </html>

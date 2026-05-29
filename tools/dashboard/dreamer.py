@@ -133,7 +133,81 @@ def status():
     return dict(_state)
 
 
-def stop():
+# ---------------- time-of-day scheduler (scaffold) ----------------
+# "morning meditation → picks up in the day → party at night." Default OFF so it never
+# fires on its own. When enabled, a watcher checks the clock and switches the vibe to the
+# active block, reusing the saved players (roles) + key. v0 scaffold — wire the day-arc.
+_sched = {
+    "enabled": False,
+    "key": "C",
+    "roles": None,            # last-used player assignment; set when enabled
+    "blocks": [               # hour (0-23) → vibe; active block = latest hour <= now
+        {"hour": 6, "vibe": "meditation"},
+        {"hour": 8, "vibe": "lofi"},
+        {"hour": 12, "vibe": "hiphop"},
+        {"hour": 17, "vibe": "house"},
+        {"hour": 21, "vibe": "party"},
+        {"hour": 23, "vibe": "ambient"},
+    ],
+}
+_sched_thread = None
+_sched_stop = threading.Event()
+_sched_last = None
+
+
+def _active_block(hour):
+    blocks = sorted(_sched["blocks"], key=lambda b: b["hour"])
+    pick = blocks[-1]                       # wrap: before the first block = last night's block
+    for b in blocks:
+        if b["hour"] <= hour:
+            pick = b
+    return pick
+
+
+def get_schedule():
+    return dict(_sched)
+
+
+def set_schedule(cfg):
+    """Update the schedule. cfg may include blocks, key, roles, enabled."""
+    global _sched_thread, _sched_last
+    if "blocks" in cfg and cfg["blocks"]:
+        _sched["blocks"] = cfg["blocks"]
+    if "key" in cfg:
+        _sched["key"] = cfg["key"]
+    if "roles" in cfg and cfg["roles"]:
+        _sched["roles"] = cfg["roles"]
+    if "enabled" in cfg:
+        _sched["enabled"] = bool(cfg["enabled"])
+
+    if _sched["enabled"]:
+        _sched_stop.clear()
+        _sched_last = None
+        if _sched_thread is None or not _sched_thread.is_alive():
+            _sched_thread = threading.Thread(target=_sched_run, daemon=True)
+            _sched_thread.start()
+    else:
+        _sched_stop.set()
+    return get_schedule()
+
+
+def _sched_run():
+    """When enabled, switch the dreamer's vibe to match the time-of-day block."""
+    global _sched_last
+    while not _sched_stop.is_set() and _sched["enabled"]:
+        hour = time.localtime().tm_hour
+        block = _active_block(hour)
+        if block["vibe"] != _sched_last and _sched["roles"]:
+            _sched_last = block["vibe"]
+            start({"vibe": block["vibe"], "key": _sched["key"], "roles": _sched["roles"]})
+        # check again in ~30s (cheap; clock only moves so fast)
+        for _ in range(30):
+            if _sched_stop.is_set():
+                break
+            time.sleep(1)
+
+
+def stop(disable_schedule=True):
     _stop.set()
     global _thread
     if _thread:
@@ -141,13 +215,16 @@ def stop():
         _thread = None
     _close_ports()
     _state.update(playing=False, chord=None)
+    if disable_schedule:                  # a manual STOP also halts the auto-scheduler
+        _sched["enabled"] = False
+        _sched_stop.set()
 
 
 def start(cfg):
     """cfg = {vibe, key, tempo?, roles:{chords|bass|lead|drums: {port, channel, enabled}}}"""
     if mido is None:
         return {"error": "mido not available"}
-    stop()
+    stop(disable_schedule=False)          # switching vibes must not kill the auto-scheduler
     _stop.clear()
     global _thread
     _thread = threading.Thread(target=_run, args=(cfg,), daemon=True)

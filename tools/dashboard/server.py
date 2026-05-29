@@ -1275,6 +1275,18 @@ def dreamer_status():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/dreamer/schedule", methods=["GET", "POST"])
+def dreamer_schedule():
+    """Time-of-day auto-play: GET the day-arc, POST to set blocks / enable. Default OFF."""
+    try:
+        d = _get_dreamer()
+        if request.method == "POST":
+            return jsonify(d.set_schedule(request.get_json() or {}))
+        return jsonify(d.get_schedule())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/patterns/progressions")
 def list_progressions():
     """List saved chord progression patterns from the library."""
