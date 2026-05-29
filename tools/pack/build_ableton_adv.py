@@ -244,17 +244,39 @@ def build_sample_part(
 					</MultiSamplePart>"""
 
 
-def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str] = None) -> bytes:
+def _set_amp_release(xml: str, release_ms: float) -> str:
+    """Set the AMP (volume) envelope's ReleaseTime so notes ring out on key-up like the
+    real patch (pads ~1s, basses tight) — the template default is a too-short 50ms that
+    cuts pads off abruptly. Targets the amp env by its SustainLevel=1 signature (the
+    filter env is Sustain=0), so we can never touch the filter or pitch envelope. Bails
+    safely (no change) if the template structure isn't what we expect."""
+    rel = max(1.0, min(60000.0, float(release_ms)))
+    parts = xml.split("<Envelope>")
+    sustain_full = re.compile(r'<SustainLevel>\s*<LomId Value="0" />\s*<Manual Value="1"')
+    for i in range(1, len(parts)):
+        if sustain_full.search(parts[i]):                       # this is the amp env
+            parts[i] = re.sub(
+                r'(<ReleaseTime>\s*<LomId Value="0" />\s*<Manual Value=)"[\d.]+"',
+                rf'\g<1>"{rel:.4f}"', parts[i], count=1)
+            return "<Envelope>".join(parts)
+    return xml   # structure unexpected — leave release untouched rather than risk it
+
+
+def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str] = None,
+              release_ms: Optional[float] = None) -> bytes:
     """Splice generated SampleParts into the template, gzip the result.
 
     Works for both .adv (raw Sampler) and .adg (Instrument-Rack-wrapped Sampler)
     templates — both have a <SampleParts>...</SampleParts> section that holds
     one or more <MultiSamplePart> blocks. We just replace its contents. If
     patch_name is given, the leftover template device name (a stray
-    "hookesquelch-bite" from the original export) is renamed to it.
+    "hookesquelch-bite" from the original export) is renamed to it. If release_ms
+    is given, the amp envelope's release is set so note-off rings out like the synth.
     """
     if patch_name:
         template_xml = template_xml.replace("hookesquelch-bite", patch_name)
+    if release_ms is not None:
+        template_xml = _set_amp_release(template_xml, release_ms)
     # Loop Snap ON (snaps loop points to zero crossings) — the factory presets all
     # ship with this on; ours was off, which can leave a click at the loop seam.
     template_xml = re.sub(
@@ -295,6 +317,7 @@ def build_presets_for_wavs(
     formats: tuple = ("adv", "adg"),
     templates_dir: Optional[Path] = None,
     loop: bool = True,
+    release_ms: Optional[float] = None,
 ) -> dict:
     """Build Ableton .adv and/or .adg files from a list of WAV paths.
 
@@ -369,7 +392,7 @@ def build_presets_for_wavs(
     for ext in formats:
         template_name = "ableton-sampler-template.xml" if ext == "adv" else "ableton-rack-template.xml"
         template_xml = (templates_dir / template_name).read_text()
-        data = build_adv(template_xml, sample_parts_combined, patch_name)
+        data = build_adv(template_xml, sample_parts_combined, patch_name, release_ms=release_ms)
         out_path = out_dir / f"{patch_name}.{ext}"
         out_path.write_bytes(data)
         written.append(out_path)

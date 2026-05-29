@@ -468,6 +468,13 @@ def main() -> None:
                             subprocess.run(_bake_cmd, capture_output=True, text=True, timeout=120)
                         except Exception as _le:
                             print(f"  ⚠ loop-finder skipped for {patch_name}/{chain}: {_le}")
+                # Amp-envelope release by patch ROLE so note-off rings out like the synth
+                # (the template default is a too-short 50ms that cuts pads off). Pads ring,
+                # basses stay tight. Deterministic — no fragile audio guessing.
+                _role = next((p.get("role", "") for p in manifest.get("patches", [])
+                              if p.get("name") == patch_name), "")
+                _release_ms = {"pad": 1000.0, "keys": 400.0, "lead": 250.0,
+                               "bass": 120.0, "synth": 350.0}.get(_role, 300.0)
                 if _build_ableton_presets and wav_dest_paths:
                     try:
                         result = _build_ableton_presets(
@@ -475,6 +482,7 @@ def main() -> None:
                             out_dir=pack_dir / "instruments/ableton",
                             patch_name=ableton_label,
                             formats=("adv", "adg"),
+                            release_ms=_release_ms,
                         )
                         if result.get("written"):
                             ableton_preset_count += len(result["written"])
