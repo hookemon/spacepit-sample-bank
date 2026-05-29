@@ -66,8 +66,8 @@ Sends a drum pattern from `patterns/drums/` via MIDI. Useful for SP-808-style dr
 
 ### Playback panel
 
-After a capture lands here, you can:
-- ✂ **Trim + Normalize** — strip leading silence, fade out, normalize to -3 dBFS
+Captures arrive here already trimmed + opening hot (auto-cleaned at capture time;
+loudness is matched across the whole pack at build). From here you can:
 - ✓ **Keep + Save Notes** — write the WAV path + notes to a sidecar `.json`
 - 🔄 **Retake** — fire the same capture again
 - ✗ **Discard** — delete the WAV + sidecar

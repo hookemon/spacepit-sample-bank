@@ -2661,41 +2661,6 @@ def create_instrument():
     return jsonify({"ok": True, "slug": slug, "path": str(instr_dir.relative_to(BANK_ROOT))})
 
 
-@app.route("/api/trim-wav", methods=["POST"])
-def trim_wav():
-    """Auto-trim a single WAV: cut leading silence, gentle fade-out, normalize to -3 dBFS.
-    Modifies the file in place. Returns new duration + peak."""
-    params = request.get_json() or {}
-    wav_rel = params.get("wav_path")
-    if not wav_rel:
-        return jsonify({"ok": False, "error": "wav_path required"}), 400
-    wav_path = Path(wav_rel) if Path(wav_rel).is_absolute() else BANK_ROOT / wav_rel
-    if not wav_path.exists():
-        return jsonify({"ok": False, "error": f"WAV not found: {wav_path}"}), 404
-
-    py = str(VENV_PY) if VENV_PY.exists() else sys.executable
-    # Run clean-wavs.py on the single file (it walks --dir, but we point at the parent
-    # and let it process — actually it'd process all WAVs in that dir, which is wrong for one file).
-    # Use python inline to trim just this one.
-    inline = f"""
-import sys
-sys.path.insert(0, '{TOOLS_DIR}/pack')
-from importlib.util import spec_from_file_location, module_from_spec
-spec = spec_from_file_location('cw', '{TOOLS_DIR}/pack/clean-wavs.py')
-mod = module_from_spec(spec); spec.loader.exec_module(mod)
-result = mod.clean_one(__import__('pathlib').Path('{wav_path}'))
-import json; print(json.dumps(result))
-"""
-    try:
-        result = subprocess.run([py, "-c", inline], capture_output=True, text=True, timeout=30)
-        if result.returncode != 0:
-            return jsonify({"ok": False, "error": result.stderr[-1000:]}), 500
-        info = json.loads(result.stdout.strip().split("\n")[-1])
-        return jsonify({"ok": True, **info})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
 @app.route("/api/audit-pack", methods=["POST"])
 def audit_pack():
     """Run a full QC audit on the built pack."""

@@ -1668,38 +1668,6 @@
     els.captureBtn.click();
   });
 
-  document.getElementById('trim-btn').addEventListener('click', async () => {
-    if (!lastCapture) return;
-    const btn = document.getElementById('trim-btn');
-    btn.disabled = true;
-    setStatus('Trimming + normalizing…', 'busy');
-    try {
-      const r = await fetch('/api/trim-wav', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wav_path: lastCapture.wav_path }),
-      });
-      const data = await r.json();
-      if (data.ok) {
-        const trimmedStart = Math.round(data.trimmed_ms_start || 0);
-        const trimmedEnd = Math.round(data.trimmed_ms_end || 0);
-        const before = (data.len_in_sec || 0).toFixed(2);
-        const after = (data.len_out_sec || 0).toFixed(2);
-        setStatus(`✓ Trimmed: ${before}s → ${after}s (cut ${trimmedStart}ms start + ${trimmedEnd}ms end, normalized to -3 dBFS)`, 'success');
-        // re-render waveform with the cleaned file
-        const url = lastCapture.wav_url + `?t=${Date.now()}`;
-        els.audioPlayer.src = url;
-        els.audioPlayer.load();
-        drawWaveform(url);
-      } else {
-        setStatus(`Trim failed: ${data.error}`, 'error');
-      }
-    } catch (e) {
-      setStatus(`Error: ${e.message}`, 'error');
-    } finally {
-      btn.disabled = false;
-    }
-  });
 
   // ---------- saved progressions ----------
   let allProgressions = [];
