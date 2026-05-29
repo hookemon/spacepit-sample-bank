@@ -7,84 +7,64 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#06060f; --ink:#eef0ff; --dim:#9aa0c8; --faint:#565c86; --gold:#ffd23f; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:
-           radial-gradient(circle at 50% -10%, #1a1640 0%, #06060f 55%),
-           var(--bg);
-         color:var(--ink); font-family:'Press Start 2P', ui-monospace, Menlo, monospace;
-         min-height:100vh; padding:30px 16px 70px; overflow-x:hidden; }
-  /* CRT scanlines */
-  body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:99;
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px); }
-  .wrap { max-width:840px; margin:0 auto; }
-  h1 { font-size:20px; text-align:center; letter-spacing:1px; margin:0 0 10px;
-       color:var(--gold); text-shadow:3px 3px 0 #b3003a, 6px 6px 0 rgba(0,0,0,0.5); line-height:1.5; }
-  .sub { text-align:center; font-size:8px; color:var(--faint); letter-spacing:1px; margin-bottom:30px; line-height:1.8; }
-  .sub a { color:var(--dim); text-decoration:none; } .sub a:hover { color:var(--gold); }
+  :root{ --bg:#06060f; --ink:#eef0ff; --dim:#9aa0c8; --faint:#565c86; --gold:#ffd23f; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:radial-gradient(circle at 50% -10%, #1a1640 0%, #06060f 55%), var(--bg);
+        color:var(--ink); font-family:'Press Start 2P',ui-monospace,Menlo,monospace; padding:26px 14px 70px; }
+  body::after{ content:''; position:fixed; inset:0; pointer-events:none; z-index:99;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px); }
+  .wrap{ max-width:1100px; margin:0 auto; }
+  h1{ font-size:19px; text-align:center; color:var(--gold); margin:0 0 8px;
+      text-shadow:3px 3px 0 #b3003a, 6px 6px 0 rgba(0,0,0,.5); line-height:1.5; }
+  .sub{ text-align:center; font-size:8px; color:var(--faint); margin-bottom:24px; line-height:1.9; }
+  .sub a{ color:var(--dim); text-decoration:none; } .sub a:hover{ color:var(--gold); }
 
-  .realms { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:26px; }
-  @media(max-width:680px){ .realms{ grid-template-columns:repeat(2,1fr);} }
-  .realm { text-align:center; }
-  .stage { height:96px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:6px; }
-  .realm.off .stage { filter:grayscale(1) brightness(0.5); }
-  .qb { transition:transform .15s; }
-  /* each player runs at its OWN rate via --hop (drummer fast 16ths, chords slow swell) */
-  .realm.live .qb { animation:hop var(--hop,500ms) ease-in-out infinite; }
-  @keyframes hop {
-    0%,100% { transform:translateY(0) rotate(0deg); }
-    25%     { transform:translateY(-12px) rotate(-7deg); }
-    50%     { transform:translateY(0) rotate(0deg); }
-    75%     { transform:translateY(-12px) rotate(7deg); }
-  }
-  .pname { font-size:9px; color:var(--ink); margin-bottom:8px; }
-  .realm.off .pname { color:var(--faint); }
-  .realm select { width:100%; font-family:inherit; font-size:7px; padding:5px 3px; background:#0d0d1c;
-       color:var(--ink); border:2px solid #2a2a4a; border-radius:0; }
-  .realm .chrow { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:5px; font-size:7px; color:var(--faint); }
-  .realm .chrow input[type=number]{ width:30px; font-family:inherit; font-size:7px; padding:3px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
-  .realm .en { width:14px; height:14px; }
+  /* the linked pyramids */
+  .pyramids{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:4px; margin-bottom:26px; }
+  .pyr{ width:184px; cursor:pointer; transition:transform .2s; padding:4px; }
+  .pyr.focus{ transform:scale(1.12); }
+  .pyr.dim{ opacity:.4; }
+  .pyr.off{ filter:grayscale(1) brightness(.5); opacity:.5; }
+  .pyr svg{ display:block; width:100%; overflow:visible; }
+  .hopper{ transition:transform var(--hopdur,300ms) cubic-bezier(.4,-0.4,.5,1.4); }
+  .plabel{ text-align:center; font-size:9px; margin-top:2px; }
+  .psub{ text-align:center; font-size:7px; color:var(--faint); margin-top:4px; line-height:1.7; }
+  .pyr select{ width:100%; margin-top:5px; font-family:inherit; font-size:7px; padding:4px 2px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .pyr .chrow{ display:flex; align-items:center; justify-content:center; gap:5px; margin-top:4px; font-size:7px; color:var(--faint); }
+  .pyr .chrow input[type=number]{ width:28px; font-family:inherit; font-size:7px; padding:2px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
 
-  .panel { background:rgba(13,13,28,0.7); border:3px solid #2a2a4a; padding:16px; margin-bottom:16px; }
-  .lab { font-size:8px; color:var(--gold); letter-spacing:1px; margin-bottom:12px; }
-  .vibes { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+  .panel{ background:rgba(13,13,28,.7); border:3px solid #2a2a4a; padding:16px; margin-bottom:16px; }
+  .lab{ font-size:8px; color:var(--gold); margin-bottom:12px; }
+  .vibes{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
   @media(max-width:680px){ .vibes{ grid-template-columns:repeat(2,1fr);} }
-  .vibe { padding:11px 6px; background:#0d0d1c; border:2px solid #2a2a4a; cursor:pointer; font-size:8px; color:var(--dim); text-align:center; line-height:1.5; }
-  .vibe:hover { border-color:#555; }
-  .vibe.on { border-color:var(--gold); color:var(--gold); background:rgba(255,210,63,0.08); box-shadow:0 0 0 1px var(--gold) inset; }
-  #vibe-text { width:100%; margin-top:10px; font-family:inherit; font-size:9px; padding:10px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
-  .tinytip { font-size:7px; color:var(--faint); margin-top:6px; line-height:1.7; }
-  .toprow { display:flex; gap:16px; align-items:center; margin-bottom:14px; flex-wrap:wrap; font-size:8px; color:var(--dim); }
-  .toprow select, .toprow input { font-family:inherit; font-size:8px; padding:6px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
-
-  .play { width:100%; padding:20px; font-family:inherit; font-size:14px; letter-spacing:1px; cursor:pointer;
-    color:#180000; background:var(--gold); border:none;
-    box-shadow:0 6px 0 #b3003a, 0 8px 12px rgba(0,0,0,0.6); }
-  .play:active { transform:translateY(4px); box-shadow:0 2px 0 #b3003a; }
-  .play.stop { background:#ff3da6; color:#fff; box-shadow:0 6px 0 #7a004a; }
-  .status { text-align:center; font-size:8px; color:var(--dim); margin-top:16px; min-height:14px; line-height:1.8; }
-  .status b { color:var(--gold); }
-  .sched-arc { font-size:8px; color:var(--dim); line-height:2.2; }
-  .sched-arc b { color:var(--gold); }
-  label.toggle { display:flex; align-items:center; gap:9px; margin-top:12px; cursor:pointer; font-size:8px; color:var(--ink); }
+  .vibe{ padding:11px 6px; background:#0d0d1c; border:2px solid #2a2a4a; cursor:pointer; font-size:8px; color:var(--dim); text-align:center; }
+  .vibe:hover{ border-color:#555; }
+  .vibe.on{ border-color:var(--gold); color:var(--gold); background:rgba(255,210,63,.08); }
+  #vibe-text{ width:100%; margin-top:10px; font-family:inherit; font-size:9px; padding:10px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .tinytip{ font-size:7px; color:var(--faint); margin-top:6px; line-height:1.7; }
+  .toprow{ display:flex; gap:16px; align-items:center; margin-bottom:14px; flex-wrap:wrap; font-size:8px; color:var(--dim); }
+  .toprow select,.toprow input{ font-family:inherit; font-size:8px; padding:6px; background:#0d0d1c; color:var(--ink); border:2px solid #2a2a4a; }
+  .play{ width:100%; padding:20px; font-family:inherit; font-size:14px; cursor:pointer; color:#180000; background:var(--gold); border:none; box-shadow:0 6px 0 #b3003a,0 8px 12px rgba(0,0,0,.6); }
+  .play:active{ transform:translateY(4px); box-shadow:0 2px 0 #b3003a; }
+  .play.stop{ background:#ff3da6; color:#fff; box-shadow:0 6px 0 #7a004a; }
+  .status{ text-align:center; font-size:8px; color:var(--dim); margin-top:16px; min-height:14px; line-height:1.8; }
+  .status b{ color:var(--gold); }
+  .sched-arc{ font-size:8px; color:var(--dim); line-height:2.2; } .sched-arc b{ color:var(--gold); }
+  label.toggle{ display:flex; align-items:center; gap:9px; margin-top:12px; cursor:pointer; font-size:8px; }
 </style>
 </head>
 <body>
   <div class="wrap">
     <h1>THE STUDIO DREAMER</h1>
-    <div class="sub">FIVE PLAYERS · ONE ROOM · IT PLAYS ITSELF<br><a href="/">&larr; BACK TO THE BENCH</a></div>
+    <div class="sub">FIVE PLAYERS · FIVE PYRAMIDS · EACH HOPS TO ITS OWN RHYTHM<br>
+      <a href="/">&larr; BACK TO THE BENCH</a> &nbsp;·&nbsp; click a pyramid to focus it</div>
 
-    <div class="realms" id="realms"></div>
+    <div class="pyramids" id="pyramids"></div>
 
     <div class="panel">
       <div class="toprow">
-        <span>KEY
-          <select id="key">
-            <option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option>
-            <option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option>
-          </select>
-        </span>
-        <span>TEMPO <input type="number" id="tempo" placeholder="auto" style="width:62px;" /></span>
+        <span>KEY <select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></span>
+        <span>TEMPO <input type="number" id="tempo" placeholder="auto" style="width:62px;" oninput="retempo()"/></span>
       </div>
       <div class="lab">PICK A LEVEL</div>
       <div class="vibes" id="vibes">
@@ -96,8 +76,8 @@
         <div class="vibe" data-vibe="party">PARTY</div>
         <div class="vibe" data-vibe="trap">TRAP</div>
       </div>
-      <input type="text" id="vibe-text" placeholder="OR TYPE A FEELING: rainy study / euphoric / dark night / floating" />
-      <div class="tinytip">type how it should feel &mdash; the dreamer picks the closest realm &mdash; blank = use a level above</div>
+      <input type="text" id="vibe-text" placeholder="OR TYPE A FEELING: rainy study / euphoric / dark night / floating"/>
+      <div class="tinytip">type how it should feel &mdash; the dreamer picks the closest realm</div>
     </div>
 
     <button class="play" id="play">&#9654; &nbsp; PLAY THE ROOM</button>
@@ -112,108 +92,122 @@
   </div>
 
 <script>
-// five players, five Q*bert realms. color = realm hue.
+// each player: a pyramid + a Q*bert hopping at its note subdivision.
 const PLAYERS = [
-  { role:'chords', name:'CHORDS', color:'#FF7A18', dport:'mio',              dch:1,  on:true,  hop:1100 }, // slow swell
-  { role:'bass',   name:'BASS',   color:'#8B3FFC', dport:'Moog Grandmother', dch:1,  on:true,  hop:520  }, // on the 8s
-  { role:'drums',  name:'DRUMS',  color:'#FF3DA6', dport:'EP-133',           dch:10, on:true,  hop:230  }, // 16th hats, running
-  { role:'lead',   name:'LEAD',   color:'#20D5E8', dport:'mio',              dch:1,  on:false, hop:760  },
-  { role:'keys',   name:'KEYS',   color:'#57E32C', dport:'mio',              dch:1,  on:false, hop:380  }, // sparkly
+  { role:'chords', name:'CHORDS', sub:'1/4 notes',  div:1,    color:'#FF7A18', dport:'mio',              dch:1,  on:true  },
+  { role:'bass',   name:'BASS',   sub:'1/8 notes',  div:0.5,  color:'#8B3FFC', dport:'Moog Grandmother', dch:1,  on:true  },
+  { role:'drums',  name:'DRUMS',  sub:'1/16 hats',  div:0.25, color:'#FF3DA6', dport:'EP-133',           dch:10, on:true  },
+  { role:'lead',   name:'LEAD',   sub:'1/8 notes',  div:0.5,  color:'#20D5E8', dport:'mio',              dch:1,  on:false },
+  { role:'keys',   name:'KEYS',   sub:'1/16 notes', div:0.25, color:'#57E32C', dport:'mio',              dch:1,  on:false },
 ];
-let ports = [], vibe = 'hiphop', playing = false;
+const ROWS=4, CW=44, CH=22, CS=18, ROWSTEP=28, HEAD=46;
+const VBW = ROWS*CW + CW, VBH = HEAD + (ROWS-1)*ROWSTEP + CH + CS + 20, OX=VBW/2, OY=HEAD;
+let ports=[], vibe='hiphop', playing=false, tempo=92;
+const timers={};
 
-function darken(hex, f) {
-  const n = parseInt(hex.slice(1),16);
-  const r=Math.round(((n>>16)&255)*(1-f)), g=Math.round(((n>>8)&255)*(1-f)), b=Math.round((n&255)*(1-f));
-  return `rgb(${r},${g},${b})`;
+function darken(hex,f){ const n=parseInt(hex.slice(1),16);
+  return `rgb(${Math.round(((n>>16)&255)*(1-f))},${Math.round(((n>>8)&255)*(1-f))},${Math.round((n&255)*(1-f))})`; }
+function cubeXY(r,i){ return { x: OX + (i - r/2)*CW, y: OY + r*ROWSTEP }; }
+function cubeCells(){ const c=[]; for(let r=0;r<ROWS;r++) for(let i=0;i<=r;i++) c.push({r,i}); return c; }
+
+function cubeSVG(x,y,c){
+  const top=c, L=darken(c,0.32), R=darken(c,0.54), hw=CW/2, hh=CH/2;
+  return `<polygon points="${x},${y-hh} ${x+hw},${y} ${x},${y+hh} ${x-hw},${y}" fill="${top}" stroke="#0a0a16" stroke-width="1"/>
+    <polygon points="${x-hw},${y} ${x},${y+hh} ${x},${y+hh+CS} ${x-hw},${y+CS}" fill="${L}" stroke="#0a0a16" stroke-width="1"/>
+    <polygon points="${x+hw},${y} ${x},${y+hh} ${x},${y+hh+CS} ${x+hw},${y+CS}" fill="${R}" stroke="#0a0a16" stroke-width="1"/>`;
 }
-// isometric Q*bert cube + hopper, tinted to the realm color
-function realmSVG(c) {
-  const top=c, left=darken(c,0.30), right=darken(c,0.52), body=c, bodyD=darken(c,0.35);
-  return `<svg class="qb" width="84" height="92" viewBox="0 0 84 92">
-    <!-- cube -->
-    <polygon points="42,40 78,58 42,76 6,58" fill="${top}"/>
-    <polygon points="6,58 42,76 42,92 6,74" fill="${left}"/>
-    <polygon points="78,58 42,76 42,92 78,74" fill="${right}"/>
-    <!-- q*bert: body, snout, feet, eyes -->
-    <ellipse cx="42" cy="30" rx="17" ry="16" fill="${body}"/>
-    <rect x="50" y="28" width="16" height="9" rx="4" fill="${bodyD}"/>
-    <rect x="33" y="44" width="7" height="8" rx="2" fill="${bodyD}"/>
-    <rect x="44" y="44" width="7" height="8" rx="2" fill="${bodyD}"/>
-    <ellipse cx="38" cy="22" rx="6" ry="7" fill="#fff"/><ellipse cx="48" cy="22" rx="6" ry="7" fill="#fff"/>
-    <circle cx="39" cy="24" r="2.4" fill="#111"/><circle cx="49" cy="24" r="2.4" fill="#111"/>
-  </svg>`;
+function hopperSVG(c){ const d=darken(c,0.38);  // q*bert centered with feet at (0,0)
+  return `<g class="hopper">
+    <ellipse cx="0" cy="-24" rx="13" ry="12" fill="${c}"/>
+    <rect x="6" y="-26" width="13" height="7" rx="3" fill="${d}"/>
+    <rect x="-7" y="-6" width="6" height="7" rx="2" fill="${d}"/><rect x="1" y="-6" width="6" height="7" rx="2" fill="${d}"/>
+    <ellipse cx="-4" cy="-30" rx="4.5" ry="5.5" fill="#fff"/><ellipse cx="4" cy="-30" rx="4.5" ry="5.5" fill="#fff"/>
+    <circle cx="-3" cy="-28" r="1.8" fill="#111"/><circle cx="5" cy="-28" r="1.8" fill="#111"/>
+  </g>`;
 }
-async function loadPorts(){
-  try { ports = (await (await fetch('/api/devices')).json()).midi_ports || []; } catch(e){ ports=[]; }
-  renderRealms();
+function pyramidSVG(c){
+  let cubes=''; for(let r=0;r<ROWS;r++) for(let i=0;i<=r;i++){ const p=cubeXY(r,i); cubes+=cubeSVG(p.x,p.y,c); }
+  return `<svg viewBox="0 0 ${VBW} ${VBH}">${cubes}${hopperSVG(c)}</svg>`;
 }
-function portOpts(sel){ return ports.map(p=>`<option ${p===sel?'selected':''}>${p}</option>`).join('') || '<option>(no ports)</option>'; }
-function renderRealms(){
-  document.getElementById('realms').innerHTML = PLAYERS.map((p,i)=>`
-    <div class="realm ${p.on?'':'off'}" data-i="${i}" style="--hop:${p.hop}ms">
-      <div class="stage">${realmSVG(p.color)}</div>
-      <div class="pname" style="color:${p.on?p.color:''}">${p.name}</div>
+
+async function loadPorts(){ try{ ports=(await (await fetch('/api/devices')).json()).midi_ports||[]; }catch(e){ ports=[]; } render(); }
+function portOpts(sel){ return ports.map(p=>`<option ${p===sel?'selected':''}>${p}</option>`).join('')||'<option>(no ports)</option>'; }
+
+function render(){
+  document.getElementById('pyramids').innerHTML = PLAYERS.map((p,i)=>`
+    <div class="pyr ${p.on?'':'off'}" data-i="${i}">
+      ${pyramidSVG(p.color)}
+      <div class="plabel" style="color:${p.on?p.color:''}">${p.name}</div>
+      <div class="psub">${p.sub}</div>
       <select class="port" data-i="${i}">${portOpts(p.dport)}</select>
-      <div class="chrow">
-        <label><input type="checkbox" class="en" data-i="${i}" ${p.on?'checked':''}> on</label>
-        ch<input type="number" class="chan" data-i="${i}" min="1" max="16" value="${p.dch}">
-      </div>
+      <div class="chrow"><label><input type="checkbox" class="en" data-i="${i}" ${p.on?'checked':''}> on</label>
+        ch<input type="number" class="chan" data-i="${i}" min="1" max="16" value="${p.dch}"></div>
     </div>`).join('');
-  document.querySelectorAll('.realm .en').forEach(cb=>cb.addEventListener('change',e=>{
-    const r=e.target.closest('.realm'); r.classList.toggle('off', !e.target.checked);
-    r.querySelector('.pname').style.color = e.target.checked ? PLAYERS[+e.target.dataset.i].color : '';
-    if(playing) markLive();
-  }));
-}
-function rolesPayload(){
-  const roles={};
-  document.querySelectorAll('#realms .realm').forEach((r,i)=>{
-    roles[PLAYERS[i].role]={ enabled:r.querySelector('.en').checked, port:r.querySelector('.port').value, channel:parseInt(r.querySelector('.chan').value)||1 };
-  });
-  return roles;
-}
-function markLive(){
-  document.querySelectorAll('#realms .realm').forEach(r=>{
-    const on = r.querySelector('.en').checked;
-    r.classList.toggle('live', playing && on);
+  PLAYERS.forEach((p,i)=>placeHopper(i,0));
+  startHops();
+  document.querySelectorAll('.pyr').forEach(el=>{
+    el.querySelector('.en').addEventListener('change',e=>{
+      const i=+e.target.dataset.i; PLAYERS[i].on=e.target.checked;
+      el.classList.toggle('off',!e.target.checked);
+      el.querySelector('.plabel').style.color = e.target.checked?PLAYERS[i].color:'';
+      startHops();
+    });
+    el.addEventListener('click',e=>{ if(e.target.closest('select,input,label')) return;
+      const f=el.classList.contains('focus');
+      document.querySelectorAll('.pyr').forEach(x=>x.classList.remove('focus','dim'));
+      if(!f){ el.classList.add('focus'); document.querySelectorAll('.pyr').forEach(x=>{ if(x!==el)x.classList.add('dim'); }); }
+    });
   });
 }
-document.getElementById('vibes').addEventListener('click',e=>{
-  const v=e.target.closest('.vibe'); if(!v) return;
+const cur={};  // current cell per player
+function placeHopper(i,_init){
+  const svg=document.querySelectorAll('.pyr')[i]; if(!svg) return;
+  const hop=svg.querySelector('.hopper'); if(!hop) return;
+  cur[i]=cur[i]||{r:0,idx:0};
+  const {x,y}=cubeXY(cur[i].r,cur[i].idx);
+  hop.style.setProperty('--hopdur', Math.min(260, noteMs(i)*0.6)+'ms');
+  hop.setAttribute('transform',`translate(${x},${y})`);
+}
+function noteMs(i){ return Math.max(90, (60000/tempo)*PLAYERS[i].div); }
+function hopOnce(i){
+  let {r,idx}=cur[i]||{r:0,idx:0};
+  if(r>=ROWS-1){ r=0; idx=0; }                 // reached bottom → leap back to apex
+  else { r++; if(Math.random()<0.5){} else idx++; } // down-left or down-right
+  cur[i]={r,idx:Math.min(idx,r)};
+  placeHopper(i);
+}
+function startHops(){
+  Object.values(timers).forEach(t=>clearInterval(t));
+  PLAYERS.forEach((p,i)=>{ if(p.on){ timers[i]=setInterval(()=>hopOnce(i), noteMs(i)); } });
+}
+function retempo(){ const t=parseFloat(document.getElementById('tempo').value); tempo=(t&&t>20)?t:92; startHops(); }
+
+function rolesPayload(){ const roles={};
+  document.querySelectorAll('.pyr').forEach((el,i)=>{ roles[PLAYERS[i].role]={ enabled:el.querySelector('.en').checked, port:el.querySelector('.port').value, channel:parseInt(el.querySelector('.chan').value)||1 }; });
+  return roles; }
+document.getElementById('vibes').addEventListener('click',e=>{ const v=e.target.closest('.vibe'); if(!v)return;
   vibe=v.dataset.vibe; document.getElementById('vibe-text').value='';
-  document.querySelectorAll('.vibe').forEach(x=>x.classList.toggle('on',x===v));
-});
-document.getElementById('vibe-text').addEventListener('input',e=>{
-  if(e.target.value.trim()) document.querySelectorAll('.vibe').forEach(x=>x.classList.remove('on'));
-});
+  document.querySelectorAll('.vibe').forEach(x=>x.classList.toggle('on',x===v)); });
+document.getElementById('vibe-text').addEventListener('input',e=>{ if(e.target.value.trim()) document.querySelectorAll('.vibe').forEach(x=>x.classList.remove('on')); });
 const playBtn=document.getElementById('play');
 playBtn.addEventListener('click',async()=>{
-  if(playing){ await fetch('/api/dreamer/stop',{method:'POST'}); playing=false; setPlay(); markLive(); return; }
+  if(playing){ await fetch('/api/dreamer/stop',{method:'POST'}); playing=false; setPlay(); return; }
   const typed=document.getElementById('vibe-text').value.trim();
-  const body={ vibe:typed||vibe, key:document.getElementById('key').value,
-               tempo:parseFloat(document.getElementById('tempo').value)||null, roles:rolesPayload() };
-  const d=await (await fetch('/api/dreamer/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
-  if(d.ok){ playing=true; setPlay(); markLive(); } else { document.getElementById('status').textContent='ERR: '+(d.error||'?'); }
+  const d=await (await fetch('/api/dreamer/start',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({vibe:typed||vibe,key:document.getElementById('key').value,tempo:parseFloat(document.getElementById('tempo').value)||null,roles:rolesPayload()})})).json();
+  if(d.ok){ playing=true; setPlay(); } else { document.getElementById('status').textContent='ERR: '+(d.error||'?'); }
 });
-function setPlay(){ playBtn.innerHTML = playing ? '&#9632; &nbsp; STOP' : '&#9654; &nbsp; PLAY THE ROOM'; playBtn.classList.toggle('stop',playing); }
-async function poll(){
-  try{ const s=await (await fetch('/api/dreamer/status')).json();
-    playing=!!s.playing; setPlay(); markLive();
-    document.getElementById('status').innerHTML = s.playing ? `&#9654; <b>${(s.vibe||'').toUpperCase()}</b> IN ${s.key} &mdash; ${s.chord||'…'}` : 'INSERT VIBE';
-  }catch(e){}
-}
-async function loadSchedule(){
-  try{ const s=await (await fetch('/api/dreamer/schedule')).json();
-    document.getElementById('sched-arc').innerHTML = (s.blocks||[]).slice().sort((a,b)=>a.hour-b.hour)
-      .map(b=>{const h=b.hour%12||12, ap=b.hour<12?'a':'p'; return `${h}${ap} <b>${b.vibe}</b>`;}).join(' &rarr; ');
-    document.getElementById('sched-on').checked=!!s.enabled;
-  }catch(e){}
-}
+function setPlay(){ playBtn.innerHTML=playing?'&#9632; &nbsp; STOP':'&#9654; &nbsp; PLAY THE ROOM'; playBtn.classList.toggle('stop',playing); }
+async function poll(){ try{ const s=await (await fetch('/api/dreamer/status')).json();
+  playing=!!s.playing; setPlay();
+  document.getElementById('status').innerHTML = s.playing?`&#9654; <b>${(s.vibe||'').toUpperCase()}</b> IN ${s.key} &mdash; ${s.chord||'…'}`:'INSERT VIBE';
+}catch(e){} }
+async function loadSchedule(){ try{ const s=await (await fetch('/api/dreamer/schedule')).json();
+  document.getElementById('sched-arc').innerHTML=(s.blocks||[]).slice().sort((a,b)=>a.hour-b.hour).map(b=>{const h=b.hour%12||12,ap=b.hour<12?'a':'p';return `${h}${ap} <b>${b.vibe}</b>`;}).join(' &rarr; ');
+  document.getElementById('sched-on').checked=!!s.enabled;
+}catch(e){} }
 document.getElementById('sched-on').addEventListener('change',async e=>{
-  await fetch('/api/dreamer/schedule',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({enabled:e.target.checked, roles:rolesPayload(), key:document.getElementById('key').value})});
-});
+  await fetch('/api/dreamer/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e.target.checked,roles:rolesPayload(),key:document.getElementById('key').value})}); });
 loadPorts(); poll(); loadSchedule(); setInterval(poll,1500);
 </script>
 </body>
