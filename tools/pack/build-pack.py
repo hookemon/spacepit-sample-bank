@@ -37,16 +37,18 @@ except Exception as _e:
 
 
 def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
-                            ceiling_db: float = -1.0, max_boost_db: float = 9.0) -> dict:
-    """Per-NOTE makeup gain (dB) so every note of every patch sits at the bank's
-    median loudness — the pro-library treatment. Two problems it fixes at once:
-      • across patches: a dense saw is ~16 dB louder than a sub bass to the ear,
-      • up each keyboard: raw multisamples roll off ~14 dB low->high (natural, but
-        makes basslines/melodies lurch).
-    Normalizing per note evens both, held under a true-peak ceiling so nothing clips
-    and with a boost cap so thin high notes aren't over-amplified into noise. Measured
-    via match-loudness.py. Returns {patch: {wav_name: gain_db}}; {} if audio libs are
-    missing so the pack still builds."""
+                            ceiling_db: float = -1.0, max_boost_db: float = 15.0,
+                            target_loudness_db: float = -12.0) -> dict:
+    """Per-NOTE makeup gain (dB) so every note of every patch lands at a FIXED hot target
+    loudness (~-12 dB short-term RMS = ~-12 on the Ableton meter) — the pro-library
+    treatment. Fixes two things at once:
+      • across patches: a dense saw vs a sub bass (~16 dB apart raw) -> same level,
+      • up each keyboard: raw multisamples roll off ~14 dB low->high -> evened.
+    Target is a FIXED value (NOT the bank median — the median gets dragged down by quiet
+    captures, which then pulls the hot patches DOWN, the bug Nick caught where the sub
+    came out -24 instead of -12). Held under a true-peak ceiling so nothing clips, with a
+    boost cap so very quiet captures aren't over-amplified into hiss. Returns
+    {patch: {wav_name: gain_db}}; {} if audio libs are missing so the pack still builds."""
     try:
         import importlib.util
         import math
@@ -81,24 +83,23 @@ def _compute_loudness_gains(patches_dir: Path, ref_chain: str = "raw",
             patch_notes[pd.name] = notes
     if not all_loud:
         return {}
-    target = float(np.median(all_loud))      # even every note to the bank's median loudness
-    # Pass 1: per-note gain toward the median (even), capped so thin notes aren't over-boosted.
-    pre = {}                                  # (patch, name) -> (gain_to_median, peak_db)
-    for patch, notes in patch_notes.items():
-        for name, ld, pk in notes:
-            pre[(patch, name)] = (min(target - ld, max_boost_db), pk)
-    # Pass 2: shove the WHOLE (now even) bank UP until the loudest note kisses the ceiling,
-    # so it opens HOT instead of even-but-quiet — DI captures come in low. Uniform push keeps
-    # it even; peak-guarded so nothing clips.
-    push = max(0.0, min(ceiling_db - (g + pk) for (g, pk) in pre.values()))
+    # Each note -> the FIXED target loudness: gain up quiet notes (capped so a too-quiet
+    # capture isn't boosted into hiss), pull down hot ones, all clamped under the peak
+    # ceiling so nothing clips. No median, no second "push" pass — the target IS the hot level.
     out = {}
+    boosted_to_cap = 0
     for patch, notes in patch_notes.items():
         gmap = {}
         for name, ld, pk in notes:
-            gmap[name] = min(pre[(patch, name)][0] + push, ceiling_db - pk)   # never clip
+            want = target_loudness_db - ld                       # + = boost, - = pull down
+            want = min(want, max_boost_db)                       # don't over-boost quiet hiss
+            gain = min(want, ceiling_db - pk)                    # never clip
+            gmap[name] = gain
+            if want >= max_boost_db - 0.01:
+                boosted_to_cap += 1
         out[patch] = gmap
-    if push > 0.05:
-        print(f"  loudness: evened to median, then +{push:.1f} dB bank-wide to open hot (peak-safe)")
+    print(f"  loudness: every note -> {target_loudness_db:.0f} dB target (peak-safe, -1 ceiling)"
+          + (f" · {boosted_to_cap} note(s) hit the +{max_boost_db:.0f}dB cap — captured too quiet" if boosted_to_cap else ""))
     return out
 
 

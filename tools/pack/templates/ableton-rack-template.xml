@@ -2591,7 +2591,7 @@
 								<VolumeAndPan>
 									<Volume>
 										<LomId Value="0" />
-										<Manual Value="-12" />
+										<Manual Value="0" />
 										<MidiControllerRange>
 											<Min Value="-36" />
 											<Max Value="36" />
