@@ -493,13 +493,15 @@ def main() -> None:
                 _release_ms = {"pad": 1000.0, "keys": 400.0, "lead": 250.0,
                                "bass": 120.0, "synth": 350.0}.get(_role, 300.0)
                 if _build_ableton_presets and wav_dest_paths:
-                    # SAMPLER/ — full multisample (.adv + .adg). The real instrument.
+                    # SAMPLER/ — full multisample, the rack (.adg) only: it wraps the same
+                    # Sampler + carries the 8 macro knobs + is the Move-export format. One
+                    # clean file per patch (the redundant raw .adv lived inside it anyway).
                     try:
                         result = _build_ableton_presets(
                             wavs=wav_dest_paths,
                             out_dir=pack_dir / "instruments/ableton/Sampler",
                             patch_name=ableton_label,
-                            formats=("adv", "adg"),
+                            formats=("adg",),
                             release_ms=_release_ms,
                         )
                         if result.get("written"):
