@@ -283,11 +283,10 @@ def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str
                                             f'<UserName Value="{patch_name}" />', 1)
     if release_ms is not None:
         template_xml = _set_amp_release(template_xml, release_ms)
-    # Loop Snap ON (snaps loop points to zero crossings) — the factory presets all
-    # ship with this on; ours was off, which can leave a click at the loop seam.
-    template_xml = re.sub(
-        r'(<Snap>\s*<LomId Value="0" />\s*<Manual Value=)"false"',
-        r'\1"true"', template_xml, count=1)
+    # Loop Snap stays OFF — matches Samples From Mars + the template default. Snap ON makes
+    # Ableton re-snap the loop points to ITS nearest zero-crossings, moving them off the
+    # exact points we chose -> clicks. Off = our points stand. (Earlier forcing it on was
+    # a mistake; it introduced the clicks.)
     new_xml = re.sub(
         r"<SampleParts>.*?</SampleParts>",
         f"<SampleParts>\n{sample_parts_xml}\n				</SampleParts>",
