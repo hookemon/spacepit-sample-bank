@@ -105,13 +105,56 @@ const PLAYERS = [
   // v0: hopper rates show subdivisions only (no phase yet); the backend still
   // plays drums as a single named pattern. rolesPayload collapses these back
   // into a single `drums` role so dreamer.py keeps working untouched.
-  { role:'kick',   name:'KICK',   sub:'1/4 notes',  div:1,    color:'#FF3DA6', dport:'EP-133',           dch:10, on:true  },
-  { role:'snare',  name:'SNARE',  sub:'1/4 (backbeat)', div:1,    color:'#FFD93D', dport:'EP-133',       dch:10, on:true  },
-  { role:'hat',    name:'HAT',    sub:'1/8 notes',  div:0.5,  color:'#6BCB77', dport:'EP-133',           dch:10, on:true  },
+  { role:'kick',   name:'KICK',   sub:'from pattern', div:1,    color:'#FF3DA6', dport:'EP-133',         dch:10, on:true  },
+  { role:'snare',  name:'SNARE',  sub:'from pattern', div:1,    color:'#FFD93D', dport:'EP-133',         dch:10, on:true  },
+  { role:'hat',    name:'HAT',    sub:'from pattern', div:0.5,  color:'#6BCB77', dport:'EP-133',         dch:10, on:true  },
   { role:'lead',   name:'LEAD',   sub:'1/8 notes',  div:0.5,  color:'#20D5E8', dport:'mio',              dch:1,  on:false },
   { role:'keys',   name:'KEYS',   sub:'1/16 notes', div:0.25, color:'#57E32C', dport:'mio',              dch:1,  on:false },
 ];
 const DRUM_ROLES = new Set(['kick','snare','hat']);
+
+// 16-step (one bar at 4/4) hit grids per vibe — kick/snare/hat hops on each 1.
+// v0 hardcoded canonical patterns; v1 reads from the .mid pattern bank via api.
+const DRUM_PATTERNS = {
+  hiphop: { // boom-bap: kick on 1 + & of 3, backbeat snare, 8th hats
+    kick:  [1,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,1,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hat:   [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+  },
+  lofi: {   // sparser, lazier — quarter-note hats, swung-feel kick
+    kick:  [1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hat:   [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+  },
+  house: {  // four-on-floor, offbeat hat
+    kick:  [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hat:   [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
+  },
+  party: {  // four-on-floor, driving 8th hats
+    kick:  [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hat:   [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+  },
+  trap: {   // half-time, snare on 3, anticipated kick, rolling 16th hats
+    kick:  [1,0,0,0, 0,0,0,1, 1,0,0,0, 0,0,0,0],
+    snare: [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    hat:   [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1],
+  },
+  ambient:    { kick:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], snare:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], hat:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0] },
+  meditation: { kick:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], snare:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], hat:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0] },
+};
+let masterStep = 0;
+let masterClock = null;
+function masterTick(){
+  const pat = DRUM_PATTERNS[vibe] || DRUM_PATTERNS.hiphop;
+  PLAYERS.forEach((p,i) => {
+    if (!DRUM_ROLES.has(p.role) || !p.on) return;
+    const grid = pat[p.role];
+    if (grid && grid[masterStep]) hopOnce(i);
+  });
+  masterStep = (masterStep + 1) % 16;
+}
 const ROWS=4, CW=44, CH=22, CS=18, ROWSTEP=28, HEAD=46;
 const VBW = ROWS*CW + CW, VBH = HEAD + (ROWS-1)*ROWSTEP + CH + CS + 20, OX=VBW/2, OY=HEAD;
 const BANK_CUBE = '#3a3a5a'; // neutral pyramid color — the synth is the stage, hoppers wear the player colors
@@ -238,7 +281,19 @@ function hopOnce(i){
 }
 function startHops(){
   Object.values(timers).forEach(t=>clearInterval(t));
-  PLAYERS.forEach((p,i)=>{ if(p.on){ timers[i]=setInterval(()=>hopOnce(i), noteMs(i)); } });
+  if (masterClock) { clearInterval(masterClock); masterClock = null; }
+  masterStep = 0;
+  // Non-drum voices keep rate-based hopping (chords/bass/lead/keys hop every
+  // div-beats). Drum voices are driven event-by-event from the vibe's pattern.
+  PLAYERS.forEach((p,i) => {
+    if (DRUM_ROLES.has(p.role)) return;
+    if (p.on) timers[i] = setInterval(() => hopOnce(i), noteMs(i));
+  });
+  const anyDrumOn = PLAYERS.some(p => DRUM_ROLES.has(p.role) && p.on);
+  if (anyDrumOn) {
+    const stepMs = (60000 / tempo) / 4; // 16th-note clock
+    masterClock = setInterval(masterTick, stepMs);
+  }
 }
 function retempo(){ const t=parseFloat(document.getElementById('tempo').value); tempo=(t&&t>20)?t:92; startHops(); }
 
