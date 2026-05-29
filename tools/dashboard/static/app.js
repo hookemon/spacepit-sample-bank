@@ -23,6 +23,10 @@
   let currentStyle = 'multisample';
   let lastCapture = null;  // { wav_path, wav_url, params }
   let audioContext = null;
+  // slug -> real preset display name (e.g. "sub-bass" -> "A14 · Juno Sub Bass"), populated
+  // from the patch manifest so the captures log shows real names, not under-the-hood slugs.
+  const presetNames = {};
+  const realName = (slug) => presetNames[slug] || slug;
 
   // ---------- audio settings — discovered devices + per-instrument storage ----------
   let availableDevices = { midi_ports: [], audio_devices: [] };
@@ -1357,6 +1361,11 @@
       }
       const data = await pr.json();
       const factory = fr.ok ? await fr.json() : { presets: [] };
+      // Build the slug -> real-name map so the captures log + session report show
+      // "A14 · Juno Sub Bass" instead of the "sub-bass" folder slug.
+      data.patches.forEach(p => {
+        if (p.preset_name) presetNames[p.name] = `${p.preset_position ? p.preset_position + ' · ' : ''}${p.preset_name}`;
+      });
       // Populate the capture "Patch" dropdown from the manifest — so a capture can never
       // land as "untitled" again (free-text default was the footgun). Preserves selection.
       const msPatchSel = document.getElementById('ms-patch');
@@ -2941,7 +2950,7 @@
     const topPatches = Object.entries(patchCount)
       .sort((a,b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([p, n]) => `${p} (${n})`)
+      .map(([p, n]) => `${realName(p)} (${n})`)
       .join('  ·  ');
     document.getElementById('sr-top-patches').textContent = topPatches ? `top: ${topPatches}` : '';
   }
@@ -2975,7 +2984,7 @@
           <div style="display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-3); border-left: 2px solid ${statusColor};">
             <span style="color: ${statusColor}; font-weight: 700; min-width: 16px;">${statusIcon}</span>
             <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 12px; color: var(--fg);">${c.name} <span style="color: var(--fg-faint); font-size: 10px;">· ${c.style} · ${time}</span></div>
+              <div style="font-size: 12px; color: var(--fg);">${realName(c.params?.patch || c.name)} <span style="color: var(--fg-faint); font-size: 10px;">· ${c.style} · ${time}</span></div>
               <div class="small" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.wav_path}</div>
             </div>
             ${actions}
