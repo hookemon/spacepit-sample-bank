@@ -275,6 +275,12 @@ def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str
     """
     if patch_name:
         template_xml = template_xml.replace("hookesquelch-bite", patch_name)
+        # Stamp the real name onto the device itself too. The .adv (Simpler/Sampler) ships
+        # with a BLANK device UserName, so Ableton auto-names it from the loaded sample file
+        # (jp8000_supersaw-1_...) and shows "super saw" at the top. Naming the device fixes
+        # that. Replace only the first empty UserName = the top device/rack.
+        template_xml = template_xml.replace('<UserName Value="" />',
+                                            f'<UserName Value="{patch_name}" />', 1)
     if release_ms is not None:
         template_xml = _set_amp_release(template_xml, release_ms)
     # Loop Snap ON (snaps loop points to zero crossings) — the factory presets all
