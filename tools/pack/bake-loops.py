@@ -44,6 +44,26 @@ def _estimate_f0(mono: np.ndarray, sr: int) -> float:
     return sr / lag if lag > 0 else 0.0
 
 
+def attack_end_sample(mono: np.ndarray, sr: int) -> int:
+    """Sample where the attack has SETTLED — the first moment the envelope reaches
+    within 1.5 dB of its peak. Robust to beating/detune and to fades (it's relative to
+    peak, not a drift test). The loop must start AFTER this so the crossfade pre-roll is
+    steady tone, not still-rising attack — that's what made slow-attack pads (Jupiter Pad
+    @1.3s attack) loop sloppily when the start was hardcoded to 1.0s."""
+    hop = int(0.005 * sr)
+    win = int(0.02 * sr)
+    n = len(mono)
+    if n < win * 2:
+        return 0
+    env = np.array([np.sqrt(np.mean(mono[i:i + win] ** 2)) for i in range(0, n - win, hop)])
+    edb = 20 * np.log10(env + 1e-9)
+    peak = float(edb.max())
+    for i in range(len(edb)):
+        if edb[i] >= peak - 1.5:
+            return i * hop
+    return int(np.argmax(edb)) * hop
+
+
 def _find_long_loop(audio: np.ndarray, sr: int):
     """Return (loop_start, loop_end) frames for a level+phase matched long loop,
     or None when the sample is too short or percussive (should ring out)."""
@@ -73,9 +93,14 @@ def _find_long_loop(audio: np.ndarray, sr: int):
     # decays, so it wrongly flagged sustained sounds (mega-saw, pads) as one-shots.
     rz = _rising_zc(mono)
     W = int(0.04 * sr)                       # 40ms correlation window
-    # Start the loop well into the sustain (not at the attack) so the Ableton loop
-    # crossfade's pre-roll is steady tone, not the onset transient -> no seam click.
-    loop_start_min = int(min(1.0 * sr, 0.40 * n))
+    # Start the loop AFTER the measured attack (+0.3s of steady tone), not a hardcoded
+    # 1.0s. A slow-attack pad (Jupiter Pad ~1.3s) was being looped mid-swell at 1.0s, so
+    # the crossfade blended rising audio against rising audio = smear. Now both crossfade
+    # regions sit in genuine steady state. Bounded so there's room for a long loop.
+    atk = attack_end_sample(mono, sr)
+    # Floor at 1.0s (the value that already worked for fast-attack sounds — keeps fat-lead
+    # etc. unchanged), and push LATER only when the attack runs past it (the slow pads).
+    loop_start_min = int(min(max(atk + int(0.30 * sr), int(1.0 * sr)), 0.45 * n))
     s_cand = rz[rz >= max(loop_start_min, W)]
     if len(s_cand) == 0:
         return None
