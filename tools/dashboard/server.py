@@ -1287,6 +1287,16 @@ def dreamer_schedule():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/dreamer/test_notes", methods=["POST"])
+def dreamer_test_notes():
+    """Fire C2..C6 chromatically through a bank's port for octave calibration.
+    body: {port: str, channel: int (1-16)}"""
+    try:
+        return jsonify(_get_dreamer().test_notes(request.get_json() or {}))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/patterns/progressions")
 def list_progressions():
     """List saved chord progression patterns from the library."""

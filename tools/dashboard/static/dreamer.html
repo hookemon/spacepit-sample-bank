@@ -59,6 +59,10 @@
   .bank-oct{ display:flex; align-items:center; justify-content:center; gap:5px; font-family:'DM Mono',monospace; font-size:8px; color:var(--dim); margin-top:4px; letter-spacing:1px; text-transform:uppercase; }
   .bank-oct select{ font-family:inherit; font-size:8px; padding:3px 6px; background:#0d0d1c; color:var(--gold); border:1.5px solid #2a2a4a; cursor:pointer; min-width:46px; text-align:center; }
   .bank-oct select:focus{ border-color:var(--gold); outline:none; }
+  /* per-bank test-notes button — fires C2..C6 chromatically through the port */
+  .bank-test{ font-family:'DM Mono',monospace; font-size:8px; padding:3px 7px; background:#0d0d1c; color:var(--gold); border:1.5px solid var(--gold); cursor:pointer; text-transform:uppercase; letter-spacing:1px; }
+  .bank-test:hover{ background:var(--gold); color:#180000; }
+  .bank-test.active{ background:#ff3da6; color:#fff; border-color:#ff3da6; }
 </style>
 </head>
 <body>
@@ -235,6 +239,7 @@ function render(){
         <select class="bank-oct-sel" data-bank="${bank.dport}">
           ${octOpt(-2,'−2')}${octOpt(-1,'−1')}${octOpt(0,'0')}${octOpt(1,'+1')}${octOpt(2,'+2')}${octOpt(3,'+3')}${octOpt(4,'+4')}
         </select>
+        <button class="bank-test" data-bank="${bank.dport}">TEST</button>
       </div>
       <select class="bank-port" data-bank="${bank.dport}">${portOpts(bank.dport)}</select>
       <div class="bank-players">${rows}</div>
@@ -277,6 +282,27 @@ function render(){
       const bankName = e.target.dataset.bank;
       bankOctShifts[bankName] = +e.target.value;
       saveBankOcts();
+    });
+    // TEST — fire C2..C6 chromatically through this bank's port so you can
+    // hear what your synth makes at each octave (calibration diagnostic).
+    const testBtn = el.querySelector('.bank-test');
+    if (testBtn) testBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const bankName = e.target.dataset.bank;
+      const bank = banks().find(b => b.dport === bankName);
+      const first = bank ? (bank.members.find(({p}) => p.on) || bank.members[0]) : null;
+      const channel = first ? first.p.dch : 1;
+      testBtn.classList.add('active');
+      const orig = testBtn.textContent;
+      testBtn.textContent = '··';
+      try {
+        await fetch('/api/dreamer/test_notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: bankName, channel })
+        });
+      } catch (e) {}
+      setTimeout(() => { testBtn.classList.remove('active'); testBtn.textContent = orig; }, 3200);
     });
     // click anywhere on the panel (but not on controls) to focus the synth
     el.addEventListener('click', e => {

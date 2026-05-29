@@ -220,6 +220,33 @@ def stop(disable_schedule=True):
         _sched_stop.set()
 
 
+def test_notes(cfg):
+    """Fire C2..C6 chromatically through a port for calibration.
+    cfg = {port: str, channel: int (1-16, default 1)}.
+    Spawns a thread so the HTTP call returns immediately."""
+    if mido is None:
+        return {"error": "mido not available"}
+    port = (cfg or {}).get("port", "")
+    if not port:
+        return {"error": "no port"}
+    ch = (int((cfg or {}).get("channel", 1)) - 1) & 0x0f
+    notes = [(24, "C2"), (36, "C3"), (48, "C4"), (60, "C5"), (72, "C6")]
+    def play():
+        try:
+            p = _get_port(port)
+            if not p:
+                return
+            for n, _label in notes:
+                p.send(mido.Message("note_on", note=n, velocity=92, channel=ch))
+                time.sleep(0.45)
+                p.send(mido.Message("note_off", note=n, velocity=0, channel=ch))
+                time.sleep(0.15)
+        except Exception:
+            pass
+    threading.Thread(target=play, daemon=True).start()
+    return {"ok": True, "notes": [{"note": n, "label": l} for n, l in notes]}
+
+
 def start(cfg):
     """cfg = {vibe, key, tempo?, roles:{chords|bass|lead|drums: {port, channel, enabled}}}"""
     if mido is None:
