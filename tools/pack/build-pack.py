@@ -29,9 +29,25 @@ from xml.sax.saxutils import escape as xml_escape
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
     from build_ableton_adv import build_presets_for_wavs as _build_ableton_presets
+    from build_ableton_adv import parse_note_from_filename as _parse_note
 except Exception as _e:
     _build_ableton_presets = None
+    _parse_note = None
     print(f"  ⚠ Ableton preset generator unavailable: {_e}")
+
+
+def _pick_root_wav(wavs):
+    """Pick the WAV closest to C3 (MIDI 60) — the representative note for a 1-shot Simpler."""
+    if not wavs:
+        return None
+    if _parse_note is None:
+        return wavs[len(wavs) // 2]
+    scored = []
+    for w in wavs:
+        m = _parse_note(Path(w).name)
+        if m is not None:
+            scored.append((abs(m - 60), w))
+    return min(scored)[1] if scored else wavs[len(wavs) // 2]
 
 # We need sys for sys.executable in the sub-tool calls.
 
@@ -477,19 +493,37 @@ def main() -> None:
                 _release_ms = {"pad": 1000.0, "keys": 400.0, "lead": 250.0,
                                "bass": 120.0, "synth": 350.0}.get(_role, 300.0)
                 if _build_ableton_presets and wav_dest_paths:
+                    # SAMPLER/ — full multisample (.adv + .adg). The real instrument.
                     try:
                         result = _build_ableton_presets(
                             wavs=wav_dest_paths,
-                            out_dir=pack_dir / "instruments/ableton",
+                            out_dir=pack_dir / "instruments/ableton/Sampler",
                             patch_name=ableton_label,
                             formats=("adv", "adg"),
                             release_ms=_release_ms,
                         )
                         if result.get("written"):
                             ableton_preset_count += len(result["written"])
-                            ableton_extras = " + adv + adg"
+                            ableton_extras = " + Sampler"
                     except Exception as ex:
-                        print(f"  ⚠ Ableton preset failed for {patch_name}/{chain}: {ex}")
+                        print(f"  ⚠ Sampler preset failed for {patch_name}/{chain}: {ex}")
+                    # SIMPLER/ — single root note (closest to C3) stretched across the keys.
+                    # The grab-and-go / free-pack version; lighter, instant.
+                    _root = _pick_root_wav(wav_dest_paths)
+                    if _root:
+                        try:
+                            r2 = _build_ableton_presets(
+                                wavs=[_root],
+                                out_dir=pack_dir / "instruments/ableton/Simpler",
+                                patch_name=ableton_label,
+                                formats=("adv",),
+                                release_ms=_release_ms,
+                            )
+                            if r2.get("written"):
+                                ableton_preset_count += len(r2["written"])
+                                ableton_extras += " + Simpler"
+                        except Exception as ex:
+                            print(f"  ⚠ Simpler preset failed for {patch_name}/{chain}: {ex}")
 
                 print(f"  ✓ {patch_name}/{chain}: {len(samples)} samples → SFZ + dspreset{ableton_extras}")
 
