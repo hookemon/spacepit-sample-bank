@@ -1764,11 +1764,9 @@
           // Pull up the patch detail card — beautiful big presentation of what's selected
           showPatchDetail(patchData, presetId);
 
-          // Pre-fill the capture form so Capture is one click away. A patch you've already started
-          // -> the dropdown; a PENDING factory preset -> the NEW-name box as 'hook-...' (capturing
-          // it creates that patch and it flips ○ -> ✓ next refresh).
-          const msBtn = document.querySelector('.styles button[data-style="multisample"]');
-          if (msBtn) msBtn.click();
+          // Pre-fill the capture NAME so it's ready — but DON'T force the capture style. If you're on
+          // Chord progression (or any mode), clicking a preset just loads it; you stay where you are.
+          // (The detail card's "capture" button is the deliberate switch-to-multisample action.)
           const sel = document.getElementById('ms-patch');
           const neu = document.getElementById('ms-patch-new');
           if (patchData._pending) {

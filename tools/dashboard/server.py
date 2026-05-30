@@ -1067,6 +1067,26 @@ def capture():
                 "stdout": result.stdout[-2000:],
             }), 500
 
+        # Progression/chord loops land in <instr>/loops/raw/ and the Splice-style filename can contain
+        # spaces, which the generic "saved <fname>" parser below chokes on — so log the freshest loop
+        # here explicitly so chord captures ALWAYS show in the captures list.
+        if style == "progression":
+            _instr = params.get("instrument", "grandmother")
+            _loops = INSTRUMENTS_DIR / _instr / "loops" / "raw"
+            _wavs = sorted([w for w in _loops.glob("*.wav") if not w.name.endswith("_raw.wav")],
+                           key=lambda w: w.stat().st_mtime, reverse=True) if _loops.exists() else []
+            if _wavs:
+                _rel = _wavs[0].relative_to(BANK_ROOT)
+                last_capture["path"] = str(_wavs[0]); last_capture["instrument"] = _instr; last_capture["params"] = params
+                log_capture({
+                    "wav_path": str(_rel), "wav_url": f"/audio/{_rel}", "instrument": _instr,
+                    "style": style, "name": _wavs[0].stem,
+                    "captured_at": datetime.now().isoformat(timespec="seconds"),
+                    "status": "pending", "params": params,
+                })
+                return jsonify({"ok": True, "wav_path": str(_rel), "wav_url": f"/audio/{_rel}",
+                                "loop": True, "stdout_tail": result.stdout[-800:]})
+
         # parse the saved path from stdout — record-* scripts print "✓ saved <fname>"
         saved_match = re.search(r"saved\s+([^\s]+\.wav)", result.stdout)
         if saved_match:
