@@ -183,7 +183,7 @@ def main() -> None:
     out_dir = bank_root / "instruments" / args.instrument / "loops" / "raw"
     out_dir.mkdir(parents=True, exist_ok=True)
     key_tag = chord_to_key_tag(prog[0][0]) if prog else "Cmaj"
-    fname = f"hook_{int(args.bpm)}_{args.name}_{key_tag}.wav"   # Splice-style: brand_bpm_sound_key
+    fname = f"hook_{args.instrument}_{int(args.bpm)}_{args.name}_{key_tag}.wav"   # Splice: brand_instrument_bpm_sound_key
     out_path = out_dir / fname
 
     # plan
