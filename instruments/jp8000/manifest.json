@@ -175,7 +175,7 @@
       "source": "factory-capture"
     },
     {
-      "name": "hook-dance-sweep",
+      "name": "A58 \u00b7 Dance Sweep",
       "preset_name": "Dance Sweep",
       "preset_position": "A58",
       "gearbase_preset_id": "P:A58",
@@ -183,6 +183,28 @@
       "bank_msb": 81,
       "bank_lsb": 0,
       "role": "sfx",
+      "source": "factory-capture"
+    },
+    {
+      "name": "A11 \u00b7 Spit'n Slide Bs",
+      "preset_name": "Spit'n Slide Bs",
+      "preset_position": "A11",
+      "gearbase_preset_id": "P:A11",
+      "program_change": 0,
+      "bank_msb": 81,
+      "bank_lsb": 0,
+      "role": "bass",
+      "source": "factory-capture"
+    },
+    {
+      "name": "A71 \u00b7 Wurly Piano 1",
+      "preset_name": "Wurly Piano 1",
+      "preset_position": "A71",
+      "gearbase_preset_id": "P:A71",
+      "program_change": 48,
+      "bank_msb": 81,
+      "bank_lsb": 0,
+      "role": "keys",
       "source": "factory-capture"
     }
   ],

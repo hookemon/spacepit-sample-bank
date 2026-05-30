@@ -1625,12 +1625,14 @@
       // pad/...). Sorted by slot so each category reads A11->B88. A pending preset fills the NEW-name box.
       {
         const capIds = new Set(data.patches.map(p => p.gearbase_preset_id || (p.preset_position ? 'P:' + p.preset_position : '')).filter(Boolean));
-        const slugify = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        const pending = (factory.presets || []).filter(fp => fp.id && !capIds.has(fp.id)).map(fp => ({
-          name: 'hook-' + slugify(fp.name), preset_name: fp.name, preset_position: (fp.id || '').replace(/^P:/, ''),
-          program_change: fp.program_change, bank_msb: fp.bank_msb, bank_lsb: fp.bank_lsb,
-          role: fp.category || '', notes: '', status: 'todo', gearbase_preset_id: fp.id, _pending: true,
-        }));
+        const pending = (factory.presets || []).filter(fp => fp.id && !capIds.has(fp.id)).map(fp => {
+          // Auto-name a new capture its ORIGINAL preset name (slot · name), mirroring the synth
+          // screen — never "hook-…". The capture folder follows this name.
+          const pos = (fp.id || '').replace(/^P:/, '');
+          return { name: `${pos} · ${fp.name}`, preset_name: fp.name, preset_position: pos,
+            program_change: fp.program_change, bank_msb: fp.bank_msb, bank_lsb: fp.bank_lsb,
+            role: fp.category || '', notes: '', status: 'todo', gearbase_preset_id: fp.id, _pending: true };
+        });
         const slotKey = (p) => p.gearbase_preset_id || ('P:' + (p.preset_position || ''));
         data.patches = data.patches.concat(pending).sort((a, b) => slotKey(a) < slotKey(b) ? -1 : slotKey(a) > slotKey(b) ? 1 : 0);
         const capN = data.patches.filter(p => p.status === 'captured').length;
@@ -1677,10 +1679,14 @@
           </div>`;
       };
 
-      // YOUR patches (curated/captured) stay grouped at the top — always easy to find (String Machine, etc.).
+      // YOUR patches split into the curated ICONICS (foldable once you're done with them) and the
+      // NEW factory captures you've been grabbing (kept visible while you work).
       const mine = data.patches.filter(p => !p._pending);
-      const myHtml = mine.length ? mine.map(renderRow).join('')
+      const iconics = mine.filter(p => p.source !== 'factory-capture');
+      const newCaps = mine.filter(p => p.source === 'factory-capture');
+      const iconHtml = iconics.length ? iconics.map(renderRow).join('')
         : '<div style="color: var(--fg-faint); padding: 8px;">(no patches yet — add to manifest.patches[])</div>';
+      const newHtml = newCaps.map(renderRow).join('');
 
       // The rest of the factory bank, grouped by CATEGORY in collapsible drawers — pop open
       // "bass" / "lead" / "pad" to grab a few more to capture.
@@ -1699,8 +1705,15 @@
         </details>`).join('');
 
       const _hdr = (t) => `<div style="font-size: 10px; font-weight: 700; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 2px 4px;">${t}</div>`;
-      listEl.innerHTML = _hdr(`★ your patches (${mine.length})`) + myHtml
+      const iconOpen = localStorage.getItem('benchIconicsFold') !== 'closed';   // remembers your fold across refreshes
+      listEl.innerHTML =
+        `<details ${iconOpen ? 'open' : ''} data-iconics style="margin-top: 4px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px;">`
+        + `<summary style="padding: 7px 10px; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--fg); letter-spacing: 0.04em;">★ iconic patches <span style="color: var(--fg-faint); font-weight: 400;">(${iconics.length}) — click to fold</span></summary>`
+        + `<div style="border-top: 1px solid var(--border);">${iconHtml}</div></details>`
+        + (newCaps.length ? _hdr(`new captures (${newCaps.length})`) + newHtml : '')
         + (catHtml ? _hdr('more from the factory bank — by category') + catHtml : '');
+      const _icd = listEl.querySelector('details[data-iconics]');
+      if (_icd) _icd.addEventListener('toggle', () => localStorage.setItem('benchIconicsFold', _icd.open ? 'open' : 'closed'));
 
       // Helper: send PC + Bank Select to the currently-selected instrument's MIDI port
       async function fireLoadPatch(name, pc, msb, lsb, presetId) {

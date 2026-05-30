@@ -510,6 +510,7 @@ def list_instrument_patches(slug):
             "bank_msb": p.get("bank_msb"),
             "bank_lsb": p.get("bank_lsb"),
             "gearbase_preset_id": p.get("gearbase_preset_id"),
+            "source": p.get("source"),   # 'factory-capture' = a preset you grabbed vs a curated iconic
         })
     summary = {
         "total": len(patches),
