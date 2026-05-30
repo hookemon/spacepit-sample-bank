@@ -479,6 +479,31 @@
         <div><label>Pattern name</label><input type="text" id="prog-name" value="" placeholder="auto — names from your loaded patch" /></div>
         <div><label>BPM</label><input type="number" id="prog-bpm" value="120" min="40" max="220" /></div>
       </div>
+      <!-- Play Along: a session KEY (root + scale) that writes an in-key progression into the chord
+           box below. Pair it with the clock (synced to your DAW) and the bench plays in TIME AND in
+           KEY — set the key once, hit 🎲, fire. Click 🎲 again for another progression in the same key. -->
+      <div id="play-along" style="margin: 0 0 12px; padding: 10px; background: var(--bg-3); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 2px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--amber); margin-bottom: 8px;">🎹 PLAY ALONG <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— set your session key, get a progression in it</span></div>
+        <div class="row" style="align-items: flex-end;">
+          <div style="flex: 0 0 96px;"><label>Key</label>
+            <select id="session-root" style="margin: 0;">
+              <option>C</option><option>Db</option><option>D</option><option>Eb</option><option>E</option><option>F</option><option>Gb</option><option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+            </select>
+          </div>
+          <div style="flex: 1;"><label>Scale</label>
+            <select id="session-scale" style="margin: 0;">
+              <option value="minor" selected>minor</option>
+              <option value="major">major</option>
+              <option value="dorian">dorian</option>
+              <option value="phrygian">phrygian</option>
+              <option value="mixolydian">mixolydian</option>
+              <option value="harmonic-minor">harmonic minor</option>
+            </select>
+          </div>
+          <div style="flex: 0 0 auto;"><button id="session-gen" class="secondary" style="margin: 0; white-space: nowrap;" title="Write an in-key progression into the chord box — click again for another">🎲 in key →</button></div>
+        </div>
+        <div class="small" id="session-key-readout" style="margin-top: 6px; color: var(--fg-faint); font-family: 'JetBrains Mono', monospace;">—</div>
+      </div>
       <label>Chord progression (space-separated)</label>
       <input type="text" id="prog-chords" value="Cm Ab Eb Bb" placeholder="Cm Ab Eb Bb" />
       <div class="row">

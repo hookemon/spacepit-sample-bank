@@ -3703,3 +3703,67 @@
     window.addEventListener('blur', () => { Object.values(KB.held).forEach(n => send(n, false)); KB.held = {}; });
   })();
 })();
+
+// ---------- Play Along: session key → in-key chord progressions ----------
+// Set a root + scale; the 🎲 button writes a diatonic progression into the chord box. Pair it with
+// the clock (synced to your DAW) and the bench plays in TIME and in KEY — the sister-software move.
+// Self-contained: only touches its own panel + the prog-chords box.
+(function () {
+  const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const SCALES = {
+    major:            { steps: [0, 2, 4, 5, 7, 9, 11], quals: ['', 'm', 'm', '', '', 'm', 'dim'] },
+    minor:            { steps: [0, 2, 3, 5, 7, 8, 10], quals: ['m', 'dim', '', 'm', 'm', '', ''] },
+    dorian:           { steps: [0, 2, 3, 5, 7, 9, 10], quals: ['m', 'm', '', '', 'm', 'dim', ''] },
+    phrygian:         { steps: [0, 1, 3, 5, 7, 8, 10], quals: ['m', '', '', 'm', 'dim', '', 'm'] },
+    mixolydian:       { steps: [0, 2, 4, 5, 7, 9, 10], quals: ['', 'm', 'dim', '', 'm', 'm', ''] },
+    'harmonic-minor': { steps: [0, 2, 3, 5, 7, 8, 11], quals: ['m', 'dim', '', 'm', '', '', 'dim'] },
+  };
+  // Progression templates as scale-degree indices. For major/minor they dodge the diminished degree;
+  // modes (dorian etc.) may surface a diatonic dim chord, which is in-key and the fire engine parses fine.
+  const TEMPLATES = {
+    minorish: [[0, 5, 2, 6], [0, 3, 4, 0], [0, 6, 5, 6], [0, 3, 5, 4]],  // i-VI-III-VII, i-iv-v-i, i-VII-VI-VII, i-iv-VI-v
+    majorish: [[0, 4, 5, 3], [0, 5, 3, 4], [0, 3, 4, 0], [1, 4, 0, 0]],  // I-V-vi-IV, I-vi-IV-V, I-IV-V-I, ii-V-I
+  };
+  const MAJORISH = ['major', 'mixolydian', 'lydian'];
+  let tmplIdx = 0;
+
+  function setup() {
+    const rootEl = document.getElementById('session-root');
+    const scaleEl = document.getElementById('session-scale');
+    const genEl = document.getElementById('session-gen');
+    const readEl = document.getElementById('session-key-readout');
+    if (!rootEl || !scaleEl) return;   // panel not on this build
+
+    const diatonic = (rootPc, scale) => {
+      const sc = SCALES[scale] || SCALES.minor;
+      return sc.steps.map((st, i) => NOTES[(rootPc + st) % 12] + sc.quals[i]);
+    };
+    const sync = () => {
+      const root = rootEl.value, scale = scaleEl.value;
+      localStorage.setItem('benchSessionRoot', root);
+      localStorage.setItem('benchSessionScale', scale);
+      const rootPc = NOTES.indexOf(root);
+      if (rootPc >= 0 && readEl) readEl.textContent = `in ${root} ${scale.replace('-', ' ')}:  ` + diatonic(rootPc, scale).join('  ');
+    };
+    const generate = () => {
+      const rootPc = NOTES.indexOf(rootEl.value);
+      if (rootPc < 0) return;
+      const dia = diatonic(rootPc, scaleEl.value);
+      const fam = MAJORISH.includes(scaleEl.value) ? TEMPLATES.majorish : TEMPLATES.minorish;
+      const tmpl = fam[tmplIdx % fam.length]; tmplIdx++;
+      const box = document.getElementById('prog-chords');
+      if (box) { box.value = tmpl.map(d => dia[d]).join(' '); box.dispatchEvent(new Event('input', { bubbles: true })); }
+    };
+
+    const sr = localStorage.getItem('benchSessionRoot');
+    if (sr && [...rootEl.options].some(o => o.value === sr || o.text === sr)) rootEl.value = sr;
+    const ss = localStorage.getItem('benchSessionScale');
+    if (ss && [...scaleEl.options].some(o => o.value === ss)) scaleEl.value = ss;
+    rootEl.addEventListener('change', sync);
+    scaleEl.addEventListener('change', sync);
+    if (genEl) genEl.addEventListener('click', generate);
+    sync();
+  }
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+})();
