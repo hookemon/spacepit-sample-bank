@@ -1618,10 +1618,10 @@
         }).join('');
         if (cur && data.patches.some(p => p.name === cur)) msPatchSel.value = cur;
       }
-      // ONE cruise-able catalog: fold the full factory bank into the patch list as PENDING (todo)
-      // entries so it reads A11->B88 — your captured ones ✓, the rest ○, each click-to-load + ready
-      // to capture. Grows 12 -> 128 as you record. (Capture dropdown above stays the 12 done ones;
-      // a pending preset fills the NEW-name box as 'hook-...' so capturing creates that patch.)
+      // Fold the full factory bank into data.patches as PENDING (todo) stubs alongside your captured
+      // ones, so the click/capture handler finds any of them by name. The RENDER below keeps YOUR
+      // patches grouped at the top + groups the rest into collapsible CATEGORY drawers (bass/lead/
+      // pad/...). Sorted by slot so each category reads A11->B88. A pending preset fills the NEW-name box.
       {
         const capIds = new Set(data.patches.map(p => p.gearbase_preset_id || (p.preset_position ? 'P:' + p.preset_position : '')).filter(Boolean));
         const slugify = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -1652,7 +1652,8 @@
         const m = secs / 60;
         return m < 90 ? `${Math.round(m)}m ago` : `${(m / 60).toFixed(1)}h ago`;
       };
-      const iconicHtml = data.patches.length ? data.patches.map(p => {
+      // Render one patch row — reused for your iconic patches AND the factory-preset categories.
+      const renderRow = (p) => {
         const stale = p.captured_at && freshest && (freshest - p.captured_at) > 40 * 60;
         const icon = p.status === 'captured' ? (stale ? '⟳' : '✓') : p.status === 'pending' ? '◐' : '○';
         const color = stale ? 'var(--amber)' : p.status === 'captured' ? 'var(--green)' : p.status === 'pending' ? 'var(--amber)' : 'var(--fg-faint)';
@@ -1660,14 +1661,11 @@
         const wavInfo = p.status === 'captured' ? ` <span style="color: var(--fg-faint); font-size: 10px;">(${p.wav_count} wav)${ageTxt}</span>` : '';
         const notesTrim = (p.notes || '').slice(0, 90) + ((p.notes || '').length > 90 ? '…' : '');
         const notesEscaped = (p.notes || '').replace(/"/g, '&quot;');
-        // HERO = the real Roland name + bank slot (e.g. "A57 · Euro SAW") — matches what
-        // the synth screen shows, so loading + capture is verified by eye. Falls back to
-        // the technical slug for instruments not yet enriched with factory names.
         const heroName = p.preset_name ? `${p.preset_position ? p.preset_position + ' · ' : ''}${p.preset_name}` : p.name;
-        const slugTag = p.preset_name ? `<span style="color: var(--fg-faint); font-family: var(--mono); font-size: 9px; opacity: 0.75;">${p.name}</span> · ` : '';
+        const slugTag = (p.preset_name && p.name !== p.preset_name) ? `<span style="color: var(--fg-faint); font-family: var(--mono); font-size: 9px; opacity: 0.75;">${p.name}</span> · ` : '';
         const rc = roleColors[p.role];
         const roleChip = p.role ? `<span style="background: ${rc || 'var(--bg-2)'}22; color: ${rc || 'var(--fg-faint)'}; border: 1px solid ${rc || 'var(--border)'}55; padding: 0 5px; border-radius: 2px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 6px; vertical-align: middle;">${p.role}</span>` : '';
-        const pcBadge = (p.program_change != null) ? `<span style="background: var(--grad-amber); color: #1a0e00; padding: 1px 6px; border-radius: 2px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; margin-left: 6px; vertical-align: middle;" title="Linked to factory preset — click row to send PC ${p.program_change}">PC ${p.program_change}</span>` : '';
+        const pcBadge = (p.program_change != null) ? `<span style="background: var(--grad-amber); color: #1a0e00; padding: 1px 6px; border-radius: 2px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; margin-left: 6px; vertical-align: middle;" title="Click row to send PC ${p.program_change}">PC ${p.program_change}</span>` : '';
         return `
           <div class="iconic-patch-row" data-patch="${p.name}" data-pc="${p.program_change ?? ''}" data-msb="${p.bank_msb ?? ''}" data-lsb="${p.bank_lsb ?? ''}" data-preset-id="${p.gearbase_preset_id || ''}" title="${notesEscaped}" style="display: flex; gap: 10px; padding: 9px 10px; background: var(--bg-3); border-left: 3px solid ${color}; cursor: pointer; transition: all 0.12s ease;" onmouseover="this.style.background='var(--bg-2)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='var(--bg-3)';this.style.transform=''">
             <span style="color: ${color}; font-weight: 700; min-width: 14px; font-size: 14px; line-height: 1;">${icon}</span>
@@ -1675,12 +1673,33 @@
               <div style="font-family: var(--display); color: var(--fg); font-weight: 600; font-size: 13px; letter-spacing: 0.02em;">${heroName}${roleChip}${pcBadge}${wavInfo}</div>
               <div style="color: var(--fg-faint); font-size: 10px; line-height: 1.4; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${slugTag}${notesTrim}</div>
             </div>
-          </div>
-        `;
-      }).join('') : '<div style="color: var(--fg-faint); padding: 8px;">(no patches scaffolded yet — add to manifest.patches[])</div>';
+          </div>`;
+      };
 
-      // full 128-slot catalog scrolls inside the panel (the old collapsible drawer is gone — it's all here now)
-      listEl.innerHTML = '<div style="max-height: 560px; overflow-y: auto;">' + iconicHtml + '</div>';
+      // YOUR patches (curated/captured) stay grouped at the top — always easy to find (String Machine, etc.).
+      const mine = data.patches.filter(p => !p._pending);
+      const myHtml = mine.length ? mine.map(renderRow).join('')
+        : '<div style="color: var(--fg-faint); padding: 8px;">(no patches yet — add to manifest.patches[])</div>';
+
+      // The rest of the factory bank, grouped by CATEGORY in collapsible drawers — pop open
+      // "bass" / "lead" / "pad" to grab a few more to capture.
+      const byCat = {};
+      data.patches.filter(p => p._pending).forEach(p => {
+        const c = (p.role || 'other').toLowerCase();
+        (byCat[c] = byCat[c] || []).push(p);
+      });
+      const CAT_ORDER = ['bass', 'lead', 'pad', 'keys', 'synth', 'arp', 'pluck', 'fx', 'other'];
+      const cats = Object.keys(byCat).sort((a, b) =>
+        ((CAT_ORDER.indexOf(a) + 1 || 99) - (CAT_ORDER.indexOf(b) + 1 || 99)) || a.localeCompare(b));
+      const catHtml = cats.map(c => `
+        <details style="margin-top: 6px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px;">
+          <summary style="padding: 7px 10px; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--fg); text-transform: capitalize; letter-spacing: 0.04em;">${c} <span style="color: var(--fg-faint); font-weight: 400;">(${byCat[c].length})</span></summary>
+          <div style="max-height: 320px; overflow-y: auto; border-top: 1px solid var(--border);">${byCat[c].map(renderRow).join('')}</div>
+        </details>`).join('');
+
+      const _hdr = (t) => `<div style="font-size: 10px; font-weight: 700; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 2px 4px;">${t}</div>`;
+      listEl.innerHTML = _hdr(`★ your patches (${mine.length})`) + myHtml
+        + (catHtml ? _hdr('more from the factory bank — by category') + catHtml : '');
 
       // Helper: send PC + Bank Select to the currently-selected instrument's MIDI port
       async function fireLoadPatch(name, pc, msb, lsb, presetId) {
