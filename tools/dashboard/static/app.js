@@ -1618,6 +1618,23 @@
         }).join('');
         if (cur && data.patches.some(p => p.name === cur)) msPatchSel.value = cur;
       }
+      // ONE cruise-able catalog: fold the full factory bank into the patch list as PENDING (todo)
+      // entries so it reads A11->B88 — your captured ones ✓, the rest ○, each click-to-load + ready
+      // to capture. Grows 12 -> 128 as you record. (Capture dropdown above stays the 12 done ones;
+      // a pending preset fills the NEW-name box as 'hook-...' so capturing creates that patch.)
+      {
+        const capIds = new Set(data.patches.map(p => p.gearbase_preset_id || (p.preset_position ? 'P:' + p.preset_position : '')).filter(Boolean));
+        const slugify = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const pending = (factory.presets || []).filter(fp => fp.id && !capIds.has(fp.id)).map(fp => ({
+          name: 'hook-' + slugify(fp.name), preset_name: fp.name, preset_position: (fp.id || '').replace(/^P:/, ''),
+          program_change: fp.program_change, bank_msb: fp.bank_msb, bank_lsb: fp.bank_lsb,
+          role: fp.category || '', notes: '', status: 'todo', gearbase_preset_id: fp.id, _pending: true,
+        }));
+        const slotKey = (p) => p.gearbase_preset_id || ('P:' + (p.preset_position || ''));
+        data.patches = data.patches.concat(pending).sort((a, b) => slotKey(a) < slotKey(b) ? -1 : slotKey(a) > slotKey(b) ? 1 : 0);
+        const capN = data.patches.filter(p => p.status === 'captured').length;
+        data.summary = { captured: capN, pending: 0, todo: data.patches.length - capN, total: data.patches.length };
+      }
       const s = data.summary;
       const _allCaps = data.patches.map(p => p.captured_at).filter(Boolean);
       const _fresh = _allCaps.length ? Math.max(..._allCaps) : 0;
@@ -1680,7 +1697,8 @@
           </details>`;
       }
 
-      listEl.innerHTML = iconicHtml + factoryHtml;
+      // full 128-slot catalog scrolls inside the panel (the old collapsible drawer is gone — it's all here now)
+      listEl.innerHTML = '<div style="max-height: 560px; overflow-y: auto;">' + iconicHtml + '</div>';
 
       // Helper: send PC + Bank Select to the currently-selected instrument's MIDI port
       async function fireLoadPatch(name, pc, msb, lsb, presetId) {
@@ -1746,12 +1764,18 @@
           // Pull up the patch detail card — beautiful big presentation of what's selected
           showPatchDetail(patchData, presetId);
 
-          // Pre-fill the multisample capture form so the Capture button is one click away
-          const patchInput = document.getElementById('ms-patch');
-          if (patchInput) {
-            patchInput.value = patchData.name;
-            const msBtn = document.querySelector('.styles button[data-style="multisample"]');
-            if (msBtn) msBtn.click();
+          // Pre-fill the capture form so Capture is one click away. A patch you've already started
+          // -> the dropdown; a PENDING factory preset -> the NEW-name box as 'hook-...' (capturing
+          // it creates that patch and it flips ○ -> ✓ next refresh).
+          const msBtn = document.querySelector('.styles button[data-style="multisample"]');
+          if (msBtn) msBtn.click();
+          const sel = document.getElementById('ms-patch');
+          const neu = document.getElementById('ms-patch-new');
+          if (patchData._pending) {
+            if (neu) neu.value = patchData.name;
+          } else if (sel) {
+            sel.value = patchData.name;
+            if (neu) neu.value = '';
           }
         });
       });
