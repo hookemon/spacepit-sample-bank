@@ -314,11 +314,16 @@ def main() -> None:
         all_notes_off(port, ch)
         port.close()
 
-    # save
-    sf.write(str(out_path), rec, args.sample_rate, subtype=SUBTYPE[args.bit_depth])
-    peak = float(np.max(np.abs(rec)))
+    # save — process the raw take into a SAMPLE-EXACT, seam-wrapped PERFECT LOOP.
+    loop, onset, loop_len = make_perfect_loop(rec, args.sample_rate, body_duration)
+    sf.write(str(out_path), loop, args.sample_rate, subtype=SUBTYPE[args.bit_depth])
+    # keep the raw take next to it (front latency + full tail) in case we want to re-trim by hand
+    sf.write(str(out_path.with_name(out_path.stem + "_raw.wav")), rec, args.sample_rate, subtype=SUBTYPE[args.bit_depth])
+    peak = float(np.max(np.abs(loop)))
     peak_db = 20 * np.log10(max(1e-10, peak))
-    print(f"\n✓ saved {fname}  ({total_duration:.1f}s, peak {peak_db:+.1f} dBFS)")
+    loop_sec = loop_len / args.sample_rate
+    print(f"\n✓ saved {fname}  (PERFECT LOOP — {loop_sec:.3f}s = exactly {int(total_bars)} bars @ {args.bpm}bpm)")
+    print(f"  downbeat trimmed at {onset/args.sample_rate*1000:.0f}ms · tail folded back · peak {peak_db:+.1f} dBFS")
     if peak >= 0.99:
         print("  ⚠ clipping detected")
 
@@ -326,6 +331,38 @@ def main() -> None:
 def _midi_to_name(midi: int) -> str:
     names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     return f"{names[midi % 12]}{midi // 12 - 1}"
+
+
+def make_perfect_loop(rec, sr, body_duration, onset_db=-38.0, wrap_sec=0.6):
+    """Turn the raw take (leading MIDI->audio latency + trailing ring-out) into a file that ACTUALLY
+    loops: (1) trim to the downbeat so the loop starts ON the first chord, (2) cut to EXACTLY
+    body_duration = N bars, sample-accurate to the BPM, so it sits dead-on the DAW grid, and (3) fold
+    the ring-out tail back onto the top so the last chord's release wraps seamlessly into the first
+    chord — no click at the seam, no chopped-off tail."""
+    import numpy as np
+    rec = np.asarray(rec)
+    mono = rec.mean(axis=1) if rec.ndim > 1 else rec
+    a = np.abs(mono)
+    pk = float(a.max()) or 1.0
+    above = np.where(a > pk * (10.0 ** (onset_db / 20.0)))[0]
+    onset = int(above[0]) if len(above) else 0           # downbeat = first sound
+    loop_len = int(round(body_duration * sr))            # exact N-bar length in samples
+    end = onset + loop_len
+    if end > len(rec):                                   # take ran short — pad with silence
+        pad = np.zeros((end - len(rec),) + rec.shape[1:], dtype=rec.dtype)
+        rec = np.concatenate([rec, pad])
+    body = rec[onset:end].astype(np.float64).copy()
+    W = int(min(len(rec) - end, loop_len // 2, round(wrap_sec * sr)))   # tail-wrap window
+    if W > 0:
+        tail = rec[end:end + W].astype(np.float64)       # ring-out that continues past the loop
+        win = np.linspace(1.0, 0.0, W)                   # decay it to 0 as it folds in -> no seam click
+        if rec.ndim > 1:
+            win = win[:, None]
+        body[:W] += tail * win
+    pk2 = float(np.max(np.abs(body)))
+    if pk2 > 0.999:                                      # keep the fold from clipping
+        body *= 0.999 / pk2
+    return body.astype(np.float32), onset, loop_len
 
 
 if __name__ == "__main__":
