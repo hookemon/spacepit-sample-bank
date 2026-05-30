@@ -244,29 +244,30 @@ def build_sample_part(
 					</MultiSamplePart>"""
 
 
-def _set_amp_release(xml: str, release_ms: float) -> str:
-    """Set the AMP (volume) envelope's ReleaseTime so notes ring out on key-up like the
-    real patch (pads ~1s, basses tight) — the template default is a too-short 50ms that
-    cuts pads off abruptly. Targets the amp env by its SustainLevel=1 signature (the
-    filter env is Sustain=0), so we can never touch the filter or pitch envelope. Bails
-    safely (no change) if the template structure isn't what we expect."""
-    # Floor at 5ms — a hard cut on key-up clicks (chops the waveform mid-cycle), same as a
-    # bad loop seam. A few ms of release fades it to zero cleanly, even on the lowest sub.
-    # Never let release drop below this, whatever role/value is requested.
-    rel = max(5.0, min(60000.0, float(release_ms)))
+def _set_amp_env(xml: str, attack_ms: float, decay_ms: float, release_ms: float) -> str:
+    """Set the AMP (volume) envelope's Attack / Decay / Release (ms) — Nick's spec: a soft onset +
+    tight decay + short release that smooths the note-ON and note-OFF so neither clicks. Targets
+    the amp env by its SustainLevel=1 signature (the filter env is Sustain=0), so the filter and
+    pitch envelopes are never touched. Bails safely (no change) if the structure isn't expected."""
+    vals = {
+        "AttackTime":  max(0.0, min(60000.0, float(attack_ms))),
+        "DecayTime":   max(0.0, min(60000.0, float(decay_ms))),
+        "ReleaseTime": max(0.0, min(60000.0, float(release_ms))),
+    }
     parts = xml.split("<Envelope>")
     sustain_full = re.compile(r'<SustainLevel>\s*<LomId Value="0" />\s*<Manual Value="1"')
     for i in range(1, len(parts)):
         if sustain_full.search(parts[i]):                       # this is the amp env
-            parts[i] = re.sub(
-                r'(<ReleaseTime>\s*<LomId Value="0" />\s*<Manual Value=)"[\d.]+"',
-                rf'\g<1>"{rel:.4f}"', parts[i], count=1)
+            for tag, v in vals.items():
+                parts[i] = re.sub(
+                    rf'(<{tag}>\s*<LomId Value="0" />\s*<Manual Value=)"[\d.]+"',
+                    rf'\g<1>"{v:.4f}"', parts[i], count=1)
             return "<Envelope>".join(parts)
-    return xml   # structure unexpected — leave release untouched rather than risk it
+    return xml   # structure unexpected — leave the envelope untouched rather than risk it
 
 
 def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str] = None,
-              release_ms: Optional[float] = None) -> bytes:
+              attack_ms: float = 20.0, decay_ms: float = 3.0, release_ms: float = 8.0) -> bytes:
     """Splice generated SampleParts into the template, gzip the result.
 
     Works for both .adv (raw Sampler) and .adg (Instrument-Rack-wrapped Sampler)
@@ -284,8 +285,9 @@ def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str
         # that. Replace only the first empty UserName = the top device/rack.
         template_xml = template_xml.replace('<UserName Value="" />',
                                             f'<UserName Value="{patch_name}" />', 1)
-    if release_ms is not None:
-        template_xml = _set_amp_release(template_xml, release_ms)
+    # Amp envelope — Nick's spec (2026-05-29): 20ms attack / 3ms decay / 8ms release. Soft enough
+    # that note-on AND note-off both fade instead of clicking; short enough to still feel immediate.
+    template_xml = _set_amp_env(template_xml, attack_ms, decay_ms, release_ms)
     # Loop Snap stays OFF — matches Samples From Mars + the template default. Snap ON makes
     # Ableton re-snap the loop points to ITS nearest zero-crossings, moving them off the
     # exact points we chose -> clicks. Off = our points stand. (Earlier forcing it on was

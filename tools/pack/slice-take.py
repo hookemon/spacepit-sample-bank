@@ -78,6 +78,23 @@ def find_segments(mono: np.ndarray, sr: int, gate_db: float = -34.0,
     return segs
 
 
+def time_segments(mono: np.ndarray, sr: int, expected: int, gate_db: float = -40.0):
+    """Fallback for SUSTAINED sounds (pads, strings — anything with a long release) whose tails
+    bleed across the gaps so silence-splitting can't separate the notes (it sees one big region).
+    We KNOW the capture fired `expected` evenly-spaced notes, so divide the sounding span into
+    `expected` equal windows — time-based, works no matter how much the notes ring together."""
+    a = np.abs(mono)
+    peak = float(a.max()) if a.size else 0.0
+    if peak <= 0:
+        return []
+    idx = np.where(a > peak * (10.0 ** (gate_db / 20.0)))[0]
+    if len(idx) == 0:
+        return []
+    first, last = int(idx[0]), int(idx[-1])
+    win = (last - first) / float(expected)
+    return [(int(first + i * win), int(first + (i + 1) * win)) for i in range(expected)]
+
+
 def _zero_cross(mono: np.ndarray, idx: int, search: int) -> int:
     """Nearest zero crossing to idx within `search` samples — cut there so the trim won't click."""
     lo = max(1, idx - search)
@@ -160,8 +177,15 @@ def main() -> None:
         print(f"  {k+1:2d}. {s/sr:6.2f}s -> {e/sr:6.2f}s  ({(e-s)/sr:.2f}s)  -> {nm}")
 
     if len(segs) != expected:
-        print(f"\n✗ found {len(segs)}, need {expected}. Adjust --gate-db (try -28 if it split a note, "
-              f"-40 if it merged two) or check the recording, then re-run. Nothing written.")
+        # Sustained sounds (pads, strings) bleed across the gaps → silence-splitting sees one big
+        # region. We KNOW the capture fired `expected` evenly-spaced notes, so slice by time instead.
+        print(f"\n  silence-split found {len(segs)} (need {expected}) — sustained sound; slicing by time.")
+        segs = time_segments(mono, sr, expected, gate_db=args.gate_db)
+        for k, (s, e) in enumerate(segs):
+            nm = midi_to_name(notes[k]) if k < expected else "?"
+            print(f"  {k+1:2d}. {s/sr:6.2f}s -> {e/sr:6.2f}s  ({(e-s)/sr:.2f}s)  -> {nm}")
+    if len(segs) != expected:
+        print(f"\n✗ couldn't split into {expected} (got {len(segs)}). Check the recording. Nothing written.")
         sys.exit(2)
 
     if args.dry_run:
