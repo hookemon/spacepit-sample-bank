@@ -199,6 +199,35 @@ def log_update(wav_path: str, **updates):
     return False
 
 
+def log_remove(wav_path: str) -> bool:
+    """Drop an entry from the log entirely so the row disappears from the captures list."""
+    global capture_log
+    before = len(capture_log)
+    capture_log = [e for e in capture_log if e.get("wav_path") != wav_path]
+    if len(capture_log) != before:
+        _save_log()
+        return True
+    return False
+
+
+def _move_to_trash(path: Path) -> bool:
+    """Move a file to the macOS Trash — 'gone' from the bench but recoverable, never shredded."""
+    try:
+        if not path.exists():
+            return False
+        trash = Path.home() / ".Trash"
+        dest = trash / path.name
+        n = 1
+        while dest.exists():
+            dest = trash / f"{path.stem}_{n}{path.suffix}"
+            n += 1
+        path.rename(dest)
+        return True
+    except Exception as e:
+        print(f"trash move failed for {path}: {e}", file=sys.stderr)
+        return False
+
+
 # Load existing log on startup
 _load_log()
 
@@ -1149,19 +1178,21 @@ def keep():
 
 @app.route("/api/discard", methods=["POST"])
 def discard():
-    """Delete a capture. Removes the WAV + sidecar if present."""
+    """Toss a capture: move the WAV + sidecar to the macOS Trash (recoverable) AND drop the row
+    from the captures list entirely. Gone from the bench — fishable from Trash if you slip."""
     params = request.get_json() or {}
     wav_rel = params.get("wav_path") or last_capture.get("path")
     if not wav_rel:
         return jsonify({"error": "no WAV to discard"}), 400
     wav_path = Path(wav_rel) if Path(wav_rel).is_absolute() else BANK_ROOT / wav_rel
-    if wav_path.exists():
-        wav_path.unlink()
-    sidecar = wav_path.with_suffix(".json")
-    if sidecar.exists():
-        sidecar.unlink()
-    log_update(str(wav_path.relative_to(BANK_ROOT)) if wav_path else "", status="discarded", discarded_at=datetime.now().isoformat(timespec="seconds"))
-    return jsonify({"ok": True, "deleted": str(wav_path.relative_to(BANK_ROOT)) if wav_path else None})
+    try:
+        rel = str(wav_path.relative_to(BANK_ROOT))
+    except ValueError:
+        rel = str(wav_path)
+    trashed = _move_to_trash(wav_path)
+    _move_to_trash(wav_path.with_suffix(".json"))   # sidecar too, if present
+    log_remove(rel)                                  # row disappears — accurate count
+    return jsonify({"ok": True, "trashed": trashed, "removed": rel})
 
 
 @app.route("/api/patch/clear", methods=["POST"])

@@ -1775,7 +1775,7 @@
     }
     if (currentStyle === 'multisample') {
       return { ...base,
-        patch: document.getElementById('ms-patch').value.trim() || 'untitled',
+        patch: (document.getElementById('ms-patch-new')?.value.trim() || document.getElementById('ms-patch').value.trim() || 'untitled'),
         chain: document.getElementById('ms-chain').value,
         note_range: document.getElementById('ms-range').value.trim() || 'C2-C5',
         step: parseInt(document.getElementById('ms-step').value) || 3,
@@ -3167,7 +3167,7 @@
         const actions = isPending
           ? `
             <audio controls preload="none" src="${c.wav_url}" style="width: 200px; height: 28px;"></audio>
-            <button class="red row-discard-btn" data-wav="${c.wav_path}" style="padding: 4px 10px; font-size: 11px; margin: 0;" title="Delete this capture — removes WAV from disk">✗</button>
+            <button class="red row-discard-btn" data-wav="${c.wav_path}" style="padding: 4px 10px; font-size: 11px; margin: 0;" title="Toss this capture — moves to Trash, removes it from the list">✗</button>
           `
           : '';
         return `
@@ -3185,7 +3185,8 @@
       listEl.querySelectorAll('.row-discard-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const wavPath = btn.dataset.wav;
-          if (!confirm(`Delete this capture?\n\n${wavPath}\n\nWAV + sidecar will be removed from disk.`)) return;
+          // No confirm — the x just tosses it. It goes to the Trash (recoverable), so a slip
+          // is no big deal; the point of the x is a quick clean-up.
           btn.disabled = true;
           btn.textContent = '…';
           try {
@@ -3196,8 +3197,8 @@
             });
             const d = await resp.json();
             if (d.ok) {
-              setStatus(`✗ Deleted ${wavPath}`, '');
-              loadCapturesLog();  // refresh immediately
+              setStatus(`🗑 Tossed to Trash — ${wavPath}`, '');
+              loadCapturesLog();  // row disappears immediately
             } else {
               setStatus(`Delete failed: ${d.error}`, 'error');
               btn.disabled = false;

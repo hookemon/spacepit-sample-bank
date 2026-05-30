@@ -78,6 +78,42 @@ def find_segments(mono: np.ndarray, sr: int, gate_db: float = -34.0,
     return segs
 
 
+def _zero_cross(mono: np.ndarray, idx: int, search: int) -> int:
+    """Nearest zero crossing to idx within `search` samples — cut there so the trim won't click."""
+    lo = max(1, idx - search)
+    hi = min(len(mono) - 1, idx + search)
+    best, bestd = idx, search + 1
+    for j in range(lo, hi):
+        if (mono[j - 1] <= 0 < mono[j]) or (mono[j - 1] >= 0 > mono[j]):
+            d = abs(j - idx)
+            if d < bestd:
+                bestd, best = d, j
+    return best
+
+
+def trim_silence(clip: np.ndarray, sr: int, gate_db: float = -42.0,
+                 pre_ms: float = 3.0, tail_ms: float = 15.0) -> np.ndarray:
+    """Delete leading + trailing dead air so silence never reaches the sampler (Nick's rule).
+    Keeps a few ms before the first sound (zero-cross aligned) so the transient isn't clipped,
+    and a short tail after the last sound so the decay isn't chopped hard."""
+    mono = clip.mean(axis=1) if clip.ndim > 1 else clip
+    a = np.abs(mono)
+    peak = float(a.max()) if a.size else 0.0
+    if peak <= 0:
+        return clip
+    thr = peak * (10.0 ** (gate_db / 20.0))
+    idx = np.where(a > thr)[0]
+    if len(idx) == 0:
+        return clip
+    first, last = int(idx[0]), int(idx[-1])
+    zc = int(0.005 * sr)
+    start = _zero_cross(mono, max(0, first - int(pre_ms / 1000 * sr)), zc)
+    end = _zero_cross(mono, min(len(mono), last + int(tail_ms / 1000 * sr)), zc)
+    if end <= start:
+        return clip
+    return clip[start:end]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--wav", required=True, help="the one-pass recording (all notes)")
@@ -147,6 +183,7 @@ def main() -> None:
         if k + 1 < len(segs):
             end = min(end, segs[k + 1][0] - int(0.05 * sr))
         clip = audio[start:end]
+        clip = trim_silence(clip, sr)   # delete front + back dead air — silence never ships
         nm = midi_to_name(notes[k])
         fname = f"{args.instrument}_{args.patch}_{nm}_v{args.velocity}_rr{args.rr}.wav"
         sf.write(str(out_dir / fname), clip, sr, subtype=subtype)

@@ -109,7 +109,7 @@ def build_sample_part(
     loop_start: Optional[int] = None,
     loop_end: Optional[int] = None,
     loop_crossfade: int = 0,
-    loop_mode: int = 1,
+    loop_mode: int = 2,   # default back-and-forth (ping-pong) — Nick's recipe
     sample_start: int = 0,
 ) -> str:
     """Generate one <MultiSamplePart> XML block for a single WAV.
@@ -379,20 +379,31 @@ def build_presets_for_wavs(
         elif sc is None:
             ls, le = None, None                                 # explicitly a one-shot
         else:
-            lp = find_loop_points(wav, sr) if loop else None
-            ls, le = (lp[0], lp[1]) if lp else (None, None)
-        # Crossfade 0 — the Samples From Mars recipe Nick confirmed by ear (snap off + zero
-        # crossfade beats the crossfade, which combs into a "vowel/whoa" on these sounds).
-        # The loop points are the best-match starting points; the few that click get nudged
-        # by ear in Ableton's Sampler (the moving sounds never repeat perfectly — that last
-        # bit is an ears job, not math). Honor an explicit sidecar crossfade if one's set.
+            # Back-and-forth philosophy: do NOT hunt a short forward-seamless loop. find_loop_points
+            # picks variable SHORT loops on some patches → tiny crossfades → exactly the inconsistency
+            # Nick caught (big fades on Euro SAW, tiny on Sup Lead). Use a long steady-sustain region
+            # on EVERY note so the crossfade always maxes to the recipe → all 13 patches fade identical.
+            # Back-and-forth + the fat crossfade hide any drift, so a fixed long region is seamless.
+            ls, le = int(frames * 0.28), int(frames * 0.85)
+        # Widen any SHORT loop (a sidecar / bake-loops can hand us an 80ms loop!) to the steady
+        # sustain region — back-and-forth wants a long loop so the crossfade always maxes out.
+        if ls is not None and le is not None and (le - ls) < int(0.8 * sr):
+            ls, le = int(frames * 0.28), int(frames * 0.85)
+        # RECIPE (Nick confirmed by ear, 2026-05-29): back-and-forth loop + HIGH crossfade.
+        # Ping-pong reverses at the endpoints so the seam never clicks; the fat crossfade
+        # smooths the turnaround. Beats hunting a perfect forward-repeat on detuned/evolving
+        # sounds. An explicit sidecar crossfade still wins. Crossfade is clamped to the material
+        # before the loop and to half the loop length so Ableton won't reject it.
         if ls is not None and le is not None and le > ls:
-            xf = int(sc_xf) if sc_xf is not None else 0
+            # ALWAYS the recipe crossfade — ignore whatever a sidecar/bake-loops wrote (those vary:
+            # 0 here, 576 there → inconsistent fades). Every note of every patch gets the same fat
+            # back-and-forth crossfade. One premise, 13 identical fades.
+            xf = int(min(ls - ss, (le - ls) // 2, 20000))
         else:
             xf = 0
         block = build_sample_part(i, wav.stem, root, key_min, key_max, wav, frames, sr,
                                   loop_start=ls, loop_end=le, loop_crossfade=xf,
-                                  loop_mode=1, sample_start=ss)
+                                  loop_mode=2, sample_start=ss)
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
@@ -489,10 +500,17 @@ def main() -> None:
             key_max = (root + roots[i + 1]) // 2
         name = wav.stem  # filename without .wav extension
         lp = find_loop_points(wav, sr)
-        block = build_sample_part(i, name, root, key_min, key_max, wav, frames, sr,
-                                  loop_start=(lp[0] if lp else None),
-                                  loop_end=(lp[1] if lp else None),
-                                  loop_crossfade=(lp[2] if lp else 0))
+        ss = find_onset_sample(wav, sr)   # front trim — start on the transient, no dead air
+        if lp:
+            _ls, _le = lp[0], lp[1]
+            xf = int(min(_ls - ss, (_le - _ls) // 2, 20000))   # high crossfade, clamped safe
+            block = build_sample_part(i, name, root, key_min, key_max, wav, frames, sr,
+                                      loop_start=_ls, loop_end=_le,
+                                      loop_crossfade=xf, sample_start=ss)
+        else:
+            block = build_sample_part(i, name, root, key_min, key_max, wav, frames, sr,
+                                      loop_start=None, loop_end=None,
+                                      loop_crossfade=0, sample_start=ss)
         parts_xml.append(block)
 
     sample_parts_combined = "\n".join(parts_xml)
