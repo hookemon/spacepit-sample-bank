@@ -1726,6 +1726,49 @@ def capture_queue_stop():
     return jsonify({"ok": True, "stopping": True})
 
 
+_note_ports = {}  # real_port_name -> open mido output, cached so keypress latency stays low
+
+@app.route("/api/note", methods=["POST"])
+def play_note():
+    """Live computer-keyboard player. Body: { midi_port, channel=1, notes:[60,64,67], on, velocity=100 }.
+    Sends note_on (on=true) / note_off (on=false) for each note. The output port is cached OPEN
+    across calls so playing from the laptop keys feels responsive; /api/midi/panic clears stuck notes."""
+    import mido
+    p = request.get_json() or {}
+    port_name = p.get("midi_port")
+    if not port_name:
+        return jsonify({"error": "midi_port required"}), 400
+    notes = p.get("notes")
+    if notes is None and "note" in p:
+        notes = [p["note"]]
+    if not notes:
+        return jsonify({"error": "notes required"}), 400
+    ch = int(p.get("channel", 1)) - 1
+    on = bool(p.get("on", True))
+    vel = int(p.get("velocity", 100))
+    real = None
+    try:
+        matches = [x for x in mido.get_output_names() if port_name.lower() in x.lower()]
+        if not matches:
+            return jsonify({"error": f"no MIDI port matches '{port_name}'"}), 404
+        real = matches[0]
+        port = _note_ports.get(real)
+        if port is None:
+            port = mido.open_output(real)
+            _note_ports[real] = port
+        kind = "note_on" if on else "note_off"
+        for n in notes:
+            n = int(n)
+            if 0 <= n <= 127:
+                port.send(mido.Message(kind, note=n, velocity=(vel if on else 0), channel=ch))
+        return jsonify({"ok": True, "port": real, "notes": notes, "on": on})
+    except Exception as e:
+        if real and real in _note_ports:          # drop a stale handle so the next call re-opens
+            try: _note_ports.pop(real).close()
+            except Exception: pass
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/midi/panic", methods=["POST"])
 def midi_panic():
     """PANIC — the big red button. Halts EVERYTHING: capture queue, audition

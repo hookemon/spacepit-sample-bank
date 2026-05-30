@@ -3629,4 +3629,59 @@
   loadDrumPatterns();
   loadCapturesLog();
   setInterval(loadCapturesLog, 10000);  // refresh every 10 sec
+
+  // ---------- computer-keyboard player — audition a patch without walking to the synth ----------
+  (function keyboardPlayer() {
+    const BASE = 48;                                   // 'A' = C3 (MIDI 48); octave buttons shift by 12
+    const MAP = { a:0, w:1, s:2, e:3, d:4, f:5, t:6, g:7, y:8, h:9, u:10, j:11, k:12, o:13, l:14, p:15 };
+    const KB = { on:false, octave:0, chord:false, held:{} };
+    const noteName = (n) => ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][((n%12)+12)%12] + (Math.floor(n/12)-1);
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:14px;padding:6px 12px;background:var(--bg-3,#15171c);border-top:1px solid var(--border,#2a2e37);font-family:var(--mono,monospace);font-size:11px;color:var(--fg-faint,#8a8fa3);';
+    bar.innerHTML =
+      '<button id="kb-toggle" style="padding:4px 12px;font-weight:700;border-radius:3px;cursor:pointer;border:1px solid var(--border,#2a2e37);">⌨ keys: OFF</button>'
+      + '<span>oct <button id="kb-dn" style="padding:1px 8px;cursor:pointer;">−</button> <b id="kb-oct" style="color:var(--fg,#e2e8f2);">0</b> <button id="kb-up" style="padding:1px 8px;cursor:pointer;">+</button></span>'
+      + '<button id="kb-chord" style="padding:3px 10px;cursor:pointer;border:1px solid var(--border,#2a2e37);border-radius:3px;">chord: off</button>'
+      + '<span style="opacity:0.7;">A W S E D F T G Y H U J K · Z/X octave</span>'
+      + '<span id="kb-note" style="margin-left:auto;color:var(--amber,#F2B705);font-weight:700;"></span>';
+    document.body.appendChild(bar);
+    const $ = (id) => document.getElementById(id);
+    const upd = () => {
+      $('kb-oct').textContent = (KB.octave>0?'+':'') + KB.octave;
+      $('kb-toggle').textContent = '⌨ keys: ' + (KB.on?'ON':'OFF');
+      $('kb-toggle').style.background = KB.on ? 'var(--amber,#F2B705)' : 'var(--bg-2,#1c1f26)';
+      $('kb-toggle').style.color = KB.on ? '#1a0e00' : 'var(--fg-faint,#8a8fa3)';
+      $('kb-chord').textContent = 'chord: ' + (KB.chord?'maj':'off');
+    };
+    async function send(notes, on) {
+      const port = (typeof getAudioSettings === 'function' ? (getAudioSettings().midi_port) : null);
+      if (!port) { $('kb-note').textContent = 'pick an instrument first'; return; }
+      if (on) $('kb-note').textContent = notes.map(noteName).join('  ');
+      try { await fetch('/api/note', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ midi_port: port, channel: 1, notes, on, velocity: 100 }) }); } catch (e) {}
+    }
+    $('kb-toggle').onclick = () => { KB.on = !KB.on; upd(); };
+    $('kb-dn').onclick = () => { KB.octave = Math.max(-3, KB.octave-1); upd(); };
+    $('kb-up').onclick = () => { KB.octave = Math.min(3, KB.octave+1); upd(); };
+    $('kb-chord').onclick = () => { KB.chord = !KB.chord; upd(); };
+    upd();
+    document.addEventListener('keydown', (e) => {
+      if (!KB.on || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = ((document.activeElement && document.activeElement.tagName) || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;   // don't hijack typing
+      const k = e.key.toLowerCase();
+      if (k === 'z') { KB.octave = Math.max(-3, KB.octave-1); upd(); e.preventDefault(); return; }
+      if (k === 'x') { KB.octave = Math.min(3, KB.octave+1); upd(); e.preventDefault(); return; }
+      if (!(k in MAP) || KB.held[k]) return;            // unknown key or key-repeat
+      e.preventDefault();
+      const root = BASE + MAP[k] + KB.octave * 12;
+      const notes = KB.chord ? [root, root+4, root+7] : [root];   // maj triad in chord mode
+      KB.held[k] = notes; send(notes, true);
+    });
+    document.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (KB.held[k]) { send(KB.held[k], false); delete KB.held[k]; }
+    });
+    window.addEventListener('blur', () => { Object.values(KB.held).forEach(n => send(n, false)); KB.held = {}; });
+  })();
 })();
