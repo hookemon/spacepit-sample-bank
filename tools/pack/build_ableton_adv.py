@@ -372,22 +372,13 @@ def build_presets_for_wavs(
             key_max = (root + roots[i + 1]) // 2
         ss = find_onset_sample(wav, sr)
         sc = _loops_sidecar.get(wav.name, "MISSING")
-        sc_xf = None
-        if isinstance(sc, dict):
-            ls, le = int(sc["start"]), int(sc["end"])
-            sc_xf = sc.get("crossfade")               # bake-loops decides: 0 = phase-locked
-        elif sc is None:
-            ls, le = None, None                                 # explicitly a one-shot
+        if sc is None:
+            ls, le = None, None                       # explicit one-shot — respect it
         else:
-            # Back-and-forth philosophy: do NOT hunt a short forward-seamless loop. find_loop_points
-            # picks variable SHORT loops on some patches → tiny crossfades → exactly the inconsistency
-            # Nick caught (big fades on Euro SAW, tiny on Sup Lead). Use a long steady-sustain region
-            # on EVERY note so the crossfade always maxes to the recipe → all 13 patches fade identical.
-            # Back-and-forth + the fat crossfade hide any drift, so a fixed long region is seamless.
-            ls, le = int(frames * 0.28), int(frames * 0.85)
-        # Widen any SHORT loop (a sidecar / bake-loops can hand us an 80ms loop!) to the steady
-        # sustain region — back-and-forth wants a long loop so the crossfade always maxes out.
-        if ls is not None and le is not None and (le - ls) < int(0.8 * sr):
+            # EVERY looped note gets the SAME region (28%–85% of the sample). IGNORE bake-loops'
+            # per-note auto loop — it varies wildly (879ms on one note, 2748ms on the next = the
+            # "some long, some short" Nick caught). Back-and-forth + the fat crossfade make a fixed
+            # region seamless, so identical regions → identical loops across the whole keyboard.
             ls, le = int(frames * 0.28), int(frames * 0.85)
         # RECIPE (Nick confirmed by ear, 2026-05-29): back-and-forth loop + HIGH crossfade.
         # Ping-pong reverses at the endpoints so the seam never clicks; the fat crossfade

@@ -1283,11 +1283,25 @@
 
   function lePlay() {
     leStop();
+    if (!LE.ch0) return;
     const ac = ensureAudioContext();
+    const sr = LE.sr;
+    const S = Math.max(0, LE.S), E = Math.min(LE.ch0.length, LE.E);
+    const region = E - S;
+    if (region < 2) return;
+    // Audition BACK-AND-FORTH (ping-pong) — exactly what the build ships, so no fake forward-loop
+    // click. Buffer = [0..E] forward (attack + loop region) then the region reversed; looping
+    // [S .. E+region] plays forward→reverse→forward = seamless ping-pong, just like the .adv.
+    const src0 = LE.ch0;
+    const ppLen = E + region;
+    const buf = ac.createBuffer(1, ppLen, sr);
+    const out = buf.getChannelData(0);
+    out.set(src0.subarray(0, E), 0);
+    for (let i = 0; i < region; i++) out[E + i] = src0[E - 1 - i];
     const src = ac.createBufferSource();
-    src.buffer = LE.buffer; src.loop = true;
-    src.loopStart = LE.S / LE.sr; src.loopEnd = LE.E / LE.sr;
-    src.connect(ac.destination); src.start(0, 0);   // play attack, then loop S→E forever
+    src.buffer = buf; src.loop = true;
+    src.loopStart = S / sr; src.loopEnd = ppLen / sr;
+    src.connect(ac.destination); src.start(0, 0);
     LE.source = src; LE.playing = true;
   }
   function leStop() { if (LE.source) { try { LE.source.stop(); } catch (e) {} LE.source = null; } LE.playing = false; }
@@ -1297,7 +1311,7 @@
     if (LE.dragging === 'S') LE.S = Math.max(0, Math.min(idx, LE.E - 64));
     else LE.E = Math.min(LE.ch0.length, Math.max(idx, LE.S + 64));
     drawLoopEditor();
-    if (LE.source) { LE.source.loopStart = LE.S / LE.sr; LE.source.loopEnd = LE.E / LE.sr; }  // live update while looping
+    if (LE.playing && !LE.dragging) lePlay();  // rebuild ping-pong audition (snap/undo); drag rebuilds on mouseup
   }
 
   async function leLock() {
@@ -1349,7 +1363,7 @@
     wave.addEventListener('dblclick', e => { e.preventDefault(); LE.view = { start: 0, end: LE.ch0 ? LE.ch0.length : 0 }; drawLoopEditor(); });
     wave.addEventListener('mousedown', e => { if (!LE.ch0) return; lePushHistory(); const idx = xToIdx(e.clientX); LE.dragging = Math.abs(idx - LE.S) <= Math.abs(idx - LE.E) ? 'S' : 'E'; leSetHandle(idx); });
     window.addEventListener('mousemove', e => { if (LE.dragging) leSetHandle(xToIdx(e.clientX)); });
-    window.addEventListener('mouseup', () => { LE.dragging = null; });
+    window.addEventListener('mouseup', () => { const wasDrag = LE.dragging; LE.dragging = null; if (wasDrag && LE.playing) lePlay(); });
     document.getElementById('le-play').addEventListener('click', lePlay);
     document.getElementById('le-stop').addEventListener('click', leStop);
     document.getElementById('le-undo').addEventListener('click', leUndo);
