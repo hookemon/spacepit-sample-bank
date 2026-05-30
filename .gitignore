@@ -51,3 +51,5 @@ instruments/*/loops/
 
 # Pack releases are built artifacts — don't commit; ship via GitHub Releases instead
 releases/spacepit-*/
+tools/dashboard/capture-log.json
+releases/compositions/

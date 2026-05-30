@@ -36,19 +36,6 @@ except Exception as _e:
     print(f"  ⚠ Ableton preset generator unavailable: {_e}")
 
 
-def _pick_root_wav(wavs):
-    """Pick the WAV closest to C3 (MIDI 60) — the representative note for a 1-shot Simpler."""
-    if not wavs:
-        return None
-    if _parse_note is None:
-        return wavs[len(wavs) // 2]
-    scored = []
-    for w in wavs:
-        m = _parse_note(Path(w).name)
-        if m is not None:
-            scored.append((abs(m - 60), w))
-    return min(scored)[1] if scored else wavs[len(wavs) // 2]
-
 # We need sys for sys.executable in the sub-tool calls.
 
 

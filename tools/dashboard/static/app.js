@@ -1679,24 +1679,6 @@
         `;
       }).join('') : '<div style="color: var(--fg-faint); padding: 8px;">(no patches scaffolded yet — add to manifest.patches[])</div>';
 
-      // "Factory presets" collapsible — all official presets, each click-to-load
-      let factoryHtml = '';
-      if (factory.presets && factory.presets.length) {
-        const rows = factory.presets.map(p => `
-          <div class="factory-preset-row" data-pc="${p.program_change}" data-msb="${p.bank_msb}" data-lsb="${p.bank_lsb}" data-name="${(p.name||'').replace(/"/g,'&quot;')}" data-preset-id="${p.id || ''}" style="display: flex; gap: 6px; padding: 3px 8px; font-size: 10px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='var(--bg-2)'" onmouseout="this.style.background='transparent'" title="Click to send Bank MSB ${p.bank_msb}/LSB ${p.bank_lsb} + PC ${p.program_change}">
-            <span style="color: var(--fg-faint); min-width: 38px; font-family: var(--mono);">${p.id || ''}</span>
-            <span style="color: var(--fg); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.name || ''}</span>
-            <span style="color: var(--fg-faint); font-size: 9px;">${p.category || ''}</span>
-          </div>`).join('');
-        factoryHtml = `
-          <details style="margin-top: 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px;">
-            <summary style="padding: 6px 8px; cursor: pointer; font-size: 11px; color: var(--fg); font-weight: 600;">📋 Factory presets <span style="color: var(--fg-faint); font-weight: 400;">(${factory.preset_count} from ${factory.source || 'manual'})</span></summary>
-            <div style="max-height: 280px; overflow-y: auto; padding: 4px 0; border-top: 1px solid var(--border);">
-              ${rows}
-            </div>
-          </details>`;
-      }
-
       // full 128-slot catalog scrolls inside the panel (the old collapsible drawer is gone — it's all here now)
       listEl.innerHTML = '<div style="max-height: 560px; overflow-y: auto;">' + iconicHtml + '</div>';
 
@@ -1778,14 +1760,6 @@
         });
       });
 
-      // Wire factory-preset row clicks — fires PC directly
-      listEl.querySelectorAll('.factory-preset-row').forEach(row => {
-        row.addEventListener('click', async () => {
-          listEl.querySelectorAll('.factory-preset-row').forEach(r => r.style.outline = '');
-          row.style.outline = '2px solid var(--amber)';
-          await fireLoadPatch(row.dataset.name, row.dataset.pc, row.dataset.msb, row.dataset.lsb, row.dataset.presetId);
-        });
-      });
     } catch (e) {
       listEl.innerHTML = `<div style="color: var(--red, #c44);">error: ${e.message}</div>`;
     }
