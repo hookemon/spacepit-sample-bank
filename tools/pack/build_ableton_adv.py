@@ -255,15 +255,19 @@ def _set_amp_env(xml: str, attack_ms: float, decay_ms: float, release_ms: float)
         "ReleaseTime": max(0.0, min(60000.0, float(release_ms))),
     }
     parts = xml.split("<Envelope>")
-    sustain_full = re.compile(r'<SustainLevel>\s*<LomId Value="0" />\s*<Manual Value="1"')
     for i in range(1, len(parts)):
-        if sustain_full.search(parts[i]):                       # this is the amp env
+        # The amp env is the one at FULL sustain (SustainLevel Manual = 1); the filter env is
+        # Sustain 0 (leave its 600ms decay sweep alone). This template nests <Manual> under
+        # KeyMidi inside each param, so match the FIRST <Manual> within each time-param (re.S) —
+        # the old 'Manual right after LomId' form never matched here (silent no-op).
+        sl = re.search(r'<SustainLevel>(.*?)</SustainLevel>', parts[i], re.S)
+        if sl and re.search(r'<Manual Value="1(?:\.0+)?"', sl.group(1)):
             for tag, v in vals.items():
                 parts[i] = re.sub(
-                    rf'(<{tag}>\s*<LomId Value="0" />\s*<Manual Value=)"[\d.]+"',
-                    rf'\g<1>"{v:.4f}"', parts[i], count=1)
+                    rf'(<{tag}>.*?<Manual Value=)"[\d.]+"',
+                    rf'\g<1>"{v:.4f}"', parts[i], count=1, flags=re.S)
             return "<Envelope>".join(parts)
-    return xml   # structure unexpected — leave the envelope untouched rather than risk it
+    return xml   # no full-sustain env found — leave it untouched rather than hit the wrong one
 
 
 def build_adv(template_xml: str, sample_parts_xml: str, patch_name: Optional[str] = None,
@@ -406,7 +410,7 @@ def build_presets_for_wavs(
     for ext in formats:
         template_name = "ableton-sampler-template.xml" if ext == "adv" else "ableton-rack-template.xml"
         template_xml = (templates_dir / template_name).read_text()
-        data = build_adv(template_xml, sample_parts_combined, patch_name, release_ms=release_ms)
+        data = build_adv(template_xml, sample_parts_combined, patch_name)  # amp env = build_adv defaults: 20ms atk / 3ms dec / 8ms rel (Nick's spec, uniform)
         out_path = out_dir / f"{patch_name}.{ext}"
         out_path.write_bytes(data)
         written.append(out_path)
