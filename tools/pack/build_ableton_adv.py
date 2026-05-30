@@ -322,6 +322,15 @@ def find_onset_sample(wav_path, sample_rate):
     return o
 
 
+def _body_loop_region(wav_path, sr, frames):
+    """Loop the HELD sustain only — never the release tail. Captures are ~4s hold + ~2.5s release,
+    so the note-off / decay starts around ~60% of the file; a loop ending at 85% sat IN that decay,
+    making the loop end quieter than its start → the back-and-forth pulse Nick caught. 22%–55% keeps
+    the loop after the attack and safely before the release, where the macro level holds steady.
+    (The fast amplitude beating inside evolving saws is handled by the crossfade, not the region.)"""
+    return int(frames * 0.22), int(frames * 0.55)
+
+
 # Public API — used by build-pack.py to integrate Ableton preset generation
 # into the full pack pipeline without subprocess'ing this script.
 def build_presets_for_wavs(
@@ -381,11 +390,11 @@ def build_presets_for_wavs(
         if sc is None:
             ls, le = None, None                       # explicit one-shot — respect it
         else:
-            # EVERY looped note gets the SAME region (28%–85% of the sample). IGNORE bake-loops'
-            # per-note auto loop — it varies wildly (879ms on one note, 2748ms on the next = the
-            # "some long, some short" Nick caught). Back-and-forth + the fat crossfade make a fixed
-            # region seamless, so identical regions → identical loops across the whole keyboard.
-            ls, le = int(frames * 0.28), int(frames * 0.85)
+            # EVERY looped note loops inside its sustained BODY (past the attack/swell, before the
+            # release decays), found from the amplitude envelope. IGNORE bake-loops' per-note auto
+            # loop. Keeps loops consistent AND keeps the loop END out of the fading tail — a fixed
+            # 85% landed in the decay on pads/strings, so the back-and-forth pulsed (Nick's catch).
+            ls, le = _body_loop_region(wav, sr, frames)
         # RECIPE (Nick confirmed by ear, 2026-05-29): back-and-forth loop + HIGH crossfade.
         # Ping-pong reverses at the endpoints so the seam never clicks; the fat crossfade
         # smooths the turnaround. Beats hunting a perfect forward-repeat on detuned/evolving
