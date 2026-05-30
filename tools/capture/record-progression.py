@@ -182,7 +182,8 @@ def main() -> None:
     # output path
     out_dir = bank_root / "instruments" / args.instrument / "loops" / "raw"
     out_dir.mkdir(parents=True, exist_ok=True)
-    fname = f"{args.name}_{int(args.bpm)}bpm_{int(total_bars)}bars.wav"
+    key_tag = chord_to_key_tag(prog[0][0]) if prog else "Cmaj"
+    fname = f"hook_{int(args.bpm)}_{args.name}_{key_tag}.wav"   # Splice-style: brand_bpm_sound_key
     out_path = out_dir / fname
 
     # plan
@@ -363,6 +364,19 @@ def make_perfect_loop(rec, sr, body_duration, onset_db=-38.0, wrap_sec=0.6):
     if pk2 > 0.999:                                      # keep the fold from clipping
         body *= 0.999 / pk2
     return body.astype(np.float32), onset, loop_len
+
+
+def chord_to_key_tag(chord_name):
+    """Readable key tag for the filename from the first chord — root + maj/min (e.g. 'Cmin',
+    'Dbmaj', 'F#min'). Not full key detection, just a clean Splice-style label."""
+    import re
+    m = re.match(r'^\s*([A-Ga-g][#b]?)', chord_name or "")
+    if not m:
+        return "Cmaj"
+    root = m.group(1)[0].upper() + m.group(1)[1:]                 # keep accidental as written
+    rest = (chord_name[m.end():] or "").lower()
+    minor = (rest.startswith("m") and not rest.startswith("maj")) or rest.startswith("min") or rest.startswith("-")
+    return f"{root}{'min' if minor else 'maj'}"
 
 
 if __name__ == "__main__":
