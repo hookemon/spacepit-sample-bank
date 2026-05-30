@@ -3118,8 +3118,9 @@
     report.style.display = 'block';
     // counts
     const total = captures.length;
-    const kept = captures.filter(c => c.status === 'kept').length;
-    const pending = captures.filter(c => c.status === 'pending').length;
+    // Done = anything not tossed (no separate "keep" step anymore); nothing truly pends.
+    const kept = captures.filter(c => c.status !== 'discarded').length;
+    const pending = 0;
     const discarded = captures.filter(c => c.status === 'discarded').length;
     document.getElementById('sr-total').textContent = total;
     document.getElementById('sr-kept').textContent = kept;
@@ -3175,14 +3176,15 @@
         return;
       }
       listEl.innerHTML = captures.slice(0, 15).map(c => {
-        const statusColor = c.status === 'kept' ? 'var(--green)' :
-                            c.status === 'discarded' ? 'var(--fg-faint)' : 'var(--amber)';
-        const statusIcon = c.status === 'kept' ? '✓' :
-                           c.status === 'discarded' ? '✗' : '◐';
+        // No "keep" step anymore (capture + processing is automatic), so a logged capture that
+        // wasn't tossed simply IS done — show it green ✓, not the old pending half-circle ◐.
+        const statusColor = c.status === 'discarded' ? 'var(--fg-faint)' : 'var(--green)';
+        const statusIcon  = c.status === 'discarded' ? '✗' : '✓';
         const time = c.captured_at?.slice(11, 19) || '';
         // Per-row inline actions for pending captures: audition + quick delete.
-        const isPending = c.status === 'pending';
-        const actions = isPending
+        // Audition + toss stay on every kept capture (not just "pending"), so a done patch can
+        // still be previewed or removed — only a tossed one loses its actions.
+        const actions = c.status !== 'discarded'
           ? `
             <audio controls preload="none" src="${c.wav_url}" style="width: 200px; height: 28px;"></audio>
             <button class="red row-discard-btn" data-wav="${c.wav_path}" style="padding: 4px 10px; font-size: 11px; margin: 0;" title="Toss this capture — moves to Trash, removes it from the list">✗</button>
