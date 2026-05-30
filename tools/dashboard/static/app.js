@@ -1603,6 +1603,10 @@
       data.patches.forEach(p => {
         if (p.preset_name) presetNames[p.name] = `${p.preset_position ? p.preset_position + ' · ' : ''}${p.preset_name}`;
       });
+      // The name map is populated NOW. Redraw the captures log immediately so a hard refresh shows
+      // the real preset names right away — without this it renders the raw folder slugs (the "old
+      // names") until the 10s poll catches up. (Both live in this closure, so the call is in scope.)
+      if (typeof loadCapturesLog === 'function') loadCapturesLog();
       // Populate the capture "Patch" dropdown from the manifest — so a capture can never
       // land as "untitled" again (free-text default was the footgun). Preserves selection.
       const msPatchSel = document.getElementById('ms-patch');
