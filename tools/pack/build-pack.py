@@ -572,23 +572,9 @@ def main() -> None:
                             ableton_extras = " + Sampler"
                     except Exception as ex:
                         print(f"  ⚠ Sampler preset failed for {patch_name}/{chain}: {ex}")
-                    # SIMPLER/ — single root note (closest to C3) stretched across the keys.
-                    # The grab-and-go / free-pack version; lighter, instant.
-                    _root = _pick_root_wav(wav_dest_paths)
-                    if _root:
-                        try:
-                            r2 = _build_ableton_presets(
-                                wavs=[_root],
-                                out_dir=pack_dir / "instruments/ableton/Simpler",
-                                patch_name=ableton_label,
-                                formats=("adv",),
-                                release_ms=_release_ms,
-                            )
-                            if r2.get("written"):
-                                ableton_preset_count += len(r2["written"])
-                                ableton_extras += " + Simpler"
-                        except Exception as ex:
-                            print(f"  ⚠ Simpler preset failed for {patch_name}/{chain}: {ex}")
+                    # (Simpler/.adv output intentionally dropped 2026-05-30 — Nick ships .adg racks
+                    #  ONLY and swaps the Sampler to a Simpler INSIDE the rack himself in Ableton at
+                    #  finish time. One format out of the build, no redundant single-note .adv.)
 
                 print(f"  ✓ {patch_name}/{chain}: {len(samples)} samples → SFZ + dspreset{ableton_extras}")
 
