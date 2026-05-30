@@ -1097,6 +1097,7 @@
   let wavstripTileHeight = 110;  // taller for amplitude detail
   const WAVSTRIP_MIN = 40, WAVSTRIP_MAX = 360;
   let wavstripPatch = null;     // patch name currently shown in the strip (for the wipe button)
+  let captureTarget = null;     // factory preset just clicked in the catalog — its slot link rides along on the next multisample capture so the slot flips ✓ + click-to-load works even when renamed
 
   async function renderPatchWavStrip(patchData) {
     const block = document.getElementById('patch-wavstrip-block');
@@ -1772,9 +1773,17 @@
           const neu = document.getElementById('ms-patch-new');
           if (patchData._pending) {
             if (neu) neu.value = patchData.name;
+            // Remember the factory slot so the next capture links to it (marks the slot ✓ +
+            // ties the multisamples to it) even if you rename the patch "hook-…".
+            captureTarget = {
+              preset_name: patchData.preset_name, preset_position: patchData.preset_position,
+              gearbase_preset_id: patchData.gearbase_preset_id, program_change: patchData.program_change,
+              bank_msb: patchData.bank_msb, bank_lsb: patchData.bank_lsb, role: patchData.role,
+            };
           } else if (sel) {
             sel.value = patchData.name;
             if (neu) neu.value = '';
+            captureTarget = null;   // already a real manifest patch — no factory link to ride along
           }
         });
       });
@@ -1807,8 +1816,12 @@
       };
     }
     if (currentStyle === 'multisample') {
+      const newName = document.getElementById('ms-patch-new')?.value.trim() || '';
+      // Factory-slot link rides along ONLY when capturing via the new-name box (the catalog flow)
+      // with a preset clicked — so it marks that slot ✓ + ties the multisamples to it.
+      const link = (newName && captureTarget) ? captureTarget : {};
       return { ...base,
-        patch: (document.getElementById('ms-patch-new')?.value.trim() || document.getElementById('ms-patch').value.trim() || 'untitled'),
+        patch: (newName || document.getElementById('ms-patch').value.trim() || 'untitled'),
         chain: document.getElementById('ms-chain').value,
         note_range: document.getElementById('ms-range').value.trim() || 'C2-C5',
         step: parseInt(document.getElementById('ms-step').value) || 3,
@@ -1816,6 +1829,7 @@
         sustain_sec: parseFloat(document.getElementById('ms-sustain').value) || 4,
         tail_sec: 2.5,
         take: document.getElementById('ms-take')?.checked || false,   // continuous take + slice
+        ...link,
       };
     }
     if (currentStyle === 'hihat') {

@@ -418,6 +418,38 @@ def get_instrument(slug):
     return jsonify(progress)
 
 
+def _register_factory_capture(instr, patch, params):
+    """Upsert a manifest.patches entry that LINKS a captured patch to its factory preset slot.
+
+    When you capture a factory preset from the catalog, the UI passes that preset's slot id +
+    position. We write/refresh a manifest.patches row keyed to it — so the catalog marks the
+    factory slot CAPTURED (✓) and clicking it loads these multisamples, even when the patch was
+    renamed "hook-…". The slot key (gearbase_preset_id / preset_position) is the link, NOT the
+    folder name. No-op unless a slot id/position was provided (e.g. a free-form capture).
+    """
+    link = {k: params.get(k) for k in
+            ("preset_name", "preset_position", "gearbase_preset_id",
+             "program_change", "bank_msb", "bank_lsb", "role")
+            if params.get(k) not in (None, "")}
+    if not (link.get("gearbase_preset_id") or link.get("preset_position")):
+        return
+    try:
+        mpath = INSTRUMENTS_DIR / instr / "manifest.json"
+        if not mpath.exists():
+            return
+        man = json.loads(mpath.read_text())
+        plist = man.setdefault("patches", [])
+        entry = next((pp for pp in plist if pp.get("name") == patch), None)
+        if entry is None:
+            entry = {"name": patch}
+            plist.append(entry)
+        entry.update(link)
+        entry.setdefault("source", "factory-capture")
+        mpath.write_text(json.dumps(man, indent=2) + "\n")
+    except Exception:
+        pass   # never fail a good capture over a manifest bookkeeping write
+
+
 @app.route("/api/instruments/<slug>/patches")
 def list_instrument_patches(slug):
     """Return the manifest.patches list with capture status per patch.
@@ -1131,6 +1163,9 @@ def capture():
             patch_dir = INSTRUMENTS_DIR / instr / "patches" / patch / chain
             wavs = sorted(patch_dir.glob("*.wav"), key=lambda p: p.stat().st_mtime, reverse=True)
             if wavs:
+                # If this came from a factory preset, link it to that slot so the catalog marks
+                # the slot ✓ + click-to-load finds these multisamples (even when renamed "hook-…").
+                _register_factory_capture(instr, patch, params)
                 # Use the most-recent WAV as the "preview" (middle-range note ideally, but newest works)
                 # so the UI's audio player has something to load. Mid-range pick if we can.
                 preview = wavs[len(wavs)//2] if len(wavs) >= 3 else wavs[0]

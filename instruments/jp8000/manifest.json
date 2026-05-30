@@ -151,6 +151,39 @@
       "program_change": 3,
       "target_mode": "single",
       "loop": true
+    },
+    {
+      "name": "A68 \u00b7 Old Rhodes",
+      "preset_name": "Old Rhodes",
+      "preset_position": "A68",
+      "gearbase_preset_id": "P:A68",
+      "program_change": 47,
+      "bank_msb": 81,
+      "bank_lsb": 0,
+      "role": "keys",
+      "source": "factory-capture"
+    },
+    {
+      "name": "A73 \u00b7 Moody Organ",
+      "preset_name": "Moody Organ",
+      "preset_position": "A73",
+      "gearbase_preset_id": "P:A73",
+      "program_change": 50,
+      "bank_msb": 81,
+      "bank_lsb": 0,
+      "role": "organ",
+      "source": "factory-capture"
+    },
+    {
+      "name": "hook-dance-sweep",
+      "preset_name": "Dance Sweep",
+      "preset_position": "A58",
+      "gearbase_preset_id": "P:A58",
+      "program_change": 39,
+      "bank_msb": 81,
+      "bank_lsb": 0,
+      "role": "sfx",
+      "source": "factory-capture"
     }
   ],
   "one_shots_dir": null,
@@ -184,7 +217,7 @@
     "midi_port": "mio",
     "midi_channel": 1
   },
-  "polyphony": "polyphonic",
+  "polyphony": "unknown",
   "voices": 8,
   "midi_quirks": {
     "send_bank_select": false,
