@@ -40,16 +40,47 @@ What it does:
 - **Per-synth midi_quirks** — every instrument's manifest declares its weird shit. JP-8000 needs PATCH mode + Performance Control Channel OFF. MS-20 has no MIDI presets at all. Drum machines want channel 10. The bench respects each one.
 - **Pack builder** — generates Ableton `.adv` + `.adg`, SFZ, Decent Sampler, drum racks. One command per instrument. Output zipped + ready to share.
 
-Run it:
+Run it — macOS · Windows · Linux. It's a small Python/Flask web app: no build step, no Node, just **Python 3.9+** and a browser.
+
+### 1 · clone
 
 ```bash
 git clone https://github.com/hookemon/spacepit-sample-bank.git
 cd spacepit-sample-bank
-# the bench lives in tools/dashboard/ — see its README for setup
-open tools/dashboard/README.md
 ```
 
-The bench expects a Mac with a USB-MIDI interface (mio, MOTU, iConnectivity-anything), an audio interface, and at least one synth plugged in. Tested heavily on Mac mini M-series. Should work on Intel Macs + Linux with minor tweaks.
+### 2 · system prerequisites
+
+- **macOS** — Python 3.9+ ships with the system (or `brew install python`). Nothing else needed; the audio + MIDI libraries install as wheels.
+- **Windows** — install [Python 3.9+](https://python.org) and tick **"Add Python to PATH"**. For virtual MIDI ports with no hardware, also install [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html).
+- **Linux** — install the audio/MIDI system libraries first:
+  ```bash
+  # Debian / Ubuntu
+  sudo apt install python3-venv python3-pip libportaudio2 libasound2-dev
+  # Fedora
+  sudo dnf install python3-virtualenv portaudio alsa-lib-devel
+  ```
+  (PortAudio backs `sounddevice`; the ALSA dev headers back `python-rtmidi`.)
+
+### 3 · virtualenv + dependencies
+
+```bash
+python3 -m venv .venv                 # Windows:  py -m venv .venv
+source .venv/bin/activate             # Windows:  .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 4 · run
+
+```bash
+python tools/dashboard/server.py
+```
+
+Open **http://localhost:8001** in your browser. The server binds `0.0.0.0`, so any device on your network (or tailnet) can reach it at `http://<this-machine-ip>:8001`.
+
+> **macOS capture note** — to *record* audio you must grant **microphone access to the app you launch from** (System Settings → Privacy & Security → Microphone → enable Terminal), then start the server from Terminal so it inherits that access. A background/login launcher gets fed silence by CoreAudio — the single biggest gotcha we hit.
+
+**Hardware:** capturing expects a USB-MIDI interface (mio, MOTU, iConnectivity, etc.), an audio interface, and at least one synth plugged in. Just driving synths / browsing the catalog needs MIDI only. Developed on a Mac mini; the steps above are the supported cross-platform path.
 
 ---
 

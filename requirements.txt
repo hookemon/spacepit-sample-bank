@@ -1,0 +1,8 @@
+# the bench — Python dependencies (tested on Python 3.9)
+# install into a virtualenv:  pip install -r requirements.txt
+Flask==3.1.3            # the local web UI / capture API
+mido==1.3.3             # MIDI message handling
+python-rtmidi==1.5.8    # real MIDI port backend for mido (needs ALSA dev headers on Linux)
+sounddevice==0.5.5      # audio capture (PortAudio backend)
+soundfile==0.13.1       # WAV read/write
+numpy==2.0.2            # DSP — slicing, loops, envelopes
