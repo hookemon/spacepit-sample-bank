@@ -84,7 +84,7 @@ def main():
 
     dev_idx, dev = resolve_device(a.audio_device)
     mapping = sorted({c for p in parts for c in p["ins"]})   # union of inputs, recorded together
-    ports = {p["port"]: mido.open_output(p["port"]) for p in {pp["port"]: 1 for pp in parts}}
+    ports = {name: mido.open_output(name) for name in {p["port"] for p in parts}}
 
     def all_off():
         for op in ports.values():
