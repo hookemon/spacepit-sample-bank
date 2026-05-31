@@ -1099,6 +1099,7 @@
   let wavstripPatch = null;     // patch name currently shown in the strip (for the wipe button)
   let captureTarget = null;     // factory preset just clicked in the catalog — its slot link rides along on the next multisample capture so the slot flips ✓ + click-to-load works even when renamed
   let currentPreset = null;     // the sound now loaded on the synth (last preset click) — stamped onto any progression you fire, so a take always knows its patch
+  let capturedPatches = {};     // name → wav_count for patches that already have captures — the overwrite guard checks this so a stale name can't silently clobber an existing patch
   try { const _cp = localStorage.getItem('benchCurrentPreset'); if (_cp) currentPreset = JSON.parse(_cp); } catch (e) {}
   function updatePresetReadout() {
     const el = document.getElementById('current-preset-readout');
@@ -1646,6 +1647,7 @@
         data.patches = data.patches.concat(pending).sort((a, b) => slotKey(a) < slotKey(b) ? -1 : slotKey(a) > slotKey(b) ? 1 : 0);
         const capN = data.patches.filter(p => p.status === 'captured').length;
         data.summary = { captured: capN, pending: 0, todo: data.patches.length - capN, total: data.patches.length };
+        capturedPatches = {}; data.patches.forEach(p => { if (p.status === 'captured' && p.wav_count) capturedPatches[p.name] = p.wav_count; });
       }
       const s = data.summary;
       const _allCaps = data.patches.map(p => p.captured_at).filter(Boolean);
@@ -1896,6 +1898,12 @@
 
   els.captureBtn.addEventListener('click', async () => {
     const params = gatherParams();
+    // OVERWRITE GUARD — a multisample capture into a patch that already has samples, with no fresh
+    // name typed, would silently clobber it (the 1979 Performance → supersaw-1 bug). Confirm first.
+    if (params.style === 'multisample' && capturedPatches[params.patch]) {
+      const ok = confirm(`"${params.patch}" already has ${capturedPatches[params.patch]} samples.\n\nCapturing now OVERWRITES them. If this is a different sound, hit Cancel and type a name in the "New name" box first.\n\nOverwrite "${params.patch}"?`);
+      if (!ok) return;
+    }
     setStatus('Capturing… click ■ Stop to abort.', 'busy');
     els.captureBtn.disabled = true;
     els.captureBtn.style.display = 'none';
