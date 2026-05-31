@@ -1206,6 +1206,55 @@ def capture():
         capture_lock.release()
 
 
+@app.route("/api/collect-multi", methods=["POST"])
+def collect_multi():
+    """Multi-part collector — fire ONE progression across synths on different MIDI ports/channels,
+    capture each synth's interface inputs at once, split into named, perfect-looped stems. Runs
+    tools/capture/collect-multi.py (proven) under the capture lock.
+
+    Body: { progression, bpm, bars_per_chord, key, audio_device, no_loop,
+            parts: [{ name, port, channel ("1"-"16" or "all"), input_channels ("1,2") }] }
+    """
+    if not capture_lock.acquire(blocking=False):
+        return jsonify({"error": "capture already in progress"}), 409
+    try:
+        params = request.get_json() or {}
+        parts = params.get("parts") or []
+        if not parts:
+            return jsonify({"error": "no parts — add at least one synth to collect"}), 400
+        out_dir = params.get("out") or str(Path.home() / "Desktop" / "collected")
+        py = str(VENV_PY) if VENV_PY.exists() else sys.executable
+        cmd = [py, str(TOOLS_DIR / "capture" / "collect-multi.py"),
+               "--audio-device", params.get("audio_device", "TX-6"),
+               "--progression", params.get("progression", "Cm Ab Eb Bb"),
+               "--bpm", str(params.get("bpm", 120)),
+               "--bars-per-chord", str(params.get("bars_per_chord", 2)),
+               "--out", out_dir]
+        if params.get("key"):
+            cmd += ["--key", str(params["key"])]
+        if params.get("no_loop"):
+            cmd.append("--no-loop")
+        for p in parts:
+            cmd += ["--part", f"{p.get('name', 'part')}:{p.get('port', '')}:{p.get('channel', '1')}:{p.get('input_channels', '1,2')}"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        out = result.stdout
+        fm = re.search(r"→\s+(.+)$", out, re.M)
+        folder = fm.group(1).strip() if fm else None
+        stems = [{"name": m.group(1), "peak_db": float(m.group(2)),
+                  "looped": "looped" in m.group(3), "silent": float(m.group(2)) < -45}
+                 for m in re.finditer(r"^\s+(\S+)\s+\([^)]*\): peak\s+(-?[\d.]+)\s+dBFS(.*)$", out, re.M)]
+        if result.returncode != 0 and not stems:
+            return jsonify({"ok": False, "error": "collect failed — check synths / TX-6 routing",
+                            "stdout_tail": out[-1500:], "stderr_tail": result.stderr[-800:]}), 500
+        log_capture({"name": params.get("progression", "collect"), "style": "collect-multi",
+                     "captured_at": datetime.now().isoformat(timespec="seconds"),
+                     "status": "pending", "params": params,
+                     "collect_folder": folder, "stem_count": len(stems)})
+        return jsonify({"ok": True, "folder": folder, "stems": stems, "stdout_tail": out[-1500:]})
+    finally:
+        capture_lock.release()
+
+
 @app.route("/api/keep", methods=["POST"])
 def keep():
     """Confirm the last capture as a keeper. Writes a sidecar JSON next to the WAV."""
