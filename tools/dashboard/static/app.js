@@ -3845,7 +3845,12 @@
       const btn = document.getElementById('collect-fire'); btn.disabled = true;
       try {
         const r = await fetch('/api/collect-multi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        const d = await r.json();
+        let d;
+        try { d = await r.json(); }
+        catch (_) {
+          res.innerHTML = `<div class="status error">${r.status === 404 ? 'Collect endpoint not found — restart the bench server (new server code doesn\'t load on a page refresh).' : 'server returned a non-JSON response (HTTP ' + r.status + ')'}</div>`;
+          st.textContent = ''; return;
+        }
         if (!d.ok) { res.innerHTML = `<div class="status error">${d.error || 'collect failed'}</div>`; st.textContent = ''; return; }
         st.textContent = `✓ ${d.stems.length} stems`;
         res.innerHTML = `<div class="small" style="color:var(--fg-dim); margin-bottom:2px;">→ ${d.folder || ''}</div>`

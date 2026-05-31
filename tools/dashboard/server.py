@@ -1236,7 +1236,10 @@ def collect_multi():
             cmd.append("--no-loop")
         for p in parts:
             cmd += ["--part", f"{p.get('name', 'part')}:{p.get('port', '')}:{p.get('channel', '1')}:{p.get('input_channels', '1,2')}"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"collect process failed: {e}"}), 500
         out = result.stdout
         fm = re.search(r"→\s+(.+)$", out, re.M)
         folder = fm.group(1).strip() if fm else None
