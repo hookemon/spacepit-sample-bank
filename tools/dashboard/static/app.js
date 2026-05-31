@@ -1690,11 +1690,11 @@
           </div>`;
       };
 
-      // YOUR patches split into the curated ICONICS (foldable once you're done with them) and the
-      // NEW factory captures you've been grabbing (kept visible while you work).
+      // YOUR patches split into the curated ICONICS (the seeded reference bank — foldable once you're
+      // done) and YOUR real captures — factory presets AND performances — which stay visible while you work.
       const mine = data.patches.filter(p => !p._pending);
-      const iconics = mine.filter(p => p.source !== 'factory-capture');
-      const newCaps = mine.filter(p => p.source === 'factory-capture');
+      const iconics = mine.filter(p => !p.source);          // seeded reference patches (no capture source)
+      const newCaps = mine.filter(p => p.source);           // anything you grabbed: factory-capture OR performance-capture
       const iconHtml = iconics.length ? iconics.map(renderRow).join('')
         : '<div style="color: var(--fg-faint); padding: 8px;">(no patches yet — add to manifest.patches[])</div>';
       const newHtml = newCaps.map(renderRow).join('');
