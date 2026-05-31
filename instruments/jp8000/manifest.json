@@ -206,6 +206,14 @@
       "bank_lsb": 0,
       "role": "keys",
       "source": "factory-capture"
+    },
+    {
+      "name": "P24 \u00b7 1979",
+      "preset_name": "1979",
+      "preset_position": "P24",
+      "role": "synth",
+      "source": "performance-capture",
+      "notes": "JP-8000 Performance, program P24"
     }
   ],
   "one_shots_dir": null,
