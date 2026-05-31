@@ -3795,3 +3795,68 @@
   if (document.readyState !== 'loading') setup();
   else document.addEventListener('DOMContentLoaded', setup);
 })();
+
+// ---------- 🎼 Collect — the multi-part collector, in the UI ----------
+// Fire the current progression across your synths + capture each synth's interface inputs at once,
+// split into named perfect-looped stems. POSTs to /api/collect-multi (runs the proven collect-multi.py).
+// Self-contained: only the DOM + fetch.
+(function () {
+  function setup() {
+    const wrap = document.getElementById('collect-parts');
+    if (!wrap) return;
+    function addRow(name, port, ch, ins) {
+      const row = document.createElement('div');
+      row.className = 'collect-part-row';
+      row.style.cssText = 'display:flex; gap:6px; align-items:center; margin-bottom:4px;';
+      row.innerHTML =
+        `<input class="cp-name" value="${name}" placeholder="part" style="flex:0 0 64px; margin:0; font-size:11px;" />`
+        + `<input class="cp-port" value="${port}" placeholder="MIDI port" title="MIDI out port (e.g. mio, Moog Grandmother)" style="flex:1; margin:0; font-size:11px;" />`
+        + `<input class="cp-ch" value="${ch}" title="MIDI channel 1-16 or 'all'" style="flex:0 0 44px; margin:0; font-size:11px;" />`
+        + `<input class="cp-ins" value="${ins}" title="interface input channels, e.g. 1,2" style="flex:0 0 52px; margin:0; font-size:11px;" />`
+        + `<button class="cp-rm secondary" title="remove" style="margin:0; padding:2px 8px; font-size:11px;">✕</button>`;
+      row.querySelector('.cp-rm').addEventListener('click', () => row.remove());
+      wrap.appendChild(row);
+    }
+    addRow('chords', 'mio', '1', '1,2');                    // proven defaults
+    addRow('bass', 'Moog Grandmother', 'all', '3,4');
+    document.getElementById('collect-add-part')?.addEventListener('click', () => addRow('part', '', '1', ''));
+
+    document.getElementById('collect-fire')?.addEventListener('click', async () => {
+      const parts = [...wrap.querySelectorAll('.collect-part-row')].map(r => ({
+        name: r.querySelector('.cp-name').value.trim() || 'part',
+        port: r.querySelector('.cp-port').value.trim(),
+        channel: r.querySelector('.cp-ch').value.trim() || '1',
+        input_channels: r.querySelector('.cp-ins').value.trim() || '1,2',
+      })).filter(p => p.port);
+      const st = document.getElementById('collect-status');
+      const res = document.getElementById('collect-result');
+      if (!parts.length) { res.innerHTML = '<div class="status error">add at least one part with a MIDI port</div>'; return; }
+      const root = document.getElementById('session-root')?.value || '';
+      const scale = document.getElementById('session-scale')?.value || '';
+      const body = {
+        progression: document.getElementById('prog-chords')?.value.trim() || 'Cm Ab Eb Bb',
+        bpm: parseFloat(document.getElementById('prog-bpm')?.value) || 120,
+        bars_per_chord: parseFloat(document.getElementById('prog-bpc')?.value) || 2,
+        key: root ? root + (scale === 'minor' ? 'm' : '') : '',
+        audio_device: 'TX-6',
+        parts,
+      };
+      st.textContent = 'collecting… synths fire + TX-6 records'; res.innerHTML = '';
+      const btn = document.getElementById('collect-fire'); btn.disabled = true;
+      try {
+        const r = await fetch('/api/collect-multi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const d = await r.json();
+        if (!d.ok) { res.innerHTML = `<div class="status error">${d.error || 'collect failed'}</div>`; st.textContent = ''; return; }
+        st.textContent = `✓ ${d.stems.length} stems`;
+        res.innerHTML = `<div class="small" style="color:var(--fg-dim); margin-bottom:2px;">→ ${d.folder || ''}</div>`
+          + d.stems.map(s => `<div class="small" style="color:${s.silent ? 'var(--amber)' : 'var(--fg)'};">${s.silent ? '⚠' : '•'} ${s.name}: ${s.peak_db.toFixed(1)} dBFS${s.looped ? ' · looped' : ''}${s.silent ? ' — SILENT (TX-6 free? check routing + levels)' : ''}</div>`).join('');
+      } catch (e) {
+        res.innerHTML = `<div class="status error">${e.message}</div>`; st.textContent = '';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+})();

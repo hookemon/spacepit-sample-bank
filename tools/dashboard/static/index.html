@@ -526,6 +526,20 @@
         <span style="color: var(--fg-faint);">Loop length:</span>
         <span id="prog-length-text">4 chords × 2 bars = 8 bars / 32 beats @ 120 BPM (4.0s per chord, 16.0s total)</span>
       </div>
+
+      <!-- 🎼 COLLECT — hop this progression across multiple synths, capture each synth's interface
+           inputs at once, split into named perfect-looped stems. Uses the progression/key/BPM above. -->
+      <div id="collect-panel" style="margin-top: 12px; padding: 10px; background: var(--bg-3); border: 1px solid var(--border); border-left: 3px solid var(--green, #5fb866); border-radius: 2px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--green, #5fb866); margin-bottom: 4px;">🎼 COLLECT <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— fire this progression across your synths, grab each as its own stem</span></div>
+        <div class="small" style="color: var(--fg-faint); margin-bottom: 6px;">name · MIDI port · channel (1-16 or "all") · interface input ch · TX-6 must be free</div>
+        <div id="collect-parts"></div>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+          <button id="collect-add-part" class="secondary" style="margin: 0; padding: 4px 10px; font-size: 11px;">+ add part</button>
+          <button id="collect-fire" class="primary" style="margin: 0;">🎼 Collect</button>
+          <span id="collect-status" class="small" style="color: var(--fg-faint);"></span>
+        </div>
+        <div id="collect-result" style="margin-top: 8px;"></div>
+      </div>
     </div>
 
     <!-- multisample -->
