@@ -389,6 +389,8 @@ def main() -> None:
     ap.add_argument("--vol", type=int, default=1)
     ap.add_argument("--bank-root", default=None)
     ap.add_argument("--output-base", default=None, help="where to write the pack (default: <bank-root>/releases/)")
+    ap.add_argument("--portable", action="store_true", help="also build the portable Ableton Live Project (type-3 refs + bundled Samples/Imported) — the shippable 'works off rip' format")
+    ap.add_argument("--pack-title", default=None, help="display name for the portable project folder (default: derived from instrument + vol)")
     args = ap.parse_args()
 
     bank_root = Path(args.bank_root).resolve() if args.bank_root else find_bank_root()
@@ -703,6 +705,20 @@ def main() -> None:
     print(f"   - Demo beat")
     print(f"   - Zip + Gumroad upload")
     print(f"\nTo preview: cd {pack_dir} && ls -R")
+
+    # ----- portable Ableton Live Project (opt-in; the verified "works off rip" format) -----
+    # Off by default — it bundles a full copy of the WAVs into Samples/Imported, so only build it
+    # when packaging to ship. Reuses build-ableton-project.py (type-3 refs + Live Project marker).
+    if args.portable:
+        title = args.pack_title or f"spacepit {args.instrument} vol{args.vol}"
+        print(f"\n[+] portable Ableton Live Project → {title}")
+        bap = Path(__file__).parent / "build-ableton-project.py"
+        proj = subprocess.run(
+            [sys.executable, str(bap), "--release", str(pack_dir),
+             "--manifest", str(instr_dir / "manifest.json"),
+             "--pack-name", title, "--out", str(output_base)],
+            capture_output=True, text=True)
+        print((proj.stdout or proj.stderr)[-800:].rstrip())
 
 
 def build_pack_tour(manifest: dict, ms_count: int, loop_count: int, sfz_count: int,
