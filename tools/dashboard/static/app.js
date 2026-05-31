@@ -3818,7 +3818,8 @@
       wrap.appendChild(row);
     }
     addRow('take', 'mio', '1', '1,2');                      // one synth by default (your JP) — same flow whether you have one piece of gear or five
-    document.getElementById('collect-add-part')?.addEventListener('click', () => addRow('synth', '', '1', '3,4'));
+    // "+ add synth" pre-fills your second rig — the Moog Grandmother on its own port (all channels, ins 3,4). Edit if it's a different synth.
+    document.getElementById('collect-add-part')?.addEventListener('click', () => addRow('bass', 'Moog Grandmother', 'all', '3,4'));
 
     document.getElementById('collect-fire')?.addEventListener('click', async () => {
       const parts = [...wrap.querySelectorAll('.collect-part-row')].map(r => ({
