@@ -467,10 +467,7 @@
           <button class="secondary" id="gen-btn" style="padding: 8px 14px; font-size: 11px; margin: 0; white-space: nowrap;">🎲 Generate</button>
         </div>
         <div class="small" id="gen-output" style="margin-top: 6px; color: var(--fg-faint);"></div>
-        <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center;">
-          <button class="primary" id="audition-btn" style="padding: 8px 16px; font-size: 12px;" title="Loop MIDI to the actual synth — hear your real patch. No recording.">🎹 Preview (live, loop)</button>
-          <button class="red" id="preview-stop-btn" disabled style="padding: 8px 16px; font-size: 12px;">■ Stop</button>
-        </div>
+        <!-- Preview / Stop live in the unified Play Along piece below — one place to preview the current progression. -->
         <!-- Hidden browser preview kept in DOM (some flows still reference it) but not shown -->
         <button id="preview-btn" style="display: none;"></button>
         <input type="checkbox" id="preview-loop" checked style="display: none;" />
@@ -479,14 +476,17 @@
         <div><label>Pattern name</label><input type="text" id="prog-name" value="" placeholder="auto — names from your loaded patch" /></div>
         <div><label>BPM</label><input type="number" id="prog-bpm" value="120" min="40" max="220" /></div>
       </div>
-      <!-- Play Along: a session KEY (root + scale) that writes an in-key progression into the chord
-           box below. Pair it with the clock (synced to your DAW) and the bench plays in TIME AND in
-           KEY — set the key once, hit 🎲, fire. Click 🎲 again for another progression in the same key. -->
-      <div id="play-along" style="margin: 0 0 12px; padding: 10px; background: var(--bg-3); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 2px;">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--amber); margin-bottom: 8px;">🎹 PLAY ALONG <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— set your session key, get a progression in it</span></div>
-        <div class="small" id="current-preset-readout" style="margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; color: var(--fg-faint);">🎛 sound: — click a preset to load one</div>
+      <!-- 🎹 PLAY ALONG — ONE PIECE. Set the session key → 🎲 roll an in-key progression → ▶ preview it
+           live (loop/stop) → 🎼 collect it off your synth(s) as stems. Paired with the always-on clock,
+           the bench plays in TIME and in KEY. Works the same with one synth or five — solo gear just
+           collects one stem. Every section below shares this one key + progression. -->
+      <div id="play-along" style="margin: 0 0 12px; padding: 12px; background: var(--bg-3); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 2px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--amber); margin-bottom: 8px;">🎹 PLAY ALONG <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— key → roll → preview → collect, all one move</span></div>
+        <div class="small" id="current-preset-readout" style="margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; color: var(--fg-faint);">🎛 sound: — click a preset to load one</div>
+
+        <!-- 1 · KEY — set it, roll an in-key progression into the box below -->
         <div class="row" style="align-items: flex-end;">
-          <div style="flex: 0 0 96px;"><label>Key</label>
+          <div style="flex: 0 0 88px;"><label>Key</label>
             <select id="session-root" style="margin: 0;">
               <option>C</option><option>Db</option><option>D</option><option>Eb</option><option>E</option><option>F</option><option>Gb</option><option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option>
             </select>
@@ -501,44 +501,55 @@
               <option value="harmonic-minor">harmonic minor</option>
             </select>
           </div>
-          <div style="flex: 0 0 auto;"><button id="session-gen" class="secondary" style="margin: 0; white-space: nowrap;" title="Write an in-key progression into the chord box — click again for another">🎲 in key →</button></div>
+          <div style="flex: 0 0 auto;"><button id="session-gen" class="secondary" style="margin: 0; white-space: nowrap;" title="Write an in-key progression into the box below — click again for another">🎲 in key →</button></div>
         </div>
         <div class="small" id="session-key-readout" style="margin-top: 6px; color: var(--fg-faint); font-family: 'JetBrains Mono', monospace;">—</div>
-      </div>
-      <label>Chord progression (space-separated)</label>
-      <input type="text" id="prog-chords" value="Cm Ab Eb Bb" placeholder="Cm Ab Eb Bb" />
-      <div class="row">
-        <div>
-          <label>Loop length</label>
-          <select id="prog-loop-length">
-            <option value="4">4 bars</option>
-            <option value="8" selected>8 bars</option>
-            <option value="16">16 bars</option>
-          </select>
-        </div>
-        <div>
-          <label style="color: var(--fg-faint);">= bars per chord (auto)</label>
-          <input type="number" id="prog-bpc" value="2" min="1" max="16" readonly style="background: var(--bg-2); color: var(--fg-dim); cursor: not-allowed;" title="Computed from loop length ÷ chord count" />
-        </div>
-      </div>
-      <!-- Live readout: how long this loop is. Goes red if not a power-of-2 bar count. -->
-      <div id="prog-length-readout" style="margin-top: 8px; padding: 8px 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; color: var(--fg-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;">
-        <span style="color: var(--fg-faint);">Loop length:</span>
-        <span id="prog-length-text">4 chords × 2 bars = 8 bars / 32 beats @ 120 BPM (4.0s per chord, 16.0s total)</span>
-      </div>
 
-      <!-- 🎼 COLLECT — hop this progression across multiple synths, capture each synth's interface
-           inputs at once, split into named perfect-looped stems. Uses the progression/key/BPM above. -->
-      <div id="collect-panel" style="margin-top: 12px; padding: 10px; background: var(--bg-3); border: 1px solid var(--border); border-left: 3px solid var(--green, #5fb866); border-radius: 2px;">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--green, #5fb866); margin-bottom: 4px;">🎼 COLLECT <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— fire this progression across your synths, grab each as its own stem</span></div>
-        <div class="small" style="color: var(--fg-faint); margin-bottom: 6px;">name · MIDI port · channel (1-16 or "all") · interface input ch · TX-6 must be free</div>
-        <div id="collect-parts"></div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
-          <button id="collect-add-part" class="secondary" style="margin: 0; padding: 4px 10px; font-size: 11px;">+ add part</button>
-          <button id="collect-fire" class="primary" style="margin: 0;">🎼 Collect</button>
-          <span id="collect-status" class="small" style="color: var(--fg-faint);"></span>
+        <!-- 2 · THE PROGRESSION + loop length -->
+        <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+          <label>Chord progression (space-separated)</label>
+          <input type="text" id="prog-chords" value="Cm Ab Eb Bb" placeholder="Cm Ab Eb Bb" />
+          <div class="row">
+            <div>
+              <label>Loop length</label>
+              <select id="prog-loop-length">
+                <option value="4">4 bars</option>
+                <option value="8" selected>8 bars</option>
+                <option value="16">16 bars</option>
+              </select>
+            </div>
+            <div>
+              <label style="color: var(--fg-faint);">= bars per chord (auto)</label>
+              <input type="number" id="prog-bpc" value="2" min="1" max="16" readonly style="background: var(--bg-2); color: var(--fg-dim); cursor: not-allowed;" title="Computed from loop length ÷ chord count" />
+            </div>
+          </div>
+          <div id="prog-length-readout" style="margin-top: 8px; padding: 8px 10px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; color: var(--fg-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;">
+            <span style="color: var(--fg-faint);">Loop length:</span>
+            <span id="prog-length-text">4 chords × 2 bars = 8 bars / 32 beats @ 120 BPM (4.0s per chord, 16.0s total)</span>
+          </div>
         </div>
-        <div id="collect-result" style="margin-top: 8px;"></div>
+
+        <!-- 3 · PREVIEW — hear it live through your synth, looped until you stop -->
+        <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+          <label>Preview live</label>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <button class="primary" id="audition-btn" style="padding: 8px 16px; font-size: 12px;" title="Loop MIDI to the actual synth — hear your real patch. No recording.">🎹 Preview (live, loop)</button>
+            <button class="red" id="preview-stop-btn" disabled style="padding: 8px 16px; font-size: 12px;">■ Stop</button>
+          </div>
+        </div>
+
+        <!-- 4 · COLLECT — record it off your synth(s). One synth = one stem; "+ add synth" for a multi-synth grab. -->
+        <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--green, #5fb866); margin-bottom: 4px;">🎼 COLLECT <span style="color: var(--fg-faint); font-weight: 400; text-transform: none;">— record this progression off your synth(s) as looped stems</span></div>
+          <div class="small" style="color: var(--fg-faint); margin-bottom: 6px;">name · MIDI port · channel (1-16 or "all") · interface input ch · TX-6 must be free</div>
+          <div id="collect-parts"></div>
+          <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+            <button id="collect-add-part" class="secondary" style="margin: 0; padding: 4px 10px; font-size: 11px;">+ add synth</button>
+            <button id="collect-fire" class="primary" style="margin: 0;">🎼 Collect</button>
+            <span id="collect-status" class="small" style="color: var(--fg-faint);"></span>
+          </div>
+          <div id="collect-result" style="margin-top: 8px;"></div>
+        </div>
       </div>
     </div>
 
