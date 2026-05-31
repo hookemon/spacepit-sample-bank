@@ -496,6 +496,23 @@
           <button id="collect-fire" class="primary" style="margin: 0; padding: 8px 16px; font-size: 12px;">🎼 Collect</button>
           <span id="collect-status" class="small" style="color: var(--fg-faint);"></span>
         </div>
+        <!-- …or grab a playable INSTRUMENT per synth from the same rows — walks a note range instead of a loop -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+          <span class="small" style="color: var(--fg-faint);">…or a playable instrument:</span>
+          <select id="ms-multi-range" style="margin: 0; font-size: 11px; padding: 3px 6px; width: auto;" title="Note range sampled across each synth">
+            <option value="C2-C5" selected>C2–C5</option>
+            <option value="C1-C6">C1–C6</option>
+            <option value="C2-C4">C2–C4</option>
+          </select>
+          <select id="ms-multi-step" style="margin: 0; font-size: 11px; padding: 3px 6px; width: auto;" title="Smaller step = more notes = better instrument, but a longer capture">
+            <option value="3">every 3 (dense)</option>
+            <option value="4" selected>every 4</option>
+            <option value="6">every 6 (fast)</option>
+            <option value="12">every octave</option>
+          </select>
+          <button id="ms-multi-fire" class="secondary" style="margin: 0; padding: 6px 14px; font-size: 12px;" title="Walk the note range across every synth row above, then slice into a per-synth folder of note-named WAVs — drag each into Ableton Sampler">🎹 Multisample</button>
+          <span id="ms-multi-status" class="small" style="color: var(--fg-faint);"></span>
+        </div>
         <div id="collect-result" style="margin-top: 8px;"></div>
 
         <!-- 🎹 PLAY ALONG — set the session key, roll an in-key progression -->

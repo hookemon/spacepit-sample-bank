@@ -3870,6 +3870,44 @@
         btn.disabled = false;
       }
     });
+
+    // 🎹 Multisample — walk a chromatic note range across the SAME synth rows → a per-synth instrument folder.
+    document.getElementById('ms-multi-fire')?.addEventListener('click', async () => {
+      const parts = [...wrap.querySelectorAll('.collect-part-row')].map(r => ({
+        name: r.querySelector('.cp-name').value.trim() || 'synth',
+        port: r.querySelector('.cp-port').value.trim(),
+        channel: r.querySelector('.cp-ch').value.trim() || '1',
+        input_channels: r.querySelector('.cp-ins').value.trim() || '1,2',
+      })).filter(p => p.port);
+      const st = document.getElementById('ms-multi-status');
+      const res = document.getElementById('collect-result');
+      if (!parts.length) { res.innerHTML = '<div class="status error">add at least one synth row first</div>'; return; }
+      const body = {
+        note_range: document.getElementById('ms-multi-range')?.value || 'C2-C5',
+        step: parseInt(document.getElementById('ms-multi-step')?.value) || 4,
+        audio_device: 'TX-6',
+        parts,
+      };
+      const btn = document.getElementById('ms-multi-fire'); btn.disabled = true;
+      st.textContent = 'multisampling… walking the range through each synth (couple min, hands-off)'; res.innerHTML = '';
+      try {
+        const r = await fetch('/api/multisample-multi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        let d;
+        try { d = await r.json(); }
+        catch (_) {
+          res.innerHTML = `<div class="status error">${r.status === 404 ? 'Multisample endpoint not found — restart the bench server (new server code doesn\'t load on a page refresh).' : 'server returned a non-JSON response (HTTP ' + r.status + ')'}</div>`;
+          st.textContent = ''; return;
+        }
+        if (!d.ok) { res.innerHTML = `<div class="status error">${d.error || 'multisample failed'}</div>`; st.textContent = ''; return; }
+        st.textContent = `✓ ${d.synths.length} instrument${d.synths.length === 1 ? '' : 's'}`;
+        res.innerHTML = `<div class="small" style="color:var(--fg-dim); margin-bottom:2px;">→ ${d.folder || ''} — drag each folder into Ableton Sampler</div>`
+          + d.synths.map(s => `<div class="small" style="color:${s.silent ? 'var(--amber)' : 'var(--fg)'};">${s.silent ? '⚠' : '🎹'} ${s.name}: ${s.notes} notes · peak ${s.peak_db.toFixed(1)} dBFS${s.silent ? ' — SILENT (TX-6 free? check routing)' : ''}</div>`).join('');
+      } catch (e) {
+        res.innerHTML = `<div class="status error">${e.message}</div>`; st.textContent = '';
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
   if (document.readyState !== 'loading') setup();
   else document.addEventListener('DOMContentLoaded', setup);

@@ -1258,6 +1258,58 @@ def collect_multi():
         capture_lock.release()
 
 
+@app.route("/api/multisample-multi", methods=["POST"])
+def multisample_multi():
+    """Multi-synth multisampler — walk a chromatic note range across synths on different MIDI
+    ports/channels, record each synth's interface inputs at once, slice into a per-synth folder of
+    note-named WAVs (drag each into Ableton Sampler → an instrument per synth). Runs
+    tools/capture/multisample-multi.py (mirrors collect-multi) under the capture lock.
+
+    Body: { note_range ("C2-C5"), step, sustain, tail, audio_device,
+            parts: [{ name, port, channel ("1"-"16" or "all"), input_channels ("1,2") }] }
+    """
+    if not capture_lock.acquire(blocking=False):
+        return jsonify({"error": "capture already in progress"}), 409
+    try:
+        params = request.get_json() or {}
+        parts = params.get("parts") or []
+        if not parts:
+            return jsonify({"error": "no parts — add at least one synth to multisample"}), 400
+        out_dir = params.get("out") or str(Path.home() / "Desktop" / "multisampled")
+        py = str(VENV_PY) if VENV_PY.exists() else sys.executable
+        cmd = [py, str(TOOLS_DIR / "capture" / "multisample-multi.py"),
+               "--audio-device", params.get("audio_device", "TX-6"),
+               "--note-range", params.get("note_range", "C2-C5"),
+               "--step", str(params.get("step", 4)),
+               "--out", out_dir]
+        if params.get("sustain"):
+            cmd += ["--sustain", str(params["sustain"])]
+        if params.get("tail"):
+            cmd += ["--tail", str(params["tail"])]
+        for p in parts:
+            cmd += ["--part", f"{p.get('name', 'synth')}:{p.get('port', '')}:{p.get('channel', '1')}:{p.get('input_channels', '1,2')}"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"multisample process failed: {e}"}), 500
+        out = result.stdout
+        fm = re.search(r"→\s+(.+)$", out, re.M)
+        folder = fm.group(1).strip() if fm else None
+        synths = [{"name": m.group(1), "notes": int(m.group(2)), "peak_db": float(m.group(3)),
+                   "silent": ("SILENT" in m.group(4)) or float(m.group(3)) < -45}
+                  for m in re.finditer(r"^\s+(\S+)\s+\((\d+) notes[^)]*\): peak\s+(-?[\d.]+)\s+dBFS(.*)$", out, re.M)]
+        if result.returncode != 0 and not synths:
+            return jsonify({"ok": False, "error": "multisample failed — check synths / TX-6 routing",
+                            "stdout_tail": out[-1500:], "stderr_tail": result.stderr[-800:]}), 500
+        log_capture({"name": params.get("note_range", "C2-C5"), "style": "multisample-multi",
+                     "captured_at": datetime.now().isoformat(timespec="seconds"),
+                     "status": "pending", "params": params,
+                     "collect_folder": folder, "synth_count": len(synths)})
+        return jsonify({"ok": True, "folder": folder, "synths": synths, "stdout_tail": out[-1500:]})
+    finally:
+        capture_lock.release()
+
+
 @app.route("/api/keep", methods=["POST"])
 def keep():
     """Confirm the last capture as a keeper. Writes a sidecar JSON next to the WAV."""
