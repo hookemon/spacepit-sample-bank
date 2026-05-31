@@ -2393,7 +2393,10 @@ def audition_ping():
 
 @app.route("/api/audition-start", methods=["POST"])
 def audition_start():
-    """Loop a chord progression through MIDI to the synth — no recording. Stop via /api/audition-stop."""
+    """Loop a chord progression through MIDI — no recording. Fires to EVERY synth in `parts` (so Preview
+    plays the Moog too, not just the JP), exactly like Collect: a part named bass/sub plays the root an
+    octave down; every other part plays the full chord. Falls back to a single `midi_port` if no parts
+    are given. Stop via /api/audition-stop."""
     global audition_thread
     if audition_thread and audition_thread.is_alive():
         return jsonify({"error": "audition already running. Stop first."}), 409
@@ -2405,6 +2408,18 @@ def audition_start():
     midi_port_name = params.get("midi_port", "Moog Grandmother")
     midi_channel = int(params.get("midi_channel", 1)) - 1
     velocity = int(params.get("velocity", 80))
+    # Optional multi-synth parts (mirrors Collect). Each: {name, port, channel}. channel "all" → every
+    # channel (handy when a synth's receive channel is unknown, like the Grandmother on its own port).
+    import re as _re_parts
+    parts_spec = []
+    for p in (params.get("parts") or []):
+        port_name = (p.get("port") or "").strip()
+        if not port_name:
+            continue
+        chv = str(p.get("channel", "1")).strip().lower()
+        channels = list(range(16)) if chv == "all" else [max(0, int(chv) - 1)]
+        role = "bass" if _re_parts.search(r"bass|sub", (p.get("name") or ""), _re_parts.I) else "chords"
+        parts_spec.append({"port": port_name, "channels": channels, "role": role})
 
     def loop_worker():
         import mido
@@ -2426,11 +2441,33 @@ def audition_start():
             return [root + i for i in ints]
         chords = [chord_midi(c) for c in chords_str.split()]
 
-        ports = mido.get_output_names()
-        matches = [p for p in ports if midi_port_name.lower() in p.lower()]
-        if not matches:
+        avail = mido.get_output_names()
+        opened = {}   # real device name -> open port (each unique device opened once)
+        def get_port(name):
+            ms = [pp for pp in avail if name.lower() in pp.lower()]
+            if not ms:
+                return None
+            real = ms[0]
+            if real not in opened:
+                opened[real] = mido.open_output(real)
+            return opened[real]
+
+        # Build voices — one per (port, channel). Multi-synth from parts; else the single-port fallback.
+        voices = []   # each: {'port': <mido port>, 'channel': int, 'role': 'bass'|'chords'}
+        if parts_spec:
+            for ps in parts_spec:
+                pt = get_port(ps["port"])
+                if pt is None:
+                    continue
+                for ch in ps["channels"]:
+                    voices.append({"port": pt, "channel": ch, "role": ps["role"]})
+        else:
+            pt = get_port(midi_port_name)
+            if pt is not None:
+                voices.append({"port": pt, "channel": midi_channel, "role": "chords"})
+        if not voices:
             return
-        port = mido.open_output(matches[0])
+
         sec_per_bar = (60.0 / bpm) * 4
         sec_per_chord = bars_per_chord * sec_per_bar
         total_loop_sec = sec_per_chord * len(chords)
@@ -2444,6 +2481,16 @@ def audition_start():
                 if audition_stop_flag.wait(min(remaining, 0.05)):
                     return True
 
+        def notes_for(chord, role):
+            if not chord:
+                return []
+            if role == "bass":
+                return [chord[0] - 12]
+            return [chord[0]] if send_mode == "root" else chord
+
+        # Arp only makes sense for a single synth; multi-synth previews sustain (matches Collect).
+        arp_single = (len(voices) == 1 and send_mode == "arp")
+
         try:
             # ABSOLUTE time anchor — every chord lands at a deterministic offset from
             # t_loop_start, so MIDI send overhead doesn't accumulate as drift.
@@ -2451,42 +2498,46 @@ def audition_start():
             t_loop_start = _time.time()
             pass_count = 0
             while not audition_stop_flag.is_set():
-                prev_notes = []
+                held = {}   # voice index -> [notes currently on]
                 pass_start_t = t_loop_start + pass_count * total_loop_sec
-                for i, notes in enumerate(chords):
+                for i, chord in enumerate(chords):
                     if audition_stop_flag.is_set(): break
-                    if not notes: continue
+                    if not chord: continue
                     target_t = pass_start_t + i * sec_per_chord
                     # wait until this chord's start moment
                     if sleep_until(target_t): break
-                    play_notes = [notes[0]] if send_mode == 'root' else notes
-                    # note_off prev, note_on new
-                    for n in prev_notes:
-                        port.send(mido.Message('note_off', note=n, velocity=0, channel=midi_channel))
-                    if send_mode == 'arp':
-                        prev_notes = []
+                    if arp_single:
+                        v = voices[0]
+                        for n in held.get(0, []):
+                            v["port"].send(mido.Message('note_off', note=n, velocity=0, channel=v["channel"]))
+                        held[0] = []
                         arp_interval = sec_per_bar / 16  # 1/16 note
                         n_arp = max(1, int(round(sec_per_chord / arp_interval)))
-                        # Arp notes within the chord — anchored to target_t so they
-                        # land exactly on each 16th-note grid position.
+                        # Arp notes anchored to target_t so they land on each 16th-note grid position.
                         for k in range(n_arp):
                             if audition_stop_flag.is_set(): break
                             t_arp_on = target_t + k * arp_interval
                             t_arp_off = target_t + k * arp_interval + arp_interval * 0.8
                             if sleep_until(t_arp_on): break
-                            note = play_notes[k % len(play_notes)]
-                            port.send(mido.Message('note_on', note=note, velocity=velocity, channel=midi_channel))
+                            note = chord[k % len(chord)]
+                            v["port"].send(mido.Message('note_on', note=note, velocity=velocity, channel=v["channel"]))
                             if sleep_until(t_arp_off): break
-                            port.send(mido.Message('note_off', note=note, velocity=0, channel=midi_channel))
+                            v["port"].send(mido.Message('note_off', note=note, velocity=0, channel=v["channel"]))
                     else:
-                        for n in play_notes:
-                            port.send(mido.Message('note_on', note=n, velocity=velocity, channel=midi_channel))
-                        prev_notes = play_notes
+                        # Sustained chord/root across every voice — each synth on its own port + channel.
+                        for vi, v in enumerate(voices):
+                            play = notes_for(chord, v["role"])
+                            for n in held.get(vi, []):
+                                v["port"].send(mido.Message('note_off', note=n, velocity=0, channel=v["channel"]))
+                            for n in play:
+                                v["port"].send(mido.Message('note_on', note=n, velocity=velocity, channel=v["channel"]))
+                            held[vi] = play
                 # end of one pass — release held notes, wait until exact loop boundary
                 # before starting the next pass (this prevents the cleanup overhead from
                 # pushing pass 2's downbeat past the click's bar 1)
-                for n in prev_notes:
-                    port.send(mido.Message('note_off', note=n, velocity=0, channel=midi_channel))
+                for vi, v in enumerate(voices):
+                    for n in held.get(vi, []):
+                        v["port"].send(mido.Message('note_off', note=n, velocity=0, channel=v["channel"]))
                 # Keepalive check: if the frontend stopped pinging (e.g. tab closed),
                 # bail out so we don't loop forever after the user walked away.
                 if _time_mod.time() - audition_last_ping > AUDITION_KEEPALIVE_TIMEOUT:
@@ -2496,17 +2547,21 @@ def audition_start():
                 if sleep_until(pass_end_t): break
                 pass_count += 1
         finally:
-            # cleanup
-            for ch in range(16):
-                port.send(mido.Message('control_change', control=123, value=0, channel=ch))
-            port.close()
+            # cleanup — all-notes-off on every channel of every opened device, then close
+            for pt in opened.values():
+                for ch in range(16):
+                    try:
+                        pt.send(mido.Message('control_change', control=123, value=0, channel=ch))
+                    except Exception:
+                        pass
+                pt.close()
 
     global audition_last_ping
     audition_last_ping = _time_mod.time()  # fresh keepalive timer on start
     audition_stop_flag.clear()
     audition_thread = threading.Thread(target=loop_worker, daemon=True)
     audition_thread.start()
-    return jsonify({"ok": True, "looping": chords_str, "bpm": bpm})
+    return jsonify({"ok": True, "looping": chords_str, "bpm": bpm, "synths": len(parts_spec) or 1})
 
 
 @app.route("/api/audition-stop", methods=["POST"])

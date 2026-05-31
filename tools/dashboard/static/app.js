@@ -2999,6 +2999,13 @@
     await new Promise(r => setTimeout(r, 30));
     // 4. Start the audition — its t_loop_start = now, which is "1" for everything
 
+    // Preview fires the SAME synth rows Collect uses — so you hear EVERY synth (the Moog too), not just
+    // the selected one. Each row's name decides its part (bass/sub → root; else → full chord), like Collect.
+    const previewParts = [...document.querySelectorAll('.collect-part-row')].map(row => ({
+      name: row.querySelector('.cp-name')?.value.trim() || 'part',
+      port: row.querySelector('.cp-port')?.value.trim() || '',
+      channel: row.querySelector('.cp-ch')?.value.trim() || '1',
+    })).filter(p => p.port);
     try {
       const r = await fetch('/api/audition-start', {
         method: 'POST',
@@ -3006,11 +3013,13 @@
         body: JSON.stringify({
           progression: chordStr, bpm, bars_per_chord: bpc, send_mode: sendMode,
           midi_port: settings.midi_port, midi_channel: 1,
+          parts: previewParts,
         }),
       });
       const data = await r.json();
       if (data.ok) {
-        setStatus(`🔒 Locked to 1 — auditioning ${chordStr} @ ${bpm} BPM through ${settings.midi_port}.`, 'success');
+        const through = previewParts.length ? previewParts.map(p => p.port).join(' + ') : settings.midi_port;
+        setStatus(`🔒 Locked to 1 — auditioning ${chordStr} @ ${bpm} BPM through ${through}.`, 'success');
         startAuditionKeepalive();
       } else {
         setStatus(`Audition failed: ${data.error}`, 'error');
