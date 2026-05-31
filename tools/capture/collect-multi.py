@@ -138,7 +138,13 @@ def main():
                 looped = True
             except ValueError as e:
                 print(f"   (loop skipped for {p['name']}: {e} — wrote raw)")
-        sf.write(str(outdir / f"{p['name']}.wav"), stem, sr, subtype="PCM_24")
+        stem_path = outdir / f"{p['name']}.wav"
+        sf.write(str(stem_path), stem, sr, subtype="PCM_24")
+        if looped:                                   # embed tempo so Ableton auto-warps the loop on import
+            try:
+                pl.write_acid_chunk(stem_path, tempo=a.bpm, beats=total_bars * 4)
+            except Exception:
+                pass
         pk = float(np.max(np.abs(stem))) if stem.size else 0.0
         db = 20 * np.log10(pk) if pk > 0 else -99
         warn = "   ⚠ SILENT — is the TX-6 held by Ableton/another app? check routing + levels" if db < -45 else ""
