@@ -46,16 +46,26 @@ def make_loop(audio: np.ndarray, sr: int, bpm: float, bars: int, meter: int = 4,
         raise ValueError(f"recording is {short:.2f}s too short — need {loop_len/sr:.3f}s of audio "
                          f"from the transient. Record a little more.")
     loop = audio[onset:end].astype(np.float64).copy()
-    # sample-continuous wrap: blend the loop's head with the audio just PAST the loop point, so
-    # loop[0] == audio[end] (continuous with loop[-1] == audio[end-1]). Needs a bit of tail.
-    X = int(min(round(xfade_ms / 1000 * sr), loop_len // 8, len(audio) - end))
+    # SEAMLESS WRAP — done on the TAIL, never the head, so the downbeat transient at loop[0] stays
+    # PRISTINE. (The old code blended the head with the audio just PAST the loop point, which replaced
+    # the first ~14ms of the downbeat with the last chord's decay — the loop no longer "started on the
+    # transient," it started on the tail. That was the muddy start.) Instead we fade the loop's last X
+    # samples toward the audio just BEFORE the onset (the pre-roll), so the final sample lands where the
+    # downbeat naturally begins: loop[-1] → loop[0] is continuous exactly like the take's onset-1 → onset.
+    # Pre-roll is ~silence (the sound started from silence), so the tail fades out into the downbeat the
+    # same way the take began — no seam click, attack 100% intact.
+    X = int(min(round(xfade_ms / 1000 * sr), loop_len // 8))
     wrapped = False
     if X > 8:
-        cont = audio[end:end + X].astype(np.float64)
-        if cont.ndim == 1:
-            cont = cont[:, None]
-        fin = np.linspace(0.0, 1.0, X)[:, None]
-        loop[:X] = loop[:X] * fin + cont * (1.0 - fin)
+        ch = loop.shape[1] if loop.ndim > 1 else 1
+        avail = min(X, onset)
+        pre = audio[onset - avail:onset].astype(np.float64) if avail > 0 else np.zeros((0, ch))
+        if pre.ndim == 1:
+            pre = pre[:, None]
+        if avail < X:                                   # not enough lead-in → pad with silence
+            pre = np.vstack([np.zeros((X - avail, ch)), pre])
+        fade = np.linspace(0.0, 1.0, X)[:, None]        # 0 at start of the tail region → 1 at the very end
+        loop[-X:] = loop[-X:] * (1.0 - fade) + pre * fade
         wrapped = True
     pk = float(np.max(np.abs(loop)))
     if pk > 0.999:
