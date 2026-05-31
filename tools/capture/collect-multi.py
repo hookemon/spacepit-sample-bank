@@ -37,6 +37,10 @@ import mido
 _spec = importlib.util.spec_from_file_location("rp", str(Path(__file__).parent / "record-progression.py"))
 rp = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rp)
+# reuse the perfect-loop logic (first-transient onset trim + exact bar math + seam crossfade)
+_lspec = importlib.util.spec_from_file_location("pl", str(Path(__file__).parent.parent / "pack" / "perfect-loop.py"))
+pl = importlib.util.module_from_spec(_lspec)
+_lspec.loader.exec_module(pl)
 
 
 def resolve_device(name):
@@ -73,12 +77,14 @@ def main():
     ap.add_argument("--out", default=str(Path.home() / "Desktop" / "collected"))
     ap.add_argument("--sample-rate", type=int, default=48000)
     ap.add_argument("--tail-sec", type=float, default=1.0)
+    ap.add_argument("--no-loop", action="store_true", help="write raw stems instead of perfect-looped (default: loop each stem to exact bars at the BPM)")
     a = ap.parse_args()
 
     parts = [parse_part(s) for s in a.part]
     prog = rp.parse_progression(a.progression, root_octave=3)
     chord_sec = a.bars_per_chord * 4 * (60.0 / a.bpm)   # 4 beats per bar
     total_sec = len(prog) * chord_sec + a.tail_sec
+    total_bars = len(prog) * a.bars_per_chord   # the whole progression's bar count = the loop length
     sr = a.sample_rate
     n = int(total_sec * sr)
 
@@ -121,15 +127,22 @@ def main():
     setname = f"hook_{(slugify(a.key) + '_') if a.key else ''}{int(a.bpm)}bpm_{slugify(a.progression)}"
     outdir = Path(a.out).expanduser() / setname
     outdir.mkdir(parents=True, exist_ok=True)
-    print(f"✓ {len(parts)} stems → {outdir}")
+    print(f"✓ {len(parts)} stems{f' · looped to {total_bars} bars @ {a.bpm:g} BPM' if not a.no_loop else ' · raw'} → {outdir}")
     for p in parts:
         cols = [mapping.index(c) for c in p["ins"]]
         stem = rec[:, cols]
+        looped = False
+        if not a.no_loop:
+            try:
+                stem = pl.make_loop(stem, sr, a.bpm, total_bars)[0]   # onset trim + exact bars + seam blend
+                looped = True
+            except ValueError as e:
+                print(f"   (loop skipped for {p['name']}: {e} — wrote raw)")
         sf.write(str(outdir / f"{p['name']}.wav"), stem, sr, subtype="PCM_24")
         pk = float(np.max(np.abs(stem))) if stem.size else 0.0
         db = 20 * np.log10(pk) if pk > 0 else -99
         warn = "   ⚠ SILENT — is the TX-6 held by Ableton/another app? check routing + levels" if db < -45 else ""
-        print(f"   {p['name']:8} ({p['role']}, ins {p['ins']}): peak {db:5.1f} dBFS{warn}")
+        print(f"   {p['name']:8} ({p['role']}, ins {p['ins']}): peak {db:5.1f} dBFS{'  · looped' if looped else ''}{warn}")
 
 
 if __name__ == "__main__":
