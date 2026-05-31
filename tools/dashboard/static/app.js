@@ -1098,6 +1098,15 @@
   const WAVSTRIP_MIN = 40, WAVSTRIP_MAX = 360;
   let wavstripPatch = null;     // patch name currently shown in the strip (for the wipe button)
   let captureTarget = null;     // factory preset just clicked in the catalog — its slot link rides along on the next multisample capture so the slot flips ✓ + click-to-load works even when renamed
+  let currentPreset = null;     // the sound now loaded on the synth (last preset click) — stamped onto any progression you fire, so a take always knows its patch
+  try { const _cp = localStorage.getItem('benchCurrentPreset'); if (_cp) currentPreset = JSON.parse(_cp); } catch (e) {}
+  function updatePresetReadout() {
+    const el = document.getElementById('current-preset-readout');
+    if (!el) return;
+    el.innerHTML = currentPreset
+      ? `🎛 sound: <b style="color: var(--fg);">${currentPreset.display}</b> <span style="color: var(--fg-faint);">— fired progressions get stamped with this</span>`
+      : `🎛 sound: <span style="color: var(--fg-faint);">— click a preset to load one</span>`;
+  }
 
   async function renderPatchWavStrip(patchData) {
     const block = document.getElementById('patch-wavstrip-block');
@@ -1779,6 +1788,14 @@
           // Pull up the patch detail card — beautiful big presentation of what's selected
           showPatchDetail(patchData, presetId);
 
+          // Remember the sound now loaded on the synth — it gets stamped onto any progression you fire.
+          currentPreset = {
+            name: patchData.name,
+            display: patchData.preset_name ? `${patchData.preset_position ? patchData.preset_position + ' · ' : ''}${patchData.preset_name}` : patchData.name,
+          };
+          try { localStorage.setItem('benchCurrentPreset', JSON.stringify(currentPreset)); } catch (e) {}
+          updatePresetReadout();
+
           // Pre-fill the capture NAME so it's ready — but DON'T force the capture style. If you're on
           // Chord progression (or any mode), clicking a preset just loads it; you stay where you are.
           // (The detail card's "capture" button is the deliberate switch-to-multisample action.)
@@ -1800,6 +1817,7 @@
           }
         });
       });
+      updatePresetReadout();   // reflect the loaded sound in the Play Along block
 
     } catch (e) {
       listEl.innerHTML = `<div style="color: var(--red, #c44);">error: ${e.message}</div>`;
@@ -1826,6 +1844,8 @@
         bpm: parseFloat(document.getElementById('prog-bpm').value) || 120,
         bars_per_chord: parseFloat(document.getElementById('prog-bpc').value) || 2,
         send_mode: document.getElementById('prog-send-mode')?.value || 'chord',
+        preset: currentPreset?.display || '',        // the sound this progression was played on
+        preset_name: currentPreset?.name || '',
       };
     }
     if (currentStyle === 'multisample') {
@@ -3236,7 +3256,7 @@
           <div style="display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-3); border-left: 2px solid ${statusColor};">
             <span style="color: ${statusColor}; font-weight: 700; min-width: 16px;">${statusIcon}</span>
             <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 12px; color: var(--fg);">${realName(c.params?.patch || c.name)} <span style="color: var(--fg-faint); font-size: 10px;">· ${c.style} · ${time}</span></div>
+              <div style="font-size: 12px; color: var(--fg);">${realName(c.params?.patch || c.name)} <span style="color: var(--fg-faint); font-size: 10px;">· ${c.style} · ${time}</span>${c.params?.preset ? ` <span style="color: var(--amber); font-size: 10px;" title="played on this preset">🎛 ${c.params.preset}</span>` : ''}</div>
               <div class="small" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.wav_path}</div>
             </div>
             ${actions}
